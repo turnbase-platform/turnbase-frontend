@@ -62,6 +62,13 @@ npm run test             # coverage ≥70%, unit only
 npm run build            # production build must pass
 ```
 
+The lint stack is pinned in `conventions.md` §2, not left to `npm create vite`: ESLint **flat
+config**, `typescript-eslint` **strict** + stylistic (type-aware), `eslint-plugin-react-hooks`, and
+`eslint-config-prettier` **last** so ESLint stops having opinions about formatting. `tsconfig` runs
+`strict: true`.
+
+`git config core.hooksPath .githooks` once, to get the `pre-push` fast-fail.
+
 There is no integration or e2e tier here — end-to-end coverage of the platform uses HTTP and
 WebSocket clients, not a browser (FR-CICD-005).
 
