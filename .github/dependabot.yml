@@ -26,6 +26,11 @@ updates:
       # through the CLI (the same class of trap IMP-M0-04 found with Espresso).
       - dependency-name: "@astryxdesign/*"
       - dependency-name: "@stylexjs/stylex"
+      # jsdom 30.x's own `engines` field requires Node ^22.22.2 || ^24.15.0 || >=26.0.0, past
+      # what .nvmrc pins (22.20.0) — found the hard way when the first Dependabot PR bumped
+      # it and only warned (EBADENGINE), rather than failing, npm ci.
+      - dependency-name: jsdom
+        versions: [">=30.0.0"]
     groups:
       lint-format:
         patterns:
