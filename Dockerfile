@@ -1,6 +1,6 @@
 # Static bundle. Unlike turnbase-platform, the build runs inside the image: npm packages are
 # all public (Astryx included), so there is no private-registry credential problem to avoid.
-FROM node:22.20.0-alpine AS build
+FROM node:26.8.1-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
