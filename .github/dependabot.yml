@@ -53,6 +53,13 @@ updates:
     commit-message:
       prefix: chore
       include: scope
+    ignore:
+      # The build stage's Node major is pinned to .nvmrc's dev toolchain version (22), not
+      # left to float — a Dependabot PR proved the build stage itself still compiles under
+      # 26, but that says nothing about whether the rest of the toolchain (this repo's own
+      # devDependencies, engines.node) has been verified against it yet.
+      - dependency-name: node
+        versions: [">=23"]
 
   - package-ecosystem: github-actions
     directory: /
