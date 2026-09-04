@@ -1,0 +1,19 @@
+/* design-system.md §2: cascade-layer order, and it is not cosmetic — theme tokens must land
+   after the component styles that read them, or the page renders with Astryx's built-in
+   defaults and gives no error. */
+@import "@astryxdesign/core/reset.css"; /* @layer reset */
+@import "@astryxdesign/core/astryx.css"; /* @layer astryx-base — component styles */
+@import "@astryxdesign/theme-neutral/theme.css"; /* @layer astryx-theme — token overrides */
+
+/* The theme names Figtree via --font-family-body/--font-family-heading but does not load it
+   (design-system.md §2). Self-hosted here — shell-architecture.md §6's CSP sets
+   font-src 'self', so a Google Fonts <link> would need widening a security directive for a
+   hosting convenience. Only the weights the theme actually uses (§6 heading scale: semibold,
+   bold; body: normal). */
+@import "@fontsource/figtree/400.css";
+@import "@fontsource/figtree/600.css";
+@import "@fontsource/figtree/700.css";
+
+body {
+  font-family: var(--font-family-body);
+}

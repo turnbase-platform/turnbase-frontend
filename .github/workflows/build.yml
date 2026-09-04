@@ -1,0 +1,59 @@
+# Build and test checks for turnbase-frontend.
+#
+# IMP-M0-05 owns this file: build, lint, typecheck, unit tests, container build. IMP-M0-11
+# owns the rest of the pipeline for all five repositories — Trivy scan, publish on tag — and
+# extends this file rather than replacing it.
+#
+# master everywhere, never main (conventions.md §4). No buf job, no Java job: this repo has
+# no proto and no JVM toolchain.
+name: build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: warn
+
+  container:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: turnbase/frontend:ci
