@@ -1,0 +1,58 @@
+# Supply-chain updates, per conventions.md §6 and platform-operations.md FR-CICD-010.
+#
+# Trivy scanning is wired by IMP-M0-11 with the rest of the shared pipeline; this file is
+# the half that is pure configuration and therefore cheaper to land now than to remember
+# later.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    ignore:
+      # typescript-eslint@8.69.0's peer range is ">=4.8.4 <6.1.0" (same trap IMP-M0-02 found)
+      # — TypeScript 6.1+ and the TS 7 native-compiler line fail npm install with ERESOLVE.
+      # 6.0.3 is a deliberate pin; moving past 6.1 needs a typescript-eslint bump in the same
+      # change, which Dependabot cannot coordinate across two packages.
+      - dependency-name: typescript
+        versions: [">=6.1.0"]
+      # Astryx is Beta — design-system.md §1: "pin exact versions... upgrades are deliberate
+      # and run through `astryx upgrade --apply`", not a routine version-range bump. No floor
+      # at all, because even a patch bump is a different, un-codemodded build until run
+      # through the CLI (the same class of trap IMP-M0-04 found with Espresso).
+      - dependency-name: "@astryxdesign/*"
+      - dependency-name: "@stylexjs/stylex"
+    groups:
+      lint-format:
+        patterns:
+          - eslint*
+          - "@typescript-eslint/*"
+          - typescript-eslint
+          - prettier
+      build-test:
+        patterns:
+          - vite
+          - "@vitejs/*"
+          - vitest
+          - "@vitest/*"
+          - jsdom
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
