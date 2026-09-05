@@ -60,8 +60,8 @@ jobs:
           scan-type: fs
           scan-ref: .
           scanners: vuln
-          severity: 'LOW,MEDIUM,HIGH,CRITICAL'
-          exit-code: '0'
+          severity: "LOW,MEDIUM,HIGH,CRITICAL"
+          exit-code: "0"
 
       - name: Trivy scan — dependencies (gate)
         uses: aquasecurity/trivy-action@v0.36.0
@@ -70,7 +70,7 @@ jobs:
           scan-ref: .
           scanners: vuln
           severity: CRITICAL
-          exit-code: '1'
+          exit-code: "1"
 
   container:
     runs-on: ubuntu-latest
@@ -89,15 +89,15 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: turnbase/frontend:ci
-          severity: 'LOW,MEDIUM,HIGH,CRITICAL'
-          exit-code: '0'
+          severity: "LOW,MEDIUM,HIGH,CRITICAL"
+          exit-code: "0"
 
       - name: Trivy scan — image (gate)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: turnbase/frontend:ci
           severity: CRITICAL
-          exit-code: '1'
+          exit-code: "1"
 
       - name: Log in to GHCR
         if: github.event_name == 'push'
