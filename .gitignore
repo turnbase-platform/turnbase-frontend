@@ -1,5 +1,8 @@
 node_modules/
 dist/
 coverage/
+# tsc -b writes these next to the tsconfigs; they are per-machine incremental
+# build state, not source.
+*.tsbuildinfo
 *.local
 .DS_Store
