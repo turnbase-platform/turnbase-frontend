@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@astryxdesign/cli": "0.5.2",
+    "@eslint/css": "2.0.0",
     "@eslint/js": "10.0.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
