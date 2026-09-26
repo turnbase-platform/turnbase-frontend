@@ -1,0 +1,27 @@
+#!/bin/sh
+# Sourced (not executed) by the nginx image's entrypoint before 20-envsubst-on-templates.sh, so
+# what is exported here is visible to the template rendering. Derives the two values the template
+# cannot compute itself — envsubst substitutes variables and does nothing else.
+#
+# Deployment configuration is read at container start, never at build time: the same image serves
+# every environment (game-asset-serving.md §3.1, local-environment.md §7.7).
+
+: "${TURNBASE_PLATFORM_ORIGIN:=http://turnbase.localhost:8080}"
+: "${TURNBASE_FRONTEND_UPSTREAM:=platform:8080}"
+# Not `: "${VAR:=...{gameId}...}"`: the `}` of `{gameId}` would end the expansion early and leave
+# the default truncated to `http://{gameId`.
+if [ -z "${TURNBASE_GAME_FRONTEND_ORIGIN_TEMPLATE:-}" ]; then
+  TURNBASE_GAME_FRONTEND_ORIGIN_TEMPLATE='http://{gameId}.games.localhost:8080'
+fi
+
+# game-asset-serving.md §6.3 — the only place `frame-src` is derived: `{gameId}` becomes `*`, and
+# a template with no `{gameId}` (the shared-origin configuration) is used verbatim.
+TURNBASE_FRAME_SRC=$(printf '%s' "$TURNBASE_GAME_FRONTEND_ORIGIN_TEMPLATE" | sed 's/{gameId}/*/g')
+
+# The `Host` that selects the shell: the platform origin without scheme, port or path. Every other
+# Host falls through to the monolith's games origin (local-environment.md §1).
+TURNBASE_PLATFORM_HOST=$(printf '%s' "$TURNBASE_PLATFORM_ORIGIN" |
+  sed -E 's#^[A-Za-z][A-Za-z0-9+.-]*://##; s#[/?#].*$##; s#:[0-9]+$##')
+
+export TURNBASE_PLATFORM_ORIGIN TURNBASE_GAME_FRONTEND_ORIGIN_TEMPLATE TURNBASE_FRONTEND_UPSTREAM
+export TURNBASE_FRAME_SRC TURNBASE_PLATFORM_HOST

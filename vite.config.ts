@@ -13,6 +13,10 @@ export default defineConfig({
     proxy: {
       "/api": { target: PLATFORM_ORIGIN, changeOrigin: true },
       "/ws": { target: PLATFORM_ORIGIN, changeOrigin: true, ws: true },
+      // Exactly the two the Frontend container proxies (local-environment.md §1).
+      // /auth/complete-registration is a shell route and must stay with Vite.
+      "/auth/google": { target: PLATFORM_ORIGIN, changeOrigin: true },
+      "/auth/callback": { target: PLATFORM_ORIGIN, changeOrigin: true },
     },
   },
 });

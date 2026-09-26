@@ -1,14 +1,45 @@
+import type { ComponentType, ReactNode } from "react";
+import { BrowserRouter, Link, Route, Routes } from "react-router";
+import { LinkProvider } from "@astryxdesign/core/Link";
 import { Theme } from "@astryxdesign/core/theme";
-import { Button } from "@astryxdesign/core/Button";
+import { ToastViewport } from "@astryxdesign/core/Toast";
 import { neutralTheme } from "@astryxdesign/theme-neutral/built";
+import { AuthProvider } from "../features/auth/AuthProvider";
+import { NavBar } from "./NavBar";
+import { RouteGuard } from "./RouteGuard";
+import { appRoutes } from "./routes";
 
-// shell-architecture.md §2: the shell mounts `<Theme>` once, at the root. `<LinkProvider>`
-// (the other of "the two providers") is added in IMP-M6-02, which is what brings in
-// react-router — there is no router yet for it to wrap.
-export function App() {
+// shell-architecture.md §2: the shell mounts `<Theme>` and `<LinkProvider>` once, at the root.
+// Without LinkProvider every Astryx Link (and every component rendering one) is a plain
+// `<a href>` and a click reloads the page — dropping the STOMP connection and all in-memory
+// session state. The router sits between the two because `Link` needs it.
+export function App({
+  Router = BrowserRouter,
+}: {
+  Router?: ComponentType<{ children: ReactNode }>;
+}) {
   return (
     <Theme theme={neutralTheme}>
-      <Button label="TurnBase" variant="primary" />
+      <Router>
+        <LinkProvider component={Link}>
+          <ToastViewport>
+            <AuthProvider>
+              <NavBar />
+              <main>
+                <Routes>
+                  {appRoutes.map(({ path, access, element }) => (
+                    <Route
+                      key={path}
+                      path={path}
+                      element={<RouteGuard access={access}>{element}</RouteGuard>}
+                    />
+                  ))}
+                </Routes>
+              </main>
+            </AuthProvider>
+          </ToastViewport>
+        </LinkProvider>
+      </Router>
     </Theme>
   );
 }

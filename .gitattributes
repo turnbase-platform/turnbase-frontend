@@ -5,3 +5,6 @@
 .githooks/* text eol=lf
 *.ts text eol=lf
 *.tsx text eol=lf
+# Sourced by the nginx entrypoint inside the image; a CRLF here is `\r': command not found` at
+# container start. The template is rendered verbatim into the nginx config.
+nginx/* text eol=lf
