@@ -1,3 +1,9 @@
+# Force LF for every text file regardless of core.autocrlf, so a checkout on a CRLF-default
+# client (autocrlf=true) can't leave the working tree showing every text file as "modified"
+# with no real content change — the specific rules below predate this and stay as documentation
+# of why those particular files matter most.
+* text=auto eol=lf
+
 # The scripts here run under bash on Linux and in containers. Where core.autocrlf=true
 # is set, a CRLF checkout makes bash report `\r': command not found` and makes git
 # silently refuse to run a hook — neither of which reads as a line-ending problem.
