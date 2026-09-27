@@ -9,6 +9,8 @@ export interface Problem {
   status?: number;
   detail?: string;
   errors?: { field: string; message: string }[];
+  /** `room-rest-api.md` §7 — millisecond-resolution twin of the `Retry-After` header, on a `503`. */
+  retryAfterMs?: number;
 }
 
 export class ApiError extends Error {
@@ -57,7 +59,7 @@ async function readProblem(response: Response): Promise<Problem> {
   }
 }
 
-export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function doFetch(path: string, options: RequestOptions): Promise<Response> {
   const { method = "GET", body, expectUnauthorized = false } = options;
   const init: RequestInit = { method, credentials: "same-origin", headers: {} };
   if (body !== undefined) {
@@ -73,6 +75,25 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     }
     throw new ApiError(response.status, await readProblem(response));
   }
+  return response;
+}
+
+export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const response = await doFetch(path, options);
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+/**
+ * `room-rest-api.md` § *The affinity hint is a response header* — the one caller that needs a
+ * response header rather than a body field, so it gets its own entry point instead of widening
+ * every other caller's return type for a header nobody else reads.
+ */
+export async function apiFetchWithHeaders<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<[body: T, headers: Headers]> {
+  const response = await doFetch(path, options);
+  const body = response.status === 204 ? (undefined as T) : ((await response.json()) as T);
+  return [body, response.headers];
 }

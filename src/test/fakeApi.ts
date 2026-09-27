@@ -3,6 +3,7 @@ import { vi } from "vitest";
 export interface FakeReply {
   status?: number;
   body?: unknown;
+  headers?: Record<string, string>;
 }
 
 export interface FakeCall {
@@ -32,7 +33,7 @@ export function installFakeApi(routes: Record<string, Route>) {
     return Promise.resolve(
       new Response(status === 204 || reply.body === undefined ? null : JSON.stringify(reply.body), {
         status,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...reply.headers },
       }),
     );
   });
@@ -84,5 +85,73 @@ export class FakeEventSource {
   fail(readyState: number) {
     this.readyState = readyState;
     this.onerror?.(new Event("error"));
+  }
+}
+
+/** Stands in for `@stomp/stompjs`'s `Client` — no network, a test drives it directly. */
+export class FakeStompClient {
+  static instances: FakeStompClient[] = [];
+  static reset() {
+    FakeStompClient.instances = [];
+  }
+
+  connected = false;
+  activated = false;
+  onConnect: () => void = () => undefined;
+  onWebSocketClose: (evt?: unknown) => void = () => undefined;
+  published: { destination: string; body: string }[] = [];
+  private subscriptions = new Map<string, ((message: { body: string }) => void)[]>();
+
+  constructor(readonly brokerURL: string) {
+    FakeStompClient.instances.push(this);
+  }
+
+  activate() {
+    this.activated = true;
+  }
+
+  deactivate() {
+    this.activated = false;
+    this.connected = false;
+  }
+
+  publish(params: { destination: string; body: string }) {
+    this.published.push(params);
+  }
+
+  subscribe(destination: string, callback: (message: { body: string }) => void) {
+    this.subscriptions.set(destination, [...(this.subscriptions.get(destination) ?? []), callback]);
+    return {
+      unsubscribe: () => {
+        this.subscriptions.set(
+          destination,
+          (this.subscriptions.get(destination) ?? []).filter((entry) => entry !== callback),
+        );
+      },
+    };
+  }
+
+  /** Test hook: pretend the server delivered `body` on `destination`. */
+  emit(destination: string, body: unknown) {
+    const message = { body: JSON.stringify(body) };
+    this.subscriptions.get(destination)?.forEach((listener) => {
+      listener(message);
+    });
+  }
+
+  /** Test hook: complete the handshake this client's owner started with `activate()`. */
+  open() {
+    this.connected = true;
+    this.onConnect();
+  }
+
+  /** Test hook: the socket drops, connected or not. */
+  close() {
+    this.connected = false;
+    this.onWebSocketClose();
+  }
+
+  isSubscribed(destination: string): boolean {
+    return (this.subscriptions.get(destination) ?? []).length > 0;
   }
 }
