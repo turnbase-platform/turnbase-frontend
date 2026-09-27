@@ -1,9 +1,6 @@
-import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, useLocation } from "react-router";
-import { App } from "./App";
 import {
   FakeEventSource,
   GUEST,
@@ -12,23 +9,8 @@ import {
   installFakeApi,
   type FakeReply,
 } from "../test/fakeApi";
+import { renderAt, where } from "../test/renderApp";
 
-function Where() {
-  const { pathname, search } = useLocation();
-  return <output data-testid="where">{pathname + search}</output>;
-}
-
-function renderAt(path: string) {
-  const Router = ({ children }: { children: ReactNode }) => (
-    <MemoryRouter initialEntries={[path]}>
-      {children}
-      <Where />
-    </MemoryRouter>
-  );
-  render(<App Router={Router} />);
-}
-
-const where = () => screen.getByTestId("where").textContent;
 const session = (reply: FakeReply) => ({ "GET /api/auth/session": reply });
 const signedInAs = (principal: typeof REGISTERED | typeof GUEST) => ({
   ...session({ body: principal }),

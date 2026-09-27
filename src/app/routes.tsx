@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 import { LoginPage } from "../features/auth/LoginPage";
 import { OAuthCompletionPage } from "../features/auth/OAuthCompletionPage";
 import { RegisterPage } from "../features/auth/RegisterPage";
+import { FriendsPage } from "../features/friends/FriendsPage";
+import { ProfilePage } from "../features/profile/ProfilePage";
+import { SettingsPage } from "../features/settings/SettingsPage";
 import { LandingPage } from "./pages/LandingPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
@@ -36,11 +39,11 @@ export const appRoutes: readonly AppRoute[] = [
   { path: "/auth/complete-registration", access: "public", element: <OAuthCompletionPage /> },
   { path: "/games", access: "public", element: later("Game catalog") },
   { path: "/games/:id", access: "public", element: later("Game details") },
-  { path: "/users/:username", access: "public", element: later("Profile") },
+  { path: "/users/:username", access: "public", element: <ProfilePage /> },
   { path: "/rooms", access: "authenticated", element: later("Active rooms") },
   { path: "/rooms/join/:code", access: "authenticated", element: later("Join a room") },
   { path: "/rooms/:id", access: "authenticated", element: later("Room") },
-  { path: "/friends", access: "registered", element: later("Friends") },
-  { path: "/settings", access: "registered", element: later("Account settings") },
+  { path: "/friends", access: "registered", element: <FriendsPage /> },
+  { path: "/settings", access: "registered", element: <SettingsPage /> },
   { path: "*", access: "public", element: <NotFoundPage /> },
 ];
