@@ -104,7 +104,22 @@ export interface RoomMembership {
   teamId: string | null;
 }
 
+/** A game-stream message as it arrives, before the relay has looked at it — untrusted shape. */
+export type GameStreamListener = (raw: unknown) => void;
+
 export interface RoomConnection {
+  /**
+   * Subscribes the game destinations for `sessionId` and then requests the sync snapshot —
+   * subscribe-before-sync is what makes catch-up race-free (`websocket.md` § Catch-up). Repeated
+   * automatically after every reconnect. Returns the detach function.
+   */
+  attachGame: (
+    sessionId: string,
+    teamId: string | null,
+    listener: GameStreamListener,
+  ) => () => void;
+  /** `SUBMIT_ACTION` on `/app/game.{sessionId}.action`; never carries player identity (FR-FA-002). */
+  submitGameAction: (payload: unknown) => void;
   requestRoomState: () => void;
   sendMemberCommand: (type: string, payload?: unknown) => void;
   sendHostCommand: (type: string, payload?: unknown) => void;
@@ -136,6 +151,37 @@ export function openRoomConnection(
   let membership = initialMembership;
   let chatSubscription: StompSubscriptionLike | null = null;
   let teamSubscription: StompSubscriptionLike | null = null;
+  let game: { sessionId: string; teamId: string | null; listener: GameStreamListener } | null =
+    null;
+  let gameSubscriptions: StompSubscriptionLike[] = [];
+
+  function parseOrDrop(body: string): unknown {
+    try {
+      return JSON.parse(body) as unknown;
+    } catch {
+      return undefined;
+    }
+  }
+
+  function syncGameSubscriptions(current: StompClientLike) {
+    gameSubscriptions.forEach((subscription) => {
+      subscription.unsubscribe();
+    });
+    gameSubscriptions = [];
+    if (!game) return;
+    const attached = game;
+    const deliver = (message: { body: string }) => {
+      attached.listener(parseOrDrop(message.body));
+    };
+    gameSubscriptions.push(current.subscribe(`/topic/game.${attached.sessionId}`, deliver));
+    if (attached.teamId) {
+      gameSubscriptions.push(
+        current.subscribe(`/topic/game.${attached.sessionId}.team.${attached.teamId}`, deliver),
+      );
+    }
+    gameSubscriptions.push(current.subscribe("/user/queue/game", deliver));
+    send(`/app/game.${attached.sessionId}.sync`, "REQUEST_GAME_SYNC");
+  }
 
   function send(destination: string, type: string, payload?: unknown) {
     if (!client?.connected) return;
@@ -222,6 +268,7 @@ export function openRoomConnection(
         handleError(message.body);
       });
       syncChatSubscriptions(current);
+      syncGameSubscriptions(current);
       requestRoomState();
     };
 
@@ -229,6 +276,7 @@ export function openRoomConnection(
       handlers.onConnectionChange?.(false);
       chatSubscription = null;
       teamSubscription = null;
+      gameSubscriptions = [];
       if (stopped) return;
       localVersion = null; // the next snapshot is the source of truth, not this stale value
       awaitingSnapshot = false;
@@ -242,6 +290,22 @@ export function openRoomConnection(
   connect();
 
   return {
+    attachGame: (sessionId, teamId, listener) => {
+      game = { sessionId, teamId, listener };
+      if (client?.connected) syncGameSubscriptions(client);
+      const attached = game;
+      return () => {
+        if (game !== attached) return;
+        game = null;
+        gameSubscriptions.forEach((subscription) => {
+          subscription.unsubscribe();
+        });
+        gameSubscriptions = [];
+      };
+    },
+    submitGameAction: (payload) => {
+      if (game) send(`/app/game.${game.sessionId}.action`, "SUBMIT_ACTION", payload);
+    },
     requestRoomState,
     sendMemberCommand: (type, payload) => {
       send(`/app/room.${roomId}.member`, type, payload);

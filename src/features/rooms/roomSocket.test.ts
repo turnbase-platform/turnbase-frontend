@@ -303,3 +303,55 @@ describe("backoffDelay", () => {
     expect(backoffDelay(20, 1)).toBe(30_000);
   });
 });
+
+describe("game stream", () => {
+  const raw = (client: FakeStompClient, destination: string, body: unknown) => {
+    client.emit(destination, body);
+  };
+
+  it("subscribes the game destinations, then requests sync, and repeats after a reconnect", () => {
+    const { connection, latest, timers } = harness();
+    const listener = vi.fn();
+    connection.attachGame("s-1", "t-1", listener);
+    latest().open();
+    const first = latest();
+    expect(first.isSubscribed("/topic/game.s-1")).toBe(true);
+    expect(first.isSubscribed("/topic/game.s-1.team.t-1")).toBe(true);
+    expect(first.isSubscribed("/user/queue/game")).toBe(true);
+    expect(first.published.some((p) => p.destination === "/app/game.s-1.sync")).toBe(true);
+    raw(first, "/topic/game.s-1", { type: "GAME_EVENT" });
+    expect(listener).toHaveBeenCalledWith({ type: "GAME_EVENT" });
+
+    first.close();
+    timers[timers.length - 1].callback();
+    latest().open();
+    expect(latest()).not.toBe(first);
+    expect(latest().published.some((p) => p.destination === "/app/game.s-1.sync")).toBe(true);
+  });
+
+  it("submits an action without player identity and stops after detach", () => {
+    const { connection, latest } = harness();
+    const detach = connection.attachGame("s-1", null, vi.fn());
+    latest().open();
+    connection.submitGameAction({ move: 1 });
+    const sent = latest().published.find((p) => p.destination === "/app/game.s-1.action");
+    expect(JSON.parse(sent?.body ?? "{}")).toEqual({
+      type: "SUBMIT_ACTION",
+      correlationId: "corr-1",
+      payload: { move: 1 },
+    });
+    detach();
+    connection.submitGameAction({ move: 2 });
+    expect(latest().published.filter((p) => p.destination.endsWith(".action"))).toHaveLength(1);
+    expect(latest().isSubscribed("/topic/game.s-1")).toBe(false);
+  });
+
+  it("drops an unparseable game body instead of throwing", () => {
+    const { connection, latest } = harness();
+    const listener = vi.fn();
+    connection.attachGame("s-1", null, listener);
+    latest().open();
+    latest().emit("/topic/game.s-1", undefined);
+    expect(listener).toHaveBeenCalled();
+  });
+});
