@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
+import { Popover } from "@astryxdesign/core/Popover";
 import { useToast } from "@astryxdesign/core/Toast";
 import { apiFetch } from "../../shared/api";
 import { useAuth } from "../auth/auth-context";
 import { alertMessage, isTerminal } from "./alerts";
+import { NotificationPanel } from "./NotificationPanel";
 import { openNotificationStream } from "./notificationStream";
 
 /**
@@ -18,6 +20,8 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const showToast = useToast();
   const [unread, setUnread] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const refresh = useCallback(() => {
     apiFetch<{ unreadCount: number }>("/api/notifications/unread-count")
@@ -30,7 +34,10 @@ export function NotificationBell() {
   useEffect(() => {
     refresh();
     return openNotificationStream({
-      onNotification: refresh,
+      onNotification: () => {
+        refresh();
+        setReloadKey((key) => key + 1);
+      },
       onAlert: (alert) => {
         const message = alertMessage(alert);
         if (message) showToast({ body: message });
@@ -43,11 +50,31 @@ export function NotificationBell() {
   }, [refresh, showToast, clearPrincipal, navigate]);
 
   return (
-    <Button
+    <Popover
       label="Notifications"
-      variant="ghost"
-      onClick={refresh}
-      endContent={unread > 0 ? <Badge variant="error" label={String(unread)} /> : undefined}
-    />
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (open) refresh();
+      }}
+      placement="below"
+      alignment="end"
+      width={380}
+      content={
+        <NotificationPanel
+          reloadKey={reloadKey}
+          onChanged={refresh}
+          onClose={() => {
+            setIsOpen(false);
+          }}
+        />
+      }
+    >
+      <Button
+        label="Notifications"
+        variant="ghost"
+        endContent={unread > 0 ? <Badge variant="error" label={String(unread)} /> : undefined}
+      />
+    </Popover>
   );
 }
