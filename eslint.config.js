@@ -8,6 +8,7 @@ import css from "@eslint/css";
 import noRawColorCss from "./eslint-rules/no-raw-color-css.js";
 import noRawSpacingCss from "./eslint-rules/no-raw-spacing-css.js";
 import noRawColorTsx from "./eslint-rules/no-raw-color-tsx.js";
+import noDanger from "./eslint-rules/no-danger.js";
 
 // design-system.md §5 Enforcement (FR-TOK-008): local rules, no third-party package defines
 // them. No allow-list on either — the one legitimate exemption (the token file itself) no
@@ -16,6 +17,7 @@ const localTokenRules = {
   "no-raw-color-css": noRawColorCss,
   "no-raw-spacing-css": noRawSpacingCss,
   "no-raw-color-tsx": noRawColorTsx,
+  "no-danger": noDanger,
 };
 
 // conventions.md §2: flat config, typescript-eslint strict + stylistic (type-aware),
@@ -75,8 +77,14 @@ export default tseslint.config(
     },
   },
   {
-    files: ["**/*.tsx"],
+    files: ["**/*.{ts,tsx}"],
     plugins: { local: { rules: localTokenRules } },
+    // `no-danger` (input-validation.md § Output encoding) applies to tests too; the colour rule
+    // is .tsx-only, so it is switched on below rather than here.
+    rules: { "local/no-danger": "error" },
+  },
+  {
+    files: ["**/*.tsx"],
     rules: { "local/no-raw-color-tsx": "error" },
   },
   {

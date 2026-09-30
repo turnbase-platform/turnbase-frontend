@@ -15,6 +15,7 @@ import { useAuth } from "../auth/auth-context";
 import { NotFoundPage } from "../../app/pages/NotFoundPage";
 import { fetchOwnedGames, fetchProfile, type OwnedGame } from "./profileApi";
 import type { ProfileResponse } from "./profile-types";
+import { HistorySection } from "../history/HistorySection";
 import { fetchFriends, removeFriend, sendFriendRequest } from "../friends/friendsApi";
 import type { FriendSummary } from "../friends/friends-types";
 
@@ -118,12 +119,7 @@ function ProfileForUsername({ username }: { username: string }) {
               <Text>Coming soon.</Text>
             </Stack>
           )}
-          {sections.includes("gameHistory") && (
-            <Stack gap={2}>
-              <Heading level={2}>Game history</Heading>
-              <Text>Coming soon.</Text>
-            </Stack>
-          )}
+          {sections.includes("gameHistory") && <HistorySection username={profile.username} />}
           {sections.includes("friends") && <FriendsSection username={profile.username} />}
           {sections.includes("uploadedGames") && (
             <UploadedGamesSection username={profile.username} />

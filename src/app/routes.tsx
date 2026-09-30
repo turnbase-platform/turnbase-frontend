@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { LoginPage } from "../features/auth/LoginPage";
 import { OAuthCompletionPage } from "../features/auth/OAuthCompletionPage";
 import { RegisterPage } from "../features/auth/RegisterPage";
+import { CatalogPage } from "../features/catalog/CatalogPage";
+import { GameDetailPage } from "../features/catalog/GameDetailPage";
 import { FriendsPage } from "../features/friends/FriendsPage";
 import { ProfilePage } from "../features/profile/ProfilePage";
 import { SettingsPage } from "../features/settings/SettingsPage";
@@ -37,8 +39,8 @@ export const appRoutes: readonly AppRoute[] = [
   { path: "/register", access: "anonymous", element: <RegisterPage /> },
   // "No (session not yet established)": the pending cookie, not a session, is its credential.
   { path: "/auth/complete-registration", access: "public", element: <OAuthCompletionPage /> },
-  { path: "/games", access: "public", element: later("Game catalog") },
-  { path: "/games/:id", access: "public", element: later("Game details") },
+  { path: "/games", access: "public", element: <CatalogPage /> },
+  { path: "/games/:id", access: "public", element: <GameDetailPage /> },
   { path: "/users/:username", access: "public", element: <ProfilePage /> },
   { path: "/rooms", access: "authenticated", element: later("Active rooms") },
   { path: "/rooms/join/:code", access: "authenticated", element: later("Join a room") },
