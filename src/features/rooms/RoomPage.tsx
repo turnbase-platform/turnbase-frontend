@@ -81,7 +81,7 @@ function RoomView({
   const navigate = useNavigate();
   const showToast = useToast();
   const { principal } = useAuth();
-  const { snapshot, connected, lastError, ended, connection } = useRoomConnection(
+  const { snapshot, connected, chatMessages, lastError, ended, connection } = useRoomConnection(
     roomId,
     instanceHint,
   );
@@ -145,6 +145,7 @@ function RoomView({
           game={game}
           userId={principal?.userId ?? null}
           connection={connection}
+          chatMessages={chatMessages}
           onLeave={leave}
           onReturnToLobby={() => {
             setGame(null);
@@ -156,6 +157,7 @@ function RoomView({
           userId={principal?.userId ?? null}
           connection={connection}
           inviteCode={room.inviteCode}
+          chatMessages={chatMessages}
           lastError={lastError}
           onLeave={leave}
           onShareInvite={shareInvite}

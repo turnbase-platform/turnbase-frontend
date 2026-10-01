@@ -192,7 +192,7 @@ describe("Lobby as a non-host player (VW-RLOBBY-001…004)", () => {
     expect(screen.getByText("Ready")).toBeInTheDocument();
     expect(screen.getByText("boardSize")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
-    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(within(screen.getByLabelText("Game parameters")).queryByRole("textbox")).toBeNull();
   });
 
   it("toggles readiness and offers no host controls", async () => {

@@ -5,7 +5,8 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import type { RoomConnection } from "./roomSocket";
-import type { RoomErrorEnvelope, RoomStateSnapshot } from "./rooms-types";
+import { ChatPanel } from "./ChatPanel";
+import type { ChatMessageEnvelope, RoomErrorEnvelope, RoomStateSnapshot } from "./rooms-types";
 
 export interface RoomLobbyProps {
   snapshot: RoomStateSnapshot;
@@ -13,6 +14,7 @@ export interface RoomLobbyProps {
   connection: RoomConnection | null;
   /** Present only for the host (`room-rest-api.md` §4) — the invite link is built from it. */
   inviteCode?: string;
+  chatMessages: ChatMessageEnvelope["payload"][];
   lastError: RoomErrorEnvelope["payload"] | null;
   onLeave: () => void;
   onShareInvite: () => void;
@@ -39,6 +41,7 @@ export function RoomLobby({
   userId,
   connection,
   inviteCode,
+  chatMessages,
   lastError,
   onLeave,
   onShareInvite,
@@ -134,6 +137,13 @@ export function RoomLobby({
           </dl>
         )}
       </Stack>
+
+      <ChatPanel
+        snapshot={snapshot}
+        userId={userId}
+        messages={chatMessages}
+        connection={connection}
+      />
 
       <Stack direction="horizontal" gap={2}>
         {me && !isHost && (

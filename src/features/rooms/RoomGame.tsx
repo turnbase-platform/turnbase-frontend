@@ -3,9 +3,10 @@ import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Stack } from "@astryxdesign/core/Stack";
 import { GameFrame } from "../game/GameFrame";
+import { ChatPanel } from "./ChatPanel";
 import { ParticipantPanel } from "./ParticipantPanel";
 import type { RoomConnection } from "./roomSocket";
-import type { RoomStateSnapshot } from "./rooms-types";
+import type { ChatMessageEnvelope, RoomStateSnapshot } from "./rooms-types";
 
 export interface RoomGameProps {
   snapshot: RoomStateSnapshot;
@@ -13,6 +14,7 @@ export interface RoomGameProps {
   game: { sessionId: string; gameFrontendUrl: string };
   userId: string | null;
   connection: RoomConnection;
+  chatMessages: ChatMessageEnvelope["payload"][];
   onLeave: () => void;
   onReturnToLobby: () => void;
 }
@@ -27,6 +29,7 @@ export function RoomGame({
   game,
   userId,
   connection,
+  chatMessages,
   onLeave,
   onReturnToLobby,
 }: RoomGameProps) {
@@ -44,6 +47,12 @@ export function RoomGame({
         connection={connection}
       />
       <ParticipantPanel snapshot={snapshot} userId={userId} connection={connection} />
+      <ChatPanel
+        snapshot={snapshot}
+        userId={userId}
+        messages={chatMessages}
+        connection={connection}
+      />
       <Stack direction="horizontal" gap={2}>
         {over && <Button label="Return to lobby" variant="primary" onClick={onReturnToLobby} />}
         <Button label="Leave room" variant="secondary" onClick={onLeave} />
