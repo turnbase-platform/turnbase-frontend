@@ -36,8 +36,8 @@ export function listRooms(params: ListRoomsParams = {}): Promise<RoomListEnvelop
 }
 
 /** `room-rest-api.md` §3.1 — never `404`; zero or one full room resource. */
-export function resolveInviteCode(inviteCode: string): Promise<RoomListEnvelope> {
-  return listRooms({ inviteCode });
+export function resolveInviteCode(inviteCode: string): Promise<{ content: RoomResource[] }> {
+  return apiFetch<{ content: RoomResource[] }>(`/api/rooms${queryString({ inviteCode })}`);
 }
 
 /** `room-rest-api.md` §4. */

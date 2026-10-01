@@ -6,6 +6,8 @@ import { CatalogPage } from "../features/catalog/CatalogPage";
 import { GameDetailPage } from "../features/catalog/GameDetailPage";
 import { FriendsPage } from "../features/friends/FriendsPage";
 import { ProfilePage } from "../features/profile/ProfilePage";
+import { JoinByCodePage } from "../features/rooms/JoinByCodePage";
+import { RoomsPage } from "../features/rooms/RoomsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { LandingPage } from "./pages/LandingPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -42,8 +44,8 @@ export const appRoutes: readonly AppRoute[] = [
   { path: "/games", access: "public", element: <CatalogPage /> },
   { path: "/games/:id", access: "public", element: <GameDetailPage /> },
   { path: "/users/:username", access: "public", element: <ProfilePage /> },
-  { path: "/rooms", access: "authenticated", element: later("Active rooms") },
-  { path: "/rooms/join/:code", access: "authenticated", element: later("Join a room") },
+  { path: "/rooms", access: "authenticated", element: <RoomsPage /> },
+  { path: "/rooms/join/:code", access: "authenticated", element: <JoinByCodePage /> },
   { path: "/rooms/:id", access: "authenticated", element: later("Room") },
   { path: "/friends", access: "registered", element: <FriendsPage /> },
   { path: "/settings", access: "registered", element: <SettingsPage /> },
