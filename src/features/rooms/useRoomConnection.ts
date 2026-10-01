@@ -9,8 +9,12 @@ export interface RoomConnectionState {
   connected: boolean;
   chatMessages: ChatMessageEnvelope["payload"][];
   lastError: RoomErrorEnvelope["payload"] | null;
+  /** Set once the room is gone for this user — `ROOM_CLOSED`, or removal by the host. */
+  ended: RoomEnd | null;
   connection: RoomConnection | null;
 }
+
+export type RoomEnd = { kind: "CLOSED"; reason: string } | { kind: "KICKED" };
 
 /** Enough to render recent chat history for the session; chat is never persisted server-side
  * (`room-chat-websocket.md` § No History), so there is nothing to grow this toward. */
@@ -37,6 +41,7 @@ export function useRoomConnection(
   const [connected, setConnected] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessageEnvelope["payload"][]>([]);
   const [lastError, setLastError] = useState<RoomErrorEnvelope["payload"] | null>(null);
+  const [ended, setEnded] = useState<RoomEnd | null>(null);
   const [connection, setConnection] = useState<RoomConnection | null>(null);
   const seenMessageIds = useRef(new Set<string>());
 
@@ -49,6 +54,7 @@ export function useRoomConnection(
     setConnected(false);
     setChatMessages([]);
     setLastError(null);
+    setEnded(null);
   }
 
   useEffect(() => {
@@ -63,6 +69,11 @@ export function useRoomConnection(
           conn.setMembership(membershipOf(snap, userId));
         },
         onEvent: (event) => {
+          if (event.type === "ROOM_CLOSED")
+            setEnded({ kind: "CLOSED", reason: event.payload.reason });
+          if (event.type === "PLAYER_KICKED" && event.payload.playerId === userId) {
+            setEnded({ kind: "KICKED" });
+          }
           setSnapshot((current) => {
             if (!current) return current;
             const next = applyRoomEvent(current, event);
@@ -76,7 +87,11 @@ export function useRoomConnection(
           seenMessageIds.current.add(messageId);
           setChatMessages((current) => [...current, envelope.payload].slice(-CHAT_HISTORY_LIMIT));
         },
-        onError: setLastError,
+        onError: (error) => {
+          // `KICKED` is the unicast notice to the removed party (room-websocket.md § Error codes).
+          if (error.code === "KICKED") setEnded({ kind: "KICKED" });
+          else setLastError(error);
+        },
         onConnectionChange: setConnected,
       },
     );
@@ -89,5 +104,5 @@ export function useRoomConnection(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, instanceHint]);
 
-  return { snapshot, connected, chatMessages, lastError, connection };
+  return { snapshot, connected, chatMessages, lastError, ended, connection };
 }

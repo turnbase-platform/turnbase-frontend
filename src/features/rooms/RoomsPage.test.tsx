@@ -101,6 +101,27 @@ describe("RoomsPage (VW-ROOMS-001…004)", () => {
   });
 });
 
+describe("RoomsPage reconnection card (VW-ROOMS-005)", () => {
+  it("pins a Rejoin card from reservedSlot and opens the room", async () => {
+    installFakeApi({
+      ...session,
+      [listUrl]: {
+        body: {
+          ...envelope([]).body,
+          reservedSlot: { roomId: "r-7", gameName: "Hex Duel", graceRemainingSeconds: 42 },
+        },
+      },
+    });
+    renderAt("/rooms");
+
+    expect(await screen.findByText(/disconnected from Hex Duel/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Rejoin" }));
+    await waitFor(() => {
+      expect(where()).toBe("/rooms/r-7");
+    });
+  });
+});
+
 describe("JoinByCodePage (VW-JOIN-001…003)", () => {
   const codeUrl = "GET /api/rooms?inviteCode=K7";
   const joinUrl = "POST /api/rooms/r-1/participants?inviteCode=K7";

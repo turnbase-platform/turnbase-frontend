@@ -136,6 +136,23 @@ export function RoomsPage() {
           }}
         />
       </Stack>
+      {state.status === "loaded" && state.result.reservedSlot && (
+        <Banner
+          status="info"
+          collapsible={false}
+          title={`You were disconnected from ${state.result.reservedSlot.gameName}. Your slot is held for ${String(state.result.reservedSlot.graceRemainingSeconds)} more seconds.`}
+        >
+          <Button
+            label="Rejoin"
+            variant="primary"
+            onClick={() => {
+              if (state.result.reservedSlot) {
+                void navigate(`/rooms/${state.result.reservedSlot.roomId}`);
+              }
+            }}
+          />
+        </Banner>
+      )}
       {state.status === "loading" && <Text>Loading…</Text>}
       {state.status === "error" && (
         <Banner status="error" title="Could not load the rooms. Please try again." />

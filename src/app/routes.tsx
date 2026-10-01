@@ -7,11 +7,11 @@ import { GameDetailPage } from "../features/catalog/GameDetailPage";
 import { FriendsPage } from "../features/friends/FriendsPage";
 import { ProfilePage } from "../features/profile/ProfilePage";
 import { JoinByCodePage } from "../features/rooms/JoinByCodePage";
+import { RoomPage } from "../features/rooms/RoomPage";
 import { RoomsPage } from "../features/rooms/RoomsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { LandingPage } from "./pages/LandingPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
-import { PlaceholderPage } from "./pages/PlaceholderPage";
 
 /**
  * Who may see a route (`platform-views.md` § Roles). Declared with the route — never checked
@@ -31,10 +31,6 @@ export interface AppRoute {
   element: ReactNode;
 }
 
-// Views owned by later work items render a placeholder here, so the tier table is complete
-// from the start and each item replaces only its own `element`.
-const later = (title: string) => <PlaceholderPage title={title} />;
-
 export const appRoutes: readonly AppRoute[] = [
   { path: "/", access: "public", element: <LandingPage /> },
   { path: "/login", access: "anonymous", element: <LoginPage /> },
@@ -46,7 +42,7 @@ export const appRoutes: readonly AppRoute[] = [
   { path: "/users/:username", access: "public", element: <ProfilePage /> },
   { path: "/rooms", access: "authenticated", element: <RoomsPage /> },
   { path: "/rooms/join/:code", access: "authenticated", element: <JoinByCodePage /> },
-  { path: "/rooms/:id", access: "authenticated", element: later("Room") },
+  { path: "/rooms/:id", access: "authenticated", element: <RoomPage /> },
   { path: "/friends", access: "registered", element: <FriendsPage /> },
   { path: "/settings", access: "registered", element: <SettingsPage /> },
   { path: "*", access: "public", element: <NotFoundPage /> },
