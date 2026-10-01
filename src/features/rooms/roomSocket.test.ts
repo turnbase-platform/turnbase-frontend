@@ -241,6 +241,18 @@ describe("openRoomConnection", () => {
     expect(latest().isSubscribed(`/topic/room.${ROOM_ID}.team.t-1`)).toBe(true);
   });
 
+  it("does not resubscribe when a snapshot or event reports the membership it already has", () => {
+    const { latest, connection } = harness();
+    latest().open();
+    connection.setMembership({ isPlayer: true, teamId: "t-1" });
+    const before = latest().subscribeCount;
+    for (let i = 0; i < 10; i += 1) connection.setMembership({ isPlayer: true, teamId: "t-1" });
+    // The server's `subscribe` bucket holds 20 — a resubscribe per event starves the game attach.
+    expect(latest().subscribeCount).toBe(before);
+    connection.setMembership({ isPlayer: true, teamId: "t-2" });
+    expect(latest().subscribeCount).toBeGreaterThan(before);
+  });
+
   it("routes /user/queue/errors to onError", () => {
     const { handlers, latest } = harness();
     latest().open();

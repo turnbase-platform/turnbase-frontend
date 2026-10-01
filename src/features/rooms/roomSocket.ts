@@ -317,8 +317,12 @@ export function openRoomConnection(
       send(`/app/room.${roomId}.chat`, "SEND_CHAT_MESSAGE", { channel, text });
     },
     setMembership: (next) => {
+      // Callers report membership on every snapshot and event. Resubscribing each time burns the
+      // server's `subscribe` bucket (20, refilled 1/s — `rate-limiting.md` Tier 6) and drops the
+      // game subscriptions that follow; only a real change in role or team needs new ones.
+      const changed = next.isPlayer !== membership.isPlayer || next.teamId !== membership.teamId;
       membership = next;
-      if (client?.connected) syncChatSubscriptions(client);
+      if (changed && client?.connected) syncChatSubscriptions(client);
     },
     close: () => {
       stopped = true;

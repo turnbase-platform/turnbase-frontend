@@ -6,6 +6,7 @@ import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { useAuth } from "../auth/auth-context";
+import { RoomGame } from "./RoomGame";
 import { RoomLobby } from "./RoomLobby";
 import { getRoom, joinRoom, leaveRoom } from "./roomsApi";
 import type { RoomResource } from "./rooms-types";
@@ -85,6 +86,18 @@ function RoomView({
     instanceHint,
   );
 
+  // The session on screen. It outlives `GAME_ENDED` (the snapshot's `sessionId` is cleared then)
+  // until the player dismisses the results; derived during render, not in an effect.
+  const [game, setGame] = useState<{ sessionId: string; gameFrontendUrl: string } | null>(null);
+  if (
+    snapshot?.state === "IN_PROGRESS" &&
+    snapshot.sessionId &&
+    snapshot.gameFrontendUrl &&
+    game?.sessionId !== snapshot.sessionId
+  ) {
+    setGame({ sessionId: snapshot.sessionId, gameFrontendUrl: snapshot.gameFrontendUrl });
+  }
+
   function leave() {
     leaveRoom(roomId)
       .then(() => navigate("/rooms"))
@@ -126,7 +139,18 @@ function RoomView({
           title="Connection lost — reconnecting. The room will refresh when it is back."
         />
       )}
-      {snapshot ? (
+      {snapshot && connection && game ? (
+        <RoomGame
+          snapshot={snapshot}
+          game={game}
+          userId={principal?.userId ?? null}
+          connection={connection}
+          onLeave={leave}
+          onReturnToLobby={() => {
+            setGame(null);
+          }}
+        />
+      ) : snapshot ? (
         <RoomLobby
           snapshot={snapshot}
           userId={principal?.userId ?? null}

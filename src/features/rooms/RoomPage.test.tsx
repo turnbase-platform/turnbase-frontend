@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FakeEventSource, REGISTERED, installFakeApi } from "../../test/fakeApi";
 import { renderAt, where } from "../../test/renderApp";
@@ -10,13 +10,21 @@ import type { RoomConnectionState } from "./useRoomConnection";
 const mocked = vi.hoisted(() => ({
   state: null as RoomConnectionState | null,
   calls: [] as [string, string | null][],
+  rerender: null as (() => void) | null,
 }));
-vi.mock("./useRoomConnection", () => ({
-  useRoomConnection: (roomId: string, hint: string | null) => {
-    mocked.calls.push([roomId, hint]);
-    return mocked.state;
-  },
-}));
+vi.mock("./useRoomConnection", async () => {
+  const { useReducer, useEffect } = await import("react");
+  return {
+    useRoomConnection: (roomId: string, hint: string | null) => {
+      const [, tick] = useReducer((n: number) => n + 1, 0);
+      useEffect(() => {
+        mocked.rerender = tick;
+      }, []);
+      mocked.calls.push([roomId, hint]);
+      return mocked.state;
+    },
+  };
+});
 
 const session = { "GET /api/auth/session": { body: REGISTERED } };
 
@@ -83,6 +91,8 @@ function connection() {
   return {
     sendMemberCommand: vi.fn(),
     sendHostCommand: vi.fn(),
+    submitGameAction: vi.fn(),
+    attachGame: vi.fn(() => vi.fn()),
   } as unknown as RoomConnection & {
     sendMemberCommand: ReturnType<typeof vi.fn>;
     sendHostCommand: ReturnType<typeof vi.fn>;
@@ -260,5 +270,93 @@ describe("Lobby as the host (VW-RLOBBY-006, 009, 011, 014)", () => {
     await openAsHost();
     await userEvent.click(screen.getByRole("button", { name: "Share invite link" }));
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/rooms/join/K7`);
+  });
+});
+
+describe("In-game and results views (VW-RGAME-001…005, VW-RRESULT-001…005)", () => {
+  const playing = (extra: Partial<RoomStateSnapshot> = {}) =>
+    snapshot({
+      state: "IN_PROGRESS",
+      sessionId: "s-1",
+      gameFrontendUrl: "http://g-1.games.localhost:8080/play/s-1",
+      ...extra,
+    });
+
+  async function open(snap: RoomStateSnapshot) {
+    const conn = setConnection({ snapshot: snap });
+    installFakeApi({
+      ...session,
+      "GET /api/rooms/r-1": { body: resource({ state: snap.state }), headers: hint },
+      "DELETE /api/rooms/r-1/participants/me": { status: 204 },
+    });
+    renderAt("/rooms/r-1");
+    await screen.findByTitle("Game");
+    return conn;
+  }
+
+  it("mounts the sandboxed iframe at the server-supplied URL and attaches the game stream", async () => {
+    const conn = await open(playing());
+    const frame = screen.getByTitle("Game");
+    expect(frame).toHaveAttribute("src", "http://g-1.games.localhost:8080/play/s-1");
+    expect(frame).toHaveAttribute("sandbox", "allow-scripts allow-same-origin");
+    expect(conn.attachGame).toHaveBeenCalledWith("s-1", "t-2", expect.any(Function));
+    expect(screen.queryByRole("button", { name: "Start game" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Return to lobby" })).toBeNull();
+  });
+
+  it("shows participants with connection state, and host controls to the host only", async () => {
+    await open(
+      playing({
+        hostId: "u-1",
+        players: snapshot().players.map((p) =>
+          p.playerId === "u-9" ? { ...p, connected: false } : p,
+        ),
+      }),
+    );
+    const panel = screen.getByRole("list", { name: "Participants" });
+    expect(within(panel).getByText("Disconnected")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Kick bob" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Transfer host to bob" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Kick alice" })).toBeNull();
+  });
+
+  it("offers no host controls to a non-host, but still Leave", async () => {
+    await open(playing());
+    expect(screen.queryByRole("button", { name: /^Kick/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Transfer host/ })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Leave room" }));
+    await waitFor(() => {
+      expect(where()).toBe("/rooms");
+    });
+  });
+
+  it("keeps the same iframe through GAME_ENDED, then Return to Lobby reveals the lobby", async () => {
+    const conn = await open(playing({ hostId: "u-1" }));
+    const frame = screen.getByTitle("Game");
+
+    act(() => {
+      mocked.state = {
+        ...(mocked.state ?? ({} as RoomConnectionState)),
+        snapshot: snapshot({ hostId: "u-1" }), // what the reducer yields for GAME_ENDED
+      };
+      mocked.rerender?.();
+    });
+
+    expect(screen.getByTitle("Game")).toBe(frame);
+    expect(conn.attachGame).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Kick bob" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Leave room" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Return to lobby" }));
+    expect(screen.queryByTitle("Game")).toBeNull();
+    expect(screen.getByRole("button", { name: "Start game" })).toBeInTheDocument();
+  });
+
+  it("a snapshot already in the Lobby shows the lobby, not an empty frame", async () => {
+    setConnection();
+    installFakeApi({ ...session, "GET /api/rooms/r-1": { body: resource(), headers: hint } });
+    renderAt("/rooms/r-1");
+    await screen.findByRole("heading", { name: "Tic-Tac-Toe" });
+    expect(screen.queryByTitle("Game")).toBeNull();
   });
 });

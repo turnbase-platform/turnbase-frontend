@@ -100,6 +100,8 @@ export class FakeStompClient {
   onConnect: () => void = () => undefined;
   onWebSocketClose: (evt?: unknown) => void = () => undefined;
   published: { destination: string; body: string }[] = [];
+  /** Every SUBSCRIBE ever sent, including ones later unsubscribed — the server rate-limits these. */
+  subscribeCount = 0;
   private subscriptions = new Map<string, ((message: { body: string }) => void)[]>();
 
   constructor(readonly brokerURL: string) {
@@ -120,6 +122,7 @@ export class FakeStompClient {
   }
 
   subscribe(destination: string, callback: (message: { body: string }) => void) {
+    this.subscribeCount += 1;
     this.subscriptions.set(destination, [...(this.subscriptions.get(destination) ?? []), callback]);
     return {
       unsubscribe: () => {
