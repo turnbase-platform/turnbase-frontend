@@ -11,6 +11,7 @@ import { useAuth } from "./auth-context";
 import { FormError, GoogleButton } from "./forms";
 import { fieldStatus } from "./fieldStatus";
 import { useGoogleAvailable } from "./useGoogleAvailable";
+import { autofill } from "../../shared/autofill";
 
 /** VW-LOGIN-001…004. A success is not navigated to here: the route guard sees the principal
  * appear on an anonymous-only route and performs VW-REDIR-004/005/006 for every entry point. */
@@ -48,6 +49,7 @@ export function LoginPage() {
             onChange={setUsernameOrEmail}
             status={fieldStatus(error, "usernameOrEmail")}
             htmlName="usernameOrEmail"
+            {...autofill("username")}
             isRequired
           />
           <TextInput
@@ -57,6 +59,7 @@ export function LoginPage() {
             onChange={setPassword}
             status={fieldStatus(error, "password")}
             htmlName="password"
+            {...autofill("current-password")}
             isRequired
           />
           <FormError error={error} unauthorizedMessage="Incorrect username, email or password." />

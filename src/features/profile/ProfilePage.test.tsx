@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FakeEventSource, REGISTERED, UNAUTHORIZED, installFakeApi } from "../../test/fakeApi";
+import { FakeEventSource, REGISTERED, ANONYMOUS, installFakeApi } from "../../test/fakeApi";
 import { renderAt } from "../../test/renderApp";
 
-const session = { "GET /api/auth/session": UNAUTHORIZED };
+const session = { "GET /api/auth/session": ANONYMOUS };
 const games = {
   "GET /api/games?owner=alice": {
     body: { content: [], pagination: { page: 1, size: 25, totalElements: 0, totalPages: 0 } },

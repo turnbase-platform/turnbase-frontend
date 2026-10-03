@@ -3,6 +3,7 @@ import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   FakeEventSource,
+  ANONYMOUS,
   GUEST,
   REGISTERED,
   UNAUTHORIZED,
@@ -17,7 +18,7 @@ const signedInAs = (principal: typeof REGISTERED | typeof GUEST) => ({
   "GET /api/notifications/unread-count": { body: { unreadCount: 0 } },
 });
 const unauth = {
-  ...session(UNAUTHORIZED),
+  ...session(ANONYMOUS),
   "GET /api/auth/providers": { body: { google: false } },
 };
 
@@ -258,6 +259,16 @@ describe("VW-REDIR-007: a mid-session 401", () => {
 });
 
 describe("login (VW-LOGIN-001…004)", () => {
+  it("marks the credential fields for password managers (autocomplete)", async () => {
+    installFakeApi(unauth);
+    renderAt("/login");
+    expect(await screen.findByLabelText(/^Password/)).toHaveAttribute(
+      "autocomplete",
+      "current-password",
+    );
+    expect(screen.getByLabelText(/Username or email/i)).toHaveAttribute("autocomplete", "username");
+  });
+
   async function logIn() {
     await userEvent.type(await screen.findByLabelText(/Username or email/), "alice");
     await userEvent.type(screen.getByLabelText(/^Password/), "hunter2!");

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FakeEventSource, UNAUTHORIZED, installFakeApi } from "../../test/fakeApi";
+import { FakeEventSource, ANONYMOUS, installFakeApi } from "../../test/fakeApi";
 import { renderAt } from "../../test/renderApp";
 
 const entry = (extra: object = {}) => ({
@@ -20,7 +20,7 @@ const envelope = (content: unknown[], page = 1, totalPages = 1) => ({
 });
 
 const profile = {
-  "GET /api/auth/session": UNAUTHORIZED,
+  "GET /api/auth/session": ANONYMOUS,
   "GET /api/auth/providers": { body: { google: false } },
   "GET /api/users/alice": {
     body: {

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FakeEventSource, REGISTERED, UNAUTHORIZED, installFakeApi } from "../../test/fakeApi";
+import { FakeEventSource, REGISTERED, ANONYMOUS, installFakeApi } from "../../test/fakeApi";
 import { renderAt, where } from "../../test/renderApp";
 
 const game = (n: number, extra: object = {}) => ({
@@ -42,7 +42,7 @@ afterEach(() => {
 describe("CatalogPage (VW-CAT-001…003, FR-CAT-001…010)", () => {
   it("FR-CAT-007/009/010: lists games newest-first with a detail link and a badge", async () => {
     const api = installFakeApi({
-      "GET /api/auth/session": UNAUTHORIZED,
+      "GET /api/auth/session": ANONYMOUS,
       [defaultUrl]: page([game(1), game(2, { badge: "VERIFIED" })]),
     });
     renderAt("/games");
@@ -58,7 +58,7 @@ describe("CatalogPage (VW-CAT-001…003, FR-CAT-001…010)", () => {
 
   it("VW-CAT-003: Create Room is hidden for Unauth, present for Guest/Registered", async () => {
     installFakeApi({
-      "GET /api/auth/session": UNAUTHORIZED,
+      "GET /api/auth/session": ANONYMOUS,
       [defaultUrl]: page([game(1)]),
     });
     renderAt("/games");
@@ -96,7 +96,7 @@ describe("CatalogPage (VW-CAT-001…003, FR-CAT-001…010)", () => {
 
   it("FR-CAT-003: a row expands to its short description; only one at a time", async () => {
     installFakeApi({
-      "GET /api/auth/session": UNAUTHORIZED,
+      "GET /api/auth/session": ANONYMOUS,
       [defaultUrl]: page([game(1), game(2)]),
     });
     renderAt("/games");
@@ -115,7 +115,7 @@ describe("CatalogPage (VW-CAT-001…003, FR-CAT-001…010)", () => {
 
   it("FR-CAT-005: search is a server-side query parameter, and restarts at page 1", async () => {
     const api = installFakeApi({
-      "GET /api/auth/session": UNAUTHORIZED,
+      "GET /api/auth/session": ANONYMOUS,
       [defaultUrl]: page([game(1)]),
       "GET /api/games?search=c&sort=createdAt%2Cdesc&page=1&size=25": page([]),
     });
@@ -132,7 +132,7 @@ describe("CatalogPage (VW-CAT-001…003, FR-CAT-001…010)", () => {
 
   it("FR-CAT-004: paging uses the shared envelope and requests the chosen page", async () => {
     const api = installFakeApi({
-      "GET /api/auth/session": UNAUTHORIZED,
+      "GET /api/auth/session": ANONYMOUS,
       [defaultUrl]: page([game(1)], 1, 3),
       "GET /api/games?sort=createdAt%2Cdesc&page=2&size=25": page([game(2)], 2, 3),
     });

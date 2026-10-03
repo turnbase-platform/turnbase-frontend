@@ -19,12 +19,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    // A 401 here is the ordinary answer to "who am I?" for a visitor, not a session ending.
-    apiFetch<Principal>("/api/auth/session", { expectUnauthorized: true })
+    // The probe answers 200 `{authenticated:false}` for a visitor (rest-conventions.md
+    // § Authentication), so an anonymous load logs no console error.
+    apiFetch<Principal | { authenticated: false }>("/api/auth/session")
       .then((found) => {
-        if (!cancelled) setPrincipal(found);
+        if (!cancelled && "userId" in found) setPrincipal(found);
       })
-      // Anything but a session (401, network down, 5xx) leaves the visitor treated as signed
+      // Anything but a session (network down, 5xx) leaves the visitor treated as signed
       // out; the guard is UX, not security, and the server still refuses what it must.
       .catch(() => undefined)
       .finally(() => {

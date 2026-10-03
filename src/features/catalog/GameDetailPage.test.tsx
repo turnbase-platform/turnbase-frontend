@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen } from "@testing-library/react";
-import { FakeEventSource, UNAUTHORIZED, installFakeApi } from "../../test/fakeApi";
+import { FakeEventSource, ANONYMOUS, installFakeApi } from "../../test/fakeApi";
 import { renderAt } from "../../test/renderApp";
 
 const detail = (extra: object = {}) => ({
@@ -33,7 +33,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const anon = { "GET /api/auth/session": UNAUTHORIZED };
+const anon = { "GET /api/auth/session": ANONYMOUS };
 
 describe("GameDetailPage (VW-GDET-001…003, FR-GDET-001…009)", () => {
   it("FR-GDET-002/005: shows metadata, tags, badge and the player count", async () => {

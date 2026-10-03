@@ -26,6 +26,7 @@ import {
   updatePrivacy,
 } from "./settingsApi";
 import type { AccountResponse, PrivacySettings } from "./settings-types";
+import { autofill } from "../../shared/autofill";
 
 /** VW-SET-001…007. */
 export function SettingsPage() {
@@ -218,6 +219,7 @@ function PasswordSection({ account }: { account: AccountResponse }) {
             onChange={setCurrentPassword}
             status={fieldStatus(error, "currentPassword")}
             htmlName="currentPassword"
+            {...autofill("current-password")}
             isRequired
           />
           <TextInput
@@ -227,6 +229,7 @@ function PasswordSection({ account }: { account: AccountResponse }) {
             onChange={setNewPassword}
             status={fieldStatus(error, "newPassword")}
             htmlName="newPassword"
+            {...autofill("new-password")}
             isRequired
           />
           <TextInput
@@ -236,6 +239,7 @@ function PasswordSection({ account }: { account: AccountResponse }) {
             onChange={setConfirmNewPassword}
             status={mismatch ?? fieldStatus(error, "confirmNewPassword")}
             htmlName="confirmNewPassword"
+            {...autofill("new-password")}
             isRequired
           />
           <FormError error={error} unauthorizedMessage="Your current password is incorrect." />
@@ -293,6 +297,7 @@ function AddPasswordForm() {
             onChange={setPassword}
             status={fieldStatus(error, "password")}
             htmlName="password"
+            {...autofill("new-password")}
             isRequired
           />
           <TextInput
@@ -302,6 +307,7 @@ function AddPasswordForm() {
             onChange={setConfirmPassword}
             status={mismatch ?? fieldStatus(error, "confirmPassword")}
             htmlName="confirmPassword"
+            {...autofill("new-password")}
             isRequired
           />
           <FormError error={error} />

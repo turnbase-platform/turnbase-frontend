@@ -44,6 +44,7 @@ export function installFakeApi(routes: Record<string, Route>) {
 export const REGISTERED = { userId: "u-1", username: "alice", kind: "REGISTERED" } as const;
 export const GUEST = { userId: "u-2", username: "guest-7f3a", kind: "GUEST" } as const;
 export const UNAUTHORIZED = { status: 401, body: { type: "unauthenticated", status: 401 } };
+export const ANONYMOUS = { body: { authenticated: false } };
 
 /** jsdom has no EventSource; this one lets a test push events and fail the connection. */
 export class FakeEventSource {

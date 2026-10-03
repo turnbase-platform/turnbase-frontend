@@ -10,6 +10,7 @@ import { useAuth } from "./auth-context";
 import { FormError, GoogleButton } from "./forms";
 import { fieldStatus } from "./fieldStatus";
 import { useGoogleAvailable } from "./useGoogleAvailable";
+import { autofill } from "../../shared/autofill";
 
 /** VW-REG-001…003. As with login, the route guard performs the post-success redirect. */
 export function RegisterPage() {
@@ -70,6 +71,7 @@ export function RegisterPage() {
             onChange={setPassword}
             status={fieldStatus(error, "password")}
             htmlName="password"
+            {...autofill("new-password")}
             isRequired
           />
           <TextInput
@@ -79,6 +81,7 @@ export function RegisterPage() {
             onChange={setConfirmPassword}
             status={mismatch ?? fieldStatus(error, "confirmPassword")}
             htmlName="confirmPassword"
+            {...autofill("new-password")}
             isRequired
           />
           <FormError error={error} />
