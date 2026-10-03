@@ -1,6 +1,6 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
-import { ApiError } from "../../shared/api";
+import { ApiError, rateLimitMessage } from "../../shared/api";
 import { safeRedirect } from "../../shared/redirect";
 
 /** Errors with no field of their own — everything the form cannot point at an input for. */
@@ -15,7 +15,7 @@ export function FormError({
   let title = "Something went wrong. Please try again.";
   if (error instanceof ApiError) {
     if (error.status === 401 && unauthorizedMessage) title = unauthorizedMessage;
-    else if (error.status === 429) title = "Too many attempts. Please wait a moment and try again.";
+    else if (error.status === 429) title = rateLimitMessage(error);
     else if (error.problem.errors?.length) return null;
     else if (error.status < 500 && error.problem.detail) title = error.problem.detail;
   }

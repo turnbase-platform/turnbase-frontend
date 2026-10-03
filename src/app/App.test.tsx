@@ -142,6 +142,23 @@ describe("navigation bar (VW-NAV-001…012, NFR-USAB-001)", () => {
   });
 });
 
+describe("Play as Guest rate limit", () => {
+  it("a 429 toasts the wait from Retry-After", async () => {
+    installFakeApi({
+      ...unauth,
+      "POST /api/auth/guest": {
+        status: 429,
+        headers: { "Retry-After": "3000" },
+        body: { status: 429 },
+      },
+    });
+    renderAt("/");
+    const nav = await screen.findByRole("navigation");
+    await userEvent.click(within(nav).getByRole("button", { name: "Play as Guest" }));
+    expect((await screen.findAllByText(/try again in 50 minutes/)).length).toBeGreaterThan(0);
+  });
+});
+
 describe("landing page (VW-LAND-001…004)", () => {
   it("shows the description and the three calls to action to Unauth", async () => {
     installFakeApi(unauth);
@@ -474,6 +491,42 @@ describe("registration (VW-REG-001…003)", () => {
     await userEvent.type(await screen.findByLabelText(/^Username/), "alice");
     await userEvent.click(screen.getByRole("button", { name: "Register" }));
     expect(await screen.findByText("That username is taken.")).toBeInTheDocument();
+  });
+
+  it("a 429 names the wait from Retry-After, not 'a moment' (RR-10)", async () => {
+    installFakeApi({
+      ...unauth,
+      "POST /api/auth/register": {
+        status: 429,
+        headers: { "Retry-After": "806" },
+        body: { type: "rate-limit-exceeded", status: 429 },
+      },
+    });
+    renderAt("/register");
+    await userEvent.type(await screen.findByLabelText(/^Username/), "alice");
+    await userEvent.click(screen.getByRole("button", { name: "Register" }));
+    expect(
+      await screen.findByText("Too many attempts. Please try again in 14 minutes."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/a moment/)).toBeNull();
+  });
+
+  it("a 429 on login shows the wait too", async () => {
+    installFakeApi({
+      ...unauth,
+      "POST /api/auth/login": {
+        status: 429,
+        headers: { "Retry-After": "30" },
+        body: { status: 429 },
+      },
+    });
+    renderAt("/login");
+    await userEvent.type(await screen.findByLabelText(/Username or email/), "alice");
+    await userEvent.type(screen.getByLabelText(/^Password/), "x");
+    await userEvent.click(screen.getByRole("button", { name: "Log in" }));
+    expect(
+      await screen.findByText("Too many attempts. Please try again in 30 seconds."),
+    ).toBeInTheDocument();
   });
 
   it("links to login (VW-REG-003)", async () => {

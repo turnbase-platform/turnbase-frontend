@@ -16,13 +16,33 @@ export interface Problem {
 export class ApiError extends Error {
   readonly status: number;
   readonly problem: Problem;
+  /** `rate-limiting.md` §429: the `Retry-After` header, in seconds, when the server sent one. */
+  readonly retryAfterSeconds?: number;
 
-  constructor(status: number, problem: Problem) {
+  constructor(status: number, problem: Problem, retryAfterSeconds?: number) {
     super(problem.detail ?? problem.title ?? `Request failed with status ${String(status)}`);
     this.name = "ApiError";
     this.status = status;
     this.problem = problem;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
+}
+
+/** "14 minutes", "30 seconds" — a wait a person can read, rounded up so it is never too short. */
+export function formatWait(seconds: number): string {
+  if (seconds < 60) return `${String(Math.max(1, Math.ceil(seconds)))} seconds`;
+  const minutes = Math.ceil(seconds / 60);
+  if (minutes < 60) return `${String(minutes)} minute${minutes === 1 ? "" : "s"}`;
+  const hours = Math.ceil(minutes / 60);
+  return `${String(hours)} hour${hours === 1 ? "" : "s"}`;
+}
+
+/** The sentence for a `429`: names the wait when the header gave one, never a vague "a moment". */
+export function rateLimitMessage(error: ApiError, what = "attempts"): string {
+  const wait = error.retryAfterSeconds;
+  return wait === undefined
+    ? `Too many ${what}. Please try again later.`
+    : `Too many ${what}. Please try again in ${formatWait(wait)}.`;
 }
 
 export interface RequestOptions {
@@ -73,7 +93,12 @@ async function doFetch(path: string, options: RequestOptions): Promise<Response>
         listener();
       });
     }
-    throw new ApiError(response.status, await readProblem(response));
+    const retryAfter = Number(response.headers.get("Retry-After"));
+    throw new ApiError(
+      response.status,
+      await readProblem(response),
+      Number.isFinite(retryAfter) && response.headers.has("Retry-After") ? retryAfter : undefined,
+    );
   }
   return response;
 }

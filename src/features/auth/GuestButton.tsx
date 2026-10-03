@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "@astryxdesign/core/Button";
 import { useToast } from "@astryxdesign/core/Toast";
-import { ApiError } from "../../shared/api";
+import { ApiError, rateLimitMessage } from "../../shared/api";
 import { safeRedirect } from "../../shared/redirect";
 import { useAuth } from "./auth-context";
 
@@ -24,12 +24,12 @@ export function GuestButton({
     startGuest()
       .then(() => navigate(safeRedirect(params.get("redirect")), { replace: true }))
       .catch((error: unknown) => {
-        const limited = error instanceof ApiError && error.status === 429;
         showToast({
           type: "error",
-          body: limited
-            ? "Too many guest sessions from this network. Please try again later."
-            : "Could not start a guest session. Please try again.",
+          body:
+            error instanceof ApiError && error.status === 429
+              ? rateLimitMessage(error, "guest sessions from this network")
+              : "Could not start a guest session. Please try again.",
         });
       })
       .finally(() => {
