@@ -54,6 +54,8 @@ export interface RoomResource {
   inviteCode?: string;
   canJoin: boolean;
   canSpectate: boolean;
+  /** `room-rest-api.md` §4 — the caller's own membership; absent from list rows. */
+  viewerRole: "PLAYER" | "SPECTATOR" | null;
   version: number;
   createdAt: string;
 }

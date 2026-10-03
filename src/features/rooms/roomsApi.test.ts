@@ -25,6 +25,7 @@ const room = {
   maxPlayers: 2,
   canJoin: true,
   canSpectate: true,
+  viewerRole: null,
   version: 1,
   createdAt: "2026-09-27T00:00:00Z",
 };
