@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FakeEventSource, REGISTERED, ANONYMOUS, installFakeApi } from "../../test/fakeApi";
+import { FakeEventSource, GUEST, REGISTERED, ANONYMOUS, installFakeApi } from "../../test/fakeApi";
 import { renderAt, where } from "../../test/renderApp";
 
 const game = (n: number, extra: object = {}) => ({
@@ -84,6 +84,9 @@ describe("CatalogPage (VW-CAT-001…003, FR-CAT-001…010)", () => {
     });
     renderAt("/games");
     await userEvent.click(await screen.findByRole("button", { name: "Create room" }));
+    // FR-CREATE-001: game 1 does not support spectators, so the dialog does not ask.
+    expect(screen.queryByRole("switch", { name: "Allow spectators" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
 
     await waitFor(() => {
       expect(where()).toBe("/rooms/r-9");
@@ -92,6 +95,42 @@ describe("CatalogPage (VW-CAT-001…003, FR-CAT-001…010)", () => {
       gameId: "g-1",
       visibility: "PUBLIC",
     });
+  });
+
+  it("FR-CREATE-001/002: posts the chosen visibility and spectating for a game that allows it", async () => {
+    const api = installFakeApi({
+      "GET /api/auth/session": { body: REGISTERED },
+      "GET /api/notifications/unread-count": { body: { unreadCount: 0 } },
+      [defaultUrl]: page([game(1, { supportsSpectators: true })]),
+      "POST /api/rooms": { status: 201, body: { roomId: "r-9" } },
+    });
+    renderAt("/games");
+    await userEvent.click(await screen.findByRole("button", { name: "Create room" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Friends Only" }));
+    await userEvent.click(screen.getByRole("switch", { name: "Allow spectators" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => {
+      expect(where()).toBe("/rooms/r-9");
+    });
+    expect(api.calls.find((call) => call.method === "POST")?.body).toEqual({
+      gameId: "g-1",
+      visibility: "FRIENDS_ONLY",
+      spectatingEnabled: true,
+    });
+  });
+
+  it("FR-LIST-006 / FR-GUEST-007: Friends Only is not offered to a Guest", async () => {
+    installFakeApi({
+      "GET /api/auth/session": { body: GUEST },
+      "GET /api/notifications/unread-count": { body: { unreadCount: 0 } },
+      [defaultUrl]: page([game(1)]),
+    });
+    renderAt("/games");
+    await userEvent.click(await screen.findByRole("button", { name: "Create room" }));
+    expect(screen.getByRole("radio", { name: "Public" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Invite Only" })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Friends Only" })).toBeNull();
   });
 
   it("FR-CAT-003: a row expands to its short description; only one at a time", async () => {

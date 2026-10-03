@@ -69,27 +69,15 @@ export async function createRoom(
   options: { spectating?: boolean } = {},
 ): Promise<string> {
   const { page } = host;
-  if (options.spectating) {
-    // The catalog's Create room button posts only `{gameId, visibility}`, and no view offers the
-    // spectating choice (FR-CREATE-001), so a room that allows spectators is made over REST and
-    // then entered through the UI like any other.
-    const games = (await (await page.request.get("/api/games")).json()) as {
-      content: { gameId: string; title: string }[];
-    };
-    const gameId = games.content.find((g) => g.title === TTT_TITLE)?.gameId;
-    const created = await page.request.post("/api/rooms", {
-      data: { gameId, visibility: "PUBLIC", spectatingEnabled: true },
-    });
-    expect(created.status()).toBe(201);
-    await page.goto(`/rooms/${((await created.json()) as { roomId: string }).roomId}`);
-  } else {
-    await page.goto("/games");
-    await page
-      .getByRole("link", { name: new RegExp(TTT_TITLE) })
-      .first()
-      .click();
-    await page.getByRole("button", { name: "Create room" }).click();
-  }
+  await page.goto("/games");
+  await page
+    .getByRole("link", { name: new RegExp(TTT_TITLE) })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Create room" }).click();
+  // FR-CREATE-001: the dialog is where visibility and spectating are chosen.
+  if (options.spectating) await page.getByRole("switch", { name: "Allow spectators" }).click();
+  await page.getByRole("button", { name: "Create", exact: true }).click();
   await expect(page).toHaveURL(/\/rooms\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { level: 1, name: TTT_TITLE })).toBeVisible();
   return roomIdOf(page);

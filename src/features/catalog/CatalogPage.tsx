@@ -86,7 +86,7 @@ export function CatalogPage() {
   return (
     <Stack gap={4} padding={6}>
       <Heading level={1}>Games</Heading>
-      <Stack direction="horizontal" gap={3}>
+      <Stack direction="horizontal" gap={3} wrap="wrap">
         <TextInput
           label="Search games"
           placeholder="Name, author or tag"
@@ -205,7 +205,10 @@ function CatalogBody({
                         onToggle(game.gameId);
                       }}
                     />
-                    <CreateRoomButton gameId={game.gameId} />
+                    <CreateRoomButton
+                      gameId={game.gameId}
+                      supportsSpectators={game.supportsSpectators}
+                    />
                   </Stack>
                 </TableCell>
               </TableRow>
