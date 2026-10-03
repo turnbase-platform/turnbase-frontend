@@ -101,7 +101,37 @@ describe("RoomsPage (VW-ROOMS-001…004)", () => {
   });
 });
 
+describe("RoomsPage states", () => {
+  it("offers Try again when the list fails to load", async () => {
+    installFakeApi({ ...session, [listUrl]: { status: 500, body: {} } });
+    renderAt("/rooms");
+    expect(await screen.findByRole("button", { name: "Try again" })).toBeInTheDocument();
+  });
+});
+
 describe("RoomsPage reconnection card (VW-ROOMS-005)", () => {
+  it("refreshes once the grace period has run out, which removes the card", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const withSlot = {
+        body: {
+          ...envelope([]).body,
+          reservedSlot: { roomId: "r-7", gameName: "Hex Duel", graceRemainingSeconds: 2 },
+        },
+      };
+      const api = installFakeApi({ ...session, [listUrl]: withSlot });
+      renderAt("/rooms");
+      await screen.findByText(/disconnected from Hex Duel/);
+      const before = api.calls.length;
+      await vi.advanceTimersByTimeAsync(3100);
+      await waitFor(() => {
+        expect(api.calls.length).toBeGreaterThan(before);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("pins a Rejoin card from reservedSlot and opens the room", async () => {
     installFakeApi({
       ...session,
@@ -158,7 +188,9 @@ describe("JoinByCodePage (VW-JOIN-001…003)", () => {
   it("says so for an unknown code", async () => {
     installFakeApi({ ...session, [codeUrl]: envelope([]) });
     renderAt("/rooms/join/K7");
-    expect(await screen.findByText(/not valid, or the room no longer exists/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/not valid, has expired, or the room has closed/),
+    ).toBeInTheDocument();
   });
 
   it("says so when no role is available", async () => {

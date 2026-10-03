@@ -15,7 +15,7 @@ type JoinState =
   | { status: "joining" }
   | { status: "failed"; reason: string };
 
-const INVALID_CODE = "This invite link is not valid, or the room no longer exists.";
+const INVALID_CODE = "This invite link is not valid, has expired, or the room has closed.";
 const NO_ROLE = "This room has no available role — it is full and cannot be spectated.";
 
 /** VW-JOIN-001…003 / FR-JOIN-003…006. */

@@ -85,6 +85,23 @@ export function RoomsPage() {
     };
   }, [search, status, sort, page, reload]);
 
+  // VW-ROOMS-005: the card goes away when the slot is released. The list is not polled
+  // (FR-LIST-005), so refresh once, just after the grace period the server reported has run out.
+  const graceSeconds =
+    state.status === "loaded" ? (state.result.reservedSlot?.graceRemainingSeconds ?? null) : null;
+  useEffect(() => {
+    if (graceSeconds === null) return;
+    const timer = setTimeout(
+      () => {
+        setReload((n) => n + 1);
+      },
+      (graceSeconds + 1) * 1000,
+    );
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [graceSeconds, reload]);
+
   const join = useCallback(
     (row: RoomListRow, role: "PLAYER" | "SPECTATOR") => {
       setJoining(row.roomId);
@@ -106,7 +123,7 @@ export function RoomsPage() {
   return (
     <Stack gap={4} padding={6}>
       <Heading level={1}>Active rooms</Heading>
-      <Stack direction="horizontal" gap={3}>
+      <Stack direction="horizontal" gap={3} wrap="wrap">
         <TextInput
           label="Search rooms"
           placeholder="Game or host"
@@ -161,64 +178,80 @@ export function RoomsPage() {
       )}
       {state.status === "loading" && <Text>Loading…</Text>}
       {state.status === "error" && (
-        <Banner status="error" title="Could not load the rooms. Please try again." />
+        <Banner
+          status="error"
+          collapsible={false}
+          title="Could not load the rooms. Please try again."
+        >
+          <Button
+            label="Try again"
+            variant="secondary"
+            onClick={() => {
+              setState({ status: "loading" });
+              setReload((n) => n + 1);
+            }}
+          />
+        </Banner>
       )}
       {state.status === "loaded" &&
         (state.result.content.length === 0 ? (
           <EmptyState title="No rooms to join right now" />
         ) : (
           <Stack gap={3}>
-            <Table dividers="rows">
-              <TableHeader>
-                <TableRow isHeaderRow>
-                  <TableHeaderCell>Game</TableHeaderCell>
-                  <TableHeaderCell>Host</TableHeaderCell>
-                  <TableHeaderCell>Status</TableHeaderCell>
-                  <TableHeaderCell>Players</TableHeaderCell>
-                  <TableHeaderCell>Spectators</TableHeaderCell>
-                  <TableHeaderCell>Actions</TableHeaderCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {state.result.content.map((row) => (
-                  <TableRow key={row.roomId}>
-                    <TableCell>{row.gameName}</TableCell>
-                    <TableCell>{row.hostUsername}</TableCell>
-                    <TableCell>{row.state === "LOBBY" ? "Lobby" : "In progress"}</TableCell>
-                    <TableCell>{`${String(row.playerCount)} / ${String(row.playerCapacity)}`}</TableCell>
-                    <TableCell>
-                      {row.spectatingSupported ? String(row.spectatorCount) : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="horizontal" gap={2}>
-                        {row.canJoin && (
-                          <Button
-                            label="Join"
-                            variant="primary"
-                            aria-label={`Join ${row.gameName} hosted by ${row.hostUsername}`}
-                            isLoading={joining === row.roomId}
-                            onClick={() => {
-                              join(row, "PLAYER");
-                            }}
-                          />
-                        )}
-                        {row.canSpectate && (
-                          <Button
-                            label="Spectate"
-                            variant="secondary"
-                            aria-label={`Spectate ${row.gameName} hosted by ${row.hostUsername}`}
-                            isLoading={joining === row.roomId}
-                            onClick={() => {
-                              join(row, "SPECTATOR");
-                            }}
-                          />
-                        )}
-                      </Stack>
-                    </TableCell>
+            {/* At phone width the table scrolls inside this box, not the page (RR-07). */}
+            <div style={{ overflowX: "auto", maxWidth: "100%" }}>
+              <Table dividers="rows">
+                <TableHeader>
+                  <TableRow isHeaderRow>
+                    <TableHeaderCell>Game</TableHeaderCell>
+                    <TableHeaderCell>Host</TableHeaderCell>
+                    <TableHeaderCell>Status</TableHeaderCell>
+                    <TableHeaderCell>Players</TableHeaderCell>
+                    <TableHeaderCell>Spectators</TableHeaderCell>
+                    <TableHeaderCell>Actions</TableHeaderCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {state.result.content.map((row) => (
+                    <TableRow key={row.roomId}>
+                      <TableCell>{row.gameName}</TableCell>
+                      <TableCell>{row.hostUsername}</TableCell>
+                      <TableCell>{row.state === "LOBBY" ? "Lobby" : "In progress"}</TableCell>
+                      <TableCell>{`${String(row.playerCount)} / ${String(row.playerCapacity)}`}</TableCell>
+                      <TableCell>
+                        {row.spectatingSupported ? String(row.spectatorCount) : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Stack direction="horizontal" gap={2}>
+                          {row.canJoin && (
+                            <Button
+                              label="Join"
+                              variant="primary"
+                              aria-label={`Join ${row.gameName} hosted by ${row.hostUsername}`}
+                              isLoading={joining === row.roomId}
+                              onClick={() => {
+                                join(row, "PLAYER");
+                              }}
+                            />
+                          )}
+                          {row.canSpectate && (
+                            <Button
+                              label="Spectate"
+                              variant="secondary"
+                              aria-label={`Spectate ${row.gameName} hosted by ${row.hostUsername}`}
+                              isLoading={joining === row.roomId}
+                              onClick={() => {
+                                join(row, "SPECTATOR");
+                              }}
+                            />
+                          )}
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
             {state.result.pagination.totalPages > 1 && (
               <Pagination
                 variant="input"
