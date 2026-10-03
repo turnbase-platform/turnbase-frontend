@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
+import { Heading } from "@astryxdesign/core/Heading";
 import { Link } from "@astryxdesign/core/Link";
 import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
@@ -14,18 +16,19 @@ import { useRoomConnection } from "./useRoomConnection";
 
 type Entry =
   | { status: "resolving" }
+  | { status: "prompt"; room: RoomResource; instanceHint: string | null }
   | { status: "ready"; room: RoomResource; instanceHint: string | null }
   | { status: "unavailable" };
 
 const CLOSED_TEXT = "This room has been closed.";
 
 /**
- * `/rooms/:id` — one component across the room's states (`shell-architecture.md` §8). Entry
- * re-establishes membership with the idempotent join (`room-rest-api.md` §8: re-entering is
- * `POST …/participants`, a no-op for an existing participant), because a page refresh closes the
- * socket and a Lobby disconnect is an immediate leave (FR-DC-002). That is also what makes a
- * direct URL work (FR-REJOIN-003, 004). The join's affinity header points the socket at the
- * owning pod.
+ * `/rooms/:id` — one component across the room's states (`shell-architecture.md` §8). Opening it
+ * never takes a seat (`IMP-GATE-95`): a caller who already holds one (`viewerRole`,
+ * `room-rest-api.md` §4) re-enters it with the idempotent join — which is also how a refresh or a
+ * stored link resumes (FR-REJOIN-003, 004, and a Lobby disconnect is an immediate leave,
+ * FR-DC-002) — and anyone else is asked Player or Spectator (VW-JOIN-002) and is enrolled by
+ * pressing one. The join's affinity header points the socket at the owning pod.
  */
 export function RoomPage() {
   const { id = "" } = useParams();
@@ -35,34 +38,90 @@ export function RoomPage() {
 
 function RoomEntry({ id }: { id: string }) {
   const [entry, setEntry] = useState<Entry>({ status: "resolving" });
+  const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
+    void (async (): Promise<Entry> => {
       try {
         const { room, instanceHint } = await getRoom(id);
-        const role = room.canJoin ? "PLAYER" : room.canSpectate ? "SPECTATOR" : null;
-        if (role === null) return { room, instanceHint };
-        const joined = await joinRoom(id, role);
-        return { room: joined.result.room, instanceHint: joined.instanceHint ?? instanceHint };
+        if (room.viewerRole !== null) {
+          const joined = await joinRoom(id, room.viewerRole);
+          return {
+            status: "ready",
+            room: joined.result.room,
+            instanceHint: joined.instanceHint ?? instanceHint,
+          };
+        }
+        if (room.canJoin || room.canSpectate) return { status: "prompt", room, instanceHint };
+        return { status: "unavailable" };
       } catch {
-        return null;
+        return { status: "unavailable" };
       }
     })().then((resolved) => {
-      if (cancelled) return;
-      setEntry(resolved ? { status: "ready", ...resolved } : { status: "unavailable" });
+      if (!cancelled) setEntry(resolved);
     });
     return () => {
       cancelled = true;
     };
   }, [id]);
 
+  function enrol(role: "PLAYER" | "SPECTATOR") {
+    if (entry.status !== "prompt") return;
+    const { instanceHint } = entry;
+    setFailure(null);
+    joinRoom(id, role)
+      .then((joined) => {
+        setEntry({
+          status: "ready",
+          room: joined.result.room,
+          instanceHint: joined.instanceHint ?? instanceHint,
+        });
+      })
+      .catch((error: unknown) => {
+        setFailure(error instanceof Error ? error.message : "Could not join the room.");
+      });
+  }
+
   if (entry.status === "resolving") return <Text>Entering room…</Text>;
   if (entry.status === "unavailable") {
     return (
       <Stack gap={3} padding={6}>
-        <Banner status="error" title="This room is closed, or you cannot enter it." />
+        <Banner
+          status="error"
+          title="This room is closed, or has no role available to you — it is full and cannot be spectated."
+        />
         <Link href="/rooms">Browse active rooms</Link>
+      </Stack>
+    );
+  }
+  if (entry.status === "prompt") {
+    return (
+      <Stack gap={4} padding={6}>
+        <Heading level={1}>Join a room</Heading>
+        <Text>{`Join ${entry.room.gameName}, hosted by ${entry.room.hostUsername}, as:`}</Text>
+        {failure && <Banner status="error" title={failure} />}
+        <Stack direction="horizontal" gap={2}>
+          {entry.room.canJoin && (
+            <Button
+              label="Join as player"
+              variant="primary"
+              onClick={() => {
+                enrol("PLAYER");
+              }}
+            />
+          )}
+          {entry.room.canSpectate && (
+            <Button
+              label="Join as spectator"
+              variant="secondary"
+              onClick={() => {
+                enrol("SPECTATOR");
+              }}
+            />
+          )}
+          <Link href="/rooms">Browse active rooms</Link>
+        </Stack>
       </Stack>
     );
   }
@@ -157,6 +216,8 @@ function RoomView({
           userId={principal?.userId ?? null}
           connection={connection}
           inviteCode={room.inviteCode}
+          minPlayers={room.minPlayers}
+          maxPlayers={room.maxPlayers}
           chatMessages={chatMessages}
           lastError={lastError}
           onLeave={leave}

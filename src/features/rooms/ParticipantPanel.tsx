@@ -29,7 +29,7 @@ export function ParticipantPanel({ snapshot, userId, connection }: ParticipantPa
       <ul aria-label="Participants">
         {snapshot.players.map((entry) => (
           <li key={entry.playerId}>
-            <Stack direction="horizontal" gap={2}>
+            <Stack direction="horizontal" gap={2} wrap="wrap">
               <Text>{entry.username}</Text>
               {entry.playerId === snapshot.hostId && <Badge label="Host" variant="info" />}
               {!entry.connected && <Badge label="Disconnected" variant="warning" />}
@@ -58,7 +58,7 @@ export function ParticipantPanel({ snapshot, userId, connection }: ParticipantPa
         ))}
         {snapshot.spectators.map((entry) => (
           <li key={entry.playerId}>
-            <Stack direction="horizontal" gap={2}>
+            <Stack direction="horizontal" gap={2} wrap="wrap">
               <Text>{entry.username}</Text>
               <Badge label="Spectator" variant="neutral" />
               {isHost && (

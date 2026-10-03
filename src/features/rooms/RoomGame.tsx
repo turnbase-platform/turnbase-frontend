@@ -53,7 +53,7 @@ export function RoomGame({
         messages={chatMessages}
         connection={connection}
       />
-      <Stack direction="horizontal" gap={2}>
+      <Stack direction="horizontal" gap={2} wrap="wrap">
         {over && <Button label="Return to lobby" variant="primary" onClick={onReturnToLobby} />}
         <Button label="Leave room" variant="secondary" onClick={onLeave} />
       </Stack>

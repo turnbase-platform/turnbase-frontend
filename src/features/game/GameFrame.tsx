@@ -101,8 +101,7 @@ export function GameFrame({
         sandbox={GAME_SANDBOX}
         allow=""
         referrerPolicy="no-referrer"
-        width="100%"
-        height="600"
+        style={{ width: "100%", maxWidth: "100%", height: 600, border: 0 }}
       />
     </Stack>
   );

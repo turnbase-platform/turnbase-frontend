@@ -46,6 +46,7 @@ const resource = (extra: object = {}) => ({
   maxPlayers: 2,
   canJoin: false,
   canSpectate: false,
+  viewerRole: null,
   version: 1,
   createdAt: "2026-10-01T10:00:00Z",
   ...extra,
@@ -126,14 +127,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("RoomPage entry", () => {
-  it("re-joins on entry so a refresh restores membership, and opens the socket at the hint", async () => {
+describe("RoomPage entry (IMP-GATE-95)", () => {
+  it("re-enters a member with the idempotent join, and opens the socket at the new hint", async () => {
     setConnection();
     const api = installFakeApi({
       ...session,
-      "GET /api/rooms/r-1": { body: resource({ canJoin: true }), headers: hint },
+      "GET /api/rooms/r-1": { body: resource({ viewerRole: "PLAYER" }), headers: hint },
       "POST /api/rooms/r-1/participants": {
-        body: { room: resource(), releasedRoom: null },
+        body: { room: resource({ viewerRole: "PLAYER" }), releasedRoom: null },
         headers: { "X-TurnBase-Room-Instance": "pod-b" },
       },
     });
@@ -144,24 +145,67 @@ describe("RoomPage entry", () => {
     expect(mocked.calls.at(-1)).toEqual(["r-1", "pod-b"]);
   });
 
-  it("does not join a room the caller cannot join or spectate, and still connects", async () => {
+  it("re-enters a spectator as a spectator", async () => {
+    setConnection();
+    const api = installFakeApi({
+      ...session,
+      "GET /api/rooms/r-1": { body: resource({ viewerRole: "SPECTATOR" }), headers: hint },
+      "POST /api/rooms/r-1/participants": {
+        body: { room: resource({ viewerRole: "SPECTATOR" }), releasedRoom: null },
+      },
+    });
+    renderAt("/rooms/r-1");
+    await screen.findByRole("heading", { name: "Tic-Tac-Toe" });
+    expect(api.calls.find((c) => c.method === "POST")?.body).toEqual({ role: "SPECTATOR" });
+  });
+
+  it("asks a non-member and enrols only when a button is pressed", async () => {
+    setConnection();
+    const api = installFakeApi({
+      ...session,
+      "GET /api/rooms/r-1": { body: resource({ canJoin: true, canSpectate: true }), headers: hint },
+      "POST /api/rooms/r-1/participants": {
+        body: { room: resource({ viewerRole: "SPECTATOR" }), releasedRoom: null },
+      },
+    });
+    renderAt("/rooms/r-1");
+
+    await screen.findByRole("button", { name: "Join as player" });
+    expect(api.calls.some((c) => c.method === "POST")).toBe(false);
+    expect(mocked.calls).toEqual([]); // no socket until a role is held
+
+    await userEvent.click(screen.getByRole("button", { name: "Join as spectator" }));
+    expect(await screen.findByRole("heading", { name: "Tic-Tac-Toe" })).toBeInTheDocument();
+    expect(api.calls.find((c) => c.method === "POST")?.body).toEqual({ role: "SPECTATOR" });
+  });
+
+  it("offers only the role that is available", async () => {
+    setConnection();
+    installFakeApi({
+      ...session,
+      "GET /api/rooms/r-1": { body: resource({ canSpectate: true }), headers: hint },
+    });
+    renderAt("/rooms/r-1");
+    await screen.findByRole("button", { name: "Join as spectator" });
+    expect(screen.queryByRole("button", { name: "Join as player" })).toBeNull();
+  });
+
+  it("shows the error, and never joins, when a non-member has no role (VW-JOIN-003)", async () => {
     setConnection();
     const api = installFakeApi({
       ...session,
       "GET /api/rooms/r-1": { body: resource(), headers: hint },
     });
     renderAt("/rooms/r-1");
-
-    await screen.findByRole("heading", { name: "Tic-Tac-Toe" });
+    expect(await screen.findByText(/no role available to you/)).toBeInTheDocument();
     expect(api.calls.some((c) => c.method === "POST")).toBe(false);
-    expect(mocked.calls.at(-1)).toEqual(["r-1", "pod-a"]);
   });
 
   it("says so for a room that no longer exists (FR-REJOIN-008)", async () => {
     setConnection();
     installFakeApi({ ...session });
     renderAt("/rooms/r-1");
-    expect(await screen.findByText(/closed, or you cannot enter/)).toBeInTheDocument();
+    expect(await screen.findByText(/closed, or has no role/)).toBeInTheDocument();
   });
 });
 
@@ -170,7 +214,10 @@ describe("Lobby as a non-host player (VW-RLOBBY-001…004)", () => {
     const conn = setConnection(extra);
     installFakeApi({
       ...session,
-      "GET /api/rooms/r-1": { body: resource(), headers: hint },
+      "GET /api/rooms/r-1": { body: resource({ viewerRole: "PLAYER" }), headers: hint },
+      "POST /api/rooms/r-1/participants": {
+        body: { room: resource({ viewerRole: "PLAYER" }), releasedRoom: null },
+      },
       "DELETE /api/rooms/r-1/participants/me": { status: 204 },
       "GET /api/rooms?sort=createdAt%2Cdesc&page=1&size=25": {
         body: {
@@ -229,12 +276,21 @@ describe("Lobby as a non-host player (VW-RLOBBY-001…004)", () => {
 describe("Lobby as the host (VW-RLOBBY-006, 009, 011, 014)", () => {
   async function openAsHost(extra: Partial<RoomConnectionState> = {}) {
     const conn = setConnection({
-      snapshot: snapshot({ hostId: "u-1" }),
+      snapshot: snapshot({
+        hostId: "u-1",
+        players: snapshot().players.map((p) => ({ ...p, ready: true })),
+      }),
       ...extra,
     });
     installFakeApi({
       ...session,
-      "GET /api/rooms/r-1": { body: resource({ inviteCode: "K7" }), headers: hint },
+      "GET /api/rooms/r-1": {
+        body: resource({ inviteCode: "K7", viewerRole: "PLAYER" }),
+        headers: hint,
+      },
+      "POST /api/rooms/r-1/participants": {
+        body: { room: resource({ inviteCode: "K7", viewerRole: "PLAYER" }), releasedRoom: null },
+      },
     });
     renderAt("/rooms/r-1");
     await screen.findByRole("heading", { name: "Tic-Tac-Toe" });
@@ -246,6 +302,33 @@ describe("Lobby as the host (VW-RLOBBY-006, 009, 011, 014)", () => {
     await userEvent.click(screen.getByRole("button", { name: "Start game" }));
     expect(conn.sendHostCommand).toHaveBeenCalledWith("START_GAME");
     expect(screen.queryByRole("button", { name: /^(Not ready|Ready)$/ })).toBeNull();
+  });
+
+  it("disables Start, and says why, until every other player is ready", async () => {
+    const conn = await openAsHost({
+      snapshot: snapshot({ hostId: "u-1" }), // bob is not ready
+    });
+    expect(screen.getByRole("button", { name: "Start game" })).toBeDisabled();
+    expect(screen.getByText("bob is not ready.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Start game" }));
+    expect(conn.sendHostCommand).not.toHaveBeenCalled();
+  });
+
+  it("disables Start while the game lacks players", async () => {
+    setConnection({
+      snapshot: snapshot({ hostId: "u-1", players: snapshot().players.slice(1) }),
+    });
+    installFakeApi({
+      ...session,
+      "GET /api/rooms/r-1": { body: resource({ viewerRole: "PLAYER" }), headers: hint },
+      "POST /api/rooms/r-1/participants": {
+        body: { room: resource({ viewerRole: "PLAYER" }), releasedRoom: null },
+      },
+    });
+    renderAt("/rooms/r-1");
+    await screen.findByRole("heading", { name: "Tic-Tac-Toe" });
+    expect(screen.getByRole("button", { name: "Start game" })).toBeDisabled();
+    expect(screen.getByText(/needs at least 2 players; 1 joined/)).toBeInTheDocument();
   });
 
   it("surfaces the server's rejection of a start", async () => {
@@ -286,7 +369,13 @@ describe("In-game and results views (VW-RGAME-001…005, VW-RRESULT-001…005)",
     const conn = setConnection({ snapshot: snap });
     installFakeApi({
       ...session,
-      "GET /api/rooms/r-1": { body: resource({ state: snap.state }), headers: hint },
+      "GET /api/rooms/r-1": {
+        body: resource({ state: snap.state, viewerRole: "PLAYER" }),
+        headers: hint,
+      },
+      "POST /api/rooms/r-1/participants": {
+        body: { room: resource({ state: snap.state, viewerRole: "PLAYER" }), releasedRoom: null },
+      },
       "DELETE /api/rooms/r-1/participants/me": { status: 204 },
     });
     renderAt("/rooms/r-1");
@@ -354,9 +443,68 @@ describe("In-game and results views (VW-RGAME-001…005, VW-RRESULT-001…005)",
 
   it("a snapshot already in the Lobby shows the lobby, not an empty frame", async () => {
     setConnection();
-    installFakeApi({ ...session, "GET /api/rooms/r-1": { body: resource(), headers: hint } });
+    installFakeApi({
+      ...session,
+      "GET /api/rooms/r-1": { body: resource({ viewerRole: "PLAYER" }), headers: hint },
+      "POST /api/rooms/r-1/participants": {
+        body: { room: resource({ viewerRole: "PLAYER" }), releasedRoom: null },
+      },
+    });
     renderAt("/rooms/r-1");
     await screen.findByRole("heading", { name: "Tic-Tac-Toe" });
     expect(screen.queryByTitle("Game")).toBeNull();
+  });
+});
+
+describe("Spectator views (VW-RLOBBY-012, 013, 015; VW-RGAME-006)", () => {
+  const spectating = (extra: Partial<RoomStateSnapshot> = {}) =>
+    snapshot({
+      players: snapshot().players.filter((p) => p.playerId !== "u-1"),
+      spectators: [{ playerId: "u-1", username: "alice" }],
+      ...extra,
+    });
+
+  async function open(snap: RoomStateSnapshot, heading: string | RegExp = "Tic-Tac-Toe") {
+    setConnection({ snapshot: snap });
+    installFakeApi({
+      ...session,
+      "GET /api/rooms/r-1": { body: resource({ viewerRole: "SPECTATOR" }), headers: hint },
+      "POST /api/rooms/r-1/participants": {
+        body: { room: resource({ viewerRole: "SPECTATOR" }), releasedRoom: null },
+      },
+    });
+    renderAt("/rooms/r-1");
+    await screen.findByRole("heading", { name: heading });
+  }
+
+  it("sees the lobby with Switch to player where a seat is free, and no chat or readiness", async () => {
+    await open(spectating());
+    expect(screen.getByRole("button", { name: "Switch to player" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Chat" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^(Not ready|Ready)$/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start game" })).toBeNull();
+  });
+
+  it("is not offered Switch to player when every seat is taken", async () => {
+    await open(
+      spectating({
+        players: [...snapshot().players],
+      }),
+    );
+    expect(screen.queryByRole("button", { name: "Switch to player" })).toBeNull();
+  });
+
+  it("sees the board and the participants in game, without a chat box", async () => {
+    await open(
+      spectating({
+        state: "IN_PROGRESS",
+        sessionId: "s-1",
+        gameFrontendUrl: "http://g-1.games.localhost:8080/play/s-1",
+      }),
+      /Tic-Tac-Toe/,
+    );
+    expect(screen.getByTitle("Game")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Participants" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Chat" })).toBeNull();
   });
 });

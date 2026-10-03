@@ -5,6 +5,7 @@ import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/Segme
 import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
+import { hasTeamChannel } from "./roomRules";
 import type { RoomConnection } from "./roomSocket";
 import type { ChatMessageEnvelope, RoomStateSnapshot } from "./rooms-types";
 
@@ -21,7 +22,7 @@ type Channel = "ROOM" | "TEAM";
  * VW-RGAME-006…008. One chronological log for both channels (FR-MSG-004), tagged `[Room]` or
  * `[Team]` (FR-MSG-003). Players only — a spectator gets no panel (FR-CHAN-004); the server
  * refuses a spectator's send regardless (`SPECTATOR_CANNOT_CHAT`), so this is not the control.
- * The team channel is offered when the room has teams at all and the player holds one, the same
+ * The team channel is offered when the game has team support (above) and the player holds one, the same
  * condition the server applies to `TEAM_CHAT_NOT_AVAILABLE` / `NO_TEAM_ASSIGNMENT`. The log is
  * the client's own (FR-CHAN-003); nothing here touches the room version (IR-08).
  */
@@ -31,7 +32,7 @@ export function ChatPanel({ snapshot, userId, messages, connection }: ChatPanelP
   const [text, setText] = useState("");
   if (!me) return null;
 
-  const teamAvailable = snapshot.teams.length > 0 && me.teamId !== null;
+  const teamAvailable = hasTeamChannel(snapshot) && me.teamId !== null;
   const channel: Channel = teamAvailable ? chosen : "ROOM";
   const log = [...messages].sort((a, b) => a.serverTimestamp.localeCompare(b.serverTimestamp));
 

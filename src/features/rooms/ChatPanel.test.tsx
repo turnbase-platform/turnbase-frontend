@@ -10,9 +10,9 @@ afterEach(cleanup);
 const team = {
   teamId: "t-1",
   templateName: "Team",
-  configuredSize: 1,
+  configuredSize: 2,
   index: 0,
-  memberIds: ["u-1"],
+  memberIds: ["u-1", "u-2"],
 };
 
 const snapshot = (extra: Partial<RoomStateSnapshot> = {}): RoomStateSnapshot => ({
@@ -90,6 +90,11 @@ describe("ChatPanel", () => {
     expect(screen.queryByText("Team")).toBeNull();
     await userEvent.type(screen.getByLabelText("Message the room"), "hi{Enter}");
     expect(send).toHaveBeenCalledWith("ROOM", "hi");
+  });
+
+  it("offers no team channel in a one-seat-per-team game such as Tic-Tac-Toe", () => {
+    setup(snapshot({ teams: [{ ...team, configuredSize: 1, memberIds: ["u-1"] }] }), "u-1");
+    expect(screen.queryByRole("radio", { name: "Team" })).toBeNull();
   });
 
   it("offers the switcher to a team member and sends to the chosen channel", async () => {
