@@ -66,6 +66,24 @@ describe("navigation bar (VW-NAV-001…012, NFR-USAB-001)", () => {
     expect(FakeEventSource.instances).toHaveLength(0);
   });
 
+  it("at phone width the same elements remain, in a second row (RR-07)", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }));
+    installFakeApi(unauth);
+    renderAt("/");
+    const header = await screen.findByRole("banner");
+
+    for (const name of ["Games", "Log in", "Register"]) {
+      expect(within(header).getByRole("link", { name })).toBeInTheDocument();
+    }
+    expect(within(header).getByRole("button", { name: "Play as Guest" })).toBeInTheDocument();
+    expect(within(header).queryByRole("link", { name: "Rooms" })).toBeNull();
+  });
+
   it("Guest: rooms, bell and user menu; no Friends and no Settings", async () => {
     installFakeApi(signedInAs(GUEST));
     renderAt("/");
