@@ -69,8 +69,11 @@ config**, `typescript-eslint` **strict** + stylistic (type-aware), `eslint-plugi
 
 `git config core.hooksPath .githooks` once, to get the `pre-push` fast-fail.
 
-There is no integration or e2e tier here — end-to-end coverage of the platform uses HTTP and
-WebSocket clients, not a browser (FR-CICD-005).
+There is no integration tier here, and CI runs no browser e2e (FR-CICD-005). The MVP browser
+acceptance suite (`IMP-M7-13`) is Playwright under `e2e/`, run by hand against the compose stack:
+`make up` in `turnbase-platform` (seeded, with the Tic-Tac-Toe bundle — `local-environment.md` §5),
+then `npm run e2e`. It spends one guest and one registration per run against the Tier 5 limit
+(5 and 3 per IP per hour), so `make reset-db` before repeating it.
 
 ## The iframe boundary
 

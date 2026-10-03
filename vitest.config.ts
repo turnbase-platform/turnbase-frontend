@@ -1,11 +1,12 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
-// conventions.md §3: unit tests only here — there is no integration or e2e tier in this
-// repository (FR-CICD-005 puts end-to-end coverage on HTTP/WebSocket clients, not a browser).
+// conventions.md §3: unit tests only here. The Playwright acceptance suite in e2e/ is run by hand
+// against the compose stack (`npm run e2e`) and is kept out of Vitest's reach.
 export default defineConfig({
   plugins: [react()],
   test: {
+    exclude: [...configDefaults.exclude, "e2e/**"],
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],

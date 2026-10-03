@@ -5,7 +5,7 @@ import { FakeEventSource, REGISTERED, installFakeApi } from "../../test/fakeApi"
 import { renderAt, where } from "../../test/renderApp";
 
 const session = { "GET /api/auth/session": { body: REGISTERED } };
-const listUrl = "GET /api/rooms?sort=createdAt%2Cdesc&page=1&size=25";
+const listUrl = "GET /api/rooms?page=1&size=25";
 
 const row = (extra: object = {}) => ({
   roomId: "r-1",
@@ -85,7 +85,7 @@ describe("RoomsPage (VW-ROOMS-001…004)", () => {
     const api = installFakeApi({
       ...session,
       [listUrl]: envelope([row()]),
-      "GET /api/rooms?search=chess&sort=createdAt%2Cdesc&page=1&size=25": envelope([]),
+      "GET /api/rooms?search=chess&page=1&size=25": envelope([]),
     });
     renderAt("/rooms");
     await screen.findByText("bob");

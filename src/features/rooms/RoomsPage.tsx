@@ -23,8 +23,11 @@ import type { RoomListEnvelope, RoomListRow } from "./rooms-types";
 
 const PAGE_SIZE = 25;
 
+// `room-rest-api.md` §3: `sort` accepts exactly these five fields. `createdAt` is the server's
+// default when `sort` is omitted — it is not an accepted value, so asking for it by name is a 400.
+const DEFAULT_SORT = "newest";
+
 const SORT_LABELS: Record<string, string> = {
-  createdAt: "Newest",
   gameName: "Game",
   playerCount: "Players now",
   minPlayers: "Min players",
@@ -32,10 +35,13 @@ const SORT_LABELS: Record<string, string> = {
   status: "Status",
 };
 
-const SORT_OPTIONS = Object.entries(SORT_LABELS).flatMap(([field, label]) => [
-  { value: `${field},asc`, label: `${label} (ascending)` },
-  { value: `${field},desc`, label: `${label} (descending)` },
-]);
+const SORT_OPTIONS = [
+  { value: DEFAULT_SORT, label: "Newest first" },
+  ...Object.entries(SORT_LABELS).flatMap(([field, label]) => [
+    { value: `${field},asc`, label: `${label} (ascending)` },
+    { value: `${field},desc`, label: `${label} (descending)` },
+  ]),
+];
 
 const STATUS_OPTIONS = [
   { value: "ALL", label: "Any status" },
@@ -52,7 +58,7 @@ export function RoomsPage() {
   const showToast = useToast();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
-  const [sort, setSort] = useState("createdAt,desc"); // room-rest-api.md §3 default
+  const [sort, setSort] = useState(DEFAULT_SORT);
   const [page, setPage] = useState(1);
   const [reload, setReload] = useState(0);
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -63,7 +69,7 @@ export function RoomsPage() {
     const params: ListRoomsParams = {
       search: search.length > 0 ? search : undefined,
       status: status === "ALL" ? undefined : [status as "LOBBY" | "IN_PROGRESS"],
-      sort,
+      sort: sort === DEFAULT_SORT ? undefined : sort,
       page,
       size: PAGE_SIZE,
     };
