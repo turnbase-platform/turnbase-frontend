@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  awaitRefilledBudgets,
   createRoom,
   dropSocket,
   enterFromList,
@@ -10,6 +11,8 @@ import {
   playCell,
   readyAndStart,
 } from "./support";
+
+test.beforeEach(awaitRefilledBudgets);
 
 // The seeded users carry these specs; each test leaves its room so the next starts room-free
 // (a user may sit in only one room at a time).
@@ -42,10 +45,7 @@ test("a mid-game socket drop resumes with the board intact", async ({ browser })
   }
 });
 
-// Fixme: the game frame intermittently loads `main.js` (200) yet renders no board when this is the
-// third game of a run on one stack; alone it passes about half the time. Unexplained — see the
-// `**Remaining:**` line of IMP-M7-13. Remove `.fixme` once the cause is found.
-test.fixme("leaving mid-game forfeits: the opponent is told and can return to the lobby", async ({
+test("leaving mid-game forfeits: the opponent is told and can return to the lobby", async ({
   browser,
 }) => {
   const a = await newPlayer(browser, "alice");

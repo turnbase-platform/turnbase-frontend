@@ -74,6 +74,9 @@ acceptance suite (`IMP-M7-13`) is Playwright under `e2e/`, run by hand against t
 `make up` in `turnbase-platform` (seeded, with the Tic-Tac-Toe bundle — `local-environment.md` §5),
 then `npm run e2e`. It spends one guest and one registration per run against the Tier 5 limit
 (5 and 3 per IP per hour), so `make reset-db` before repeating it.
+`resilience.spec.ts` waits 15 s before each test (`awaitRefilledBudgets`): the seeded users' Tier 6
+`subscribe`/`snapshot` buckets must refill between games, and the client does not retry a dropped
+`SUBSCRIBE` — a game started on an empty bucket renders no board.
 
 ## The iframe boundary
 

@@ -211,3 +211,14 @@ export async function leaveQuietly(players: Player[], roomId: string | undefined
     await p.context.close().catch(() => undefined);
   }
 }
+
+/**
+ * Waits for the per-user Tier 6 buckets to refill (`rate-limiting.md`: `subscribe` 1/s burst 20,
+ * `snapshot` 1 per 3 s burst 2). A game attach costs ~9 subscribes and 2 snapshots per player, so a
+ * scenario that starts a game seconds after another one for the same seeded user would otherwise see
+ * its `SUBSCRIBE`/`REQUEST_GAME_SYNC` dropped and its game frame stay blank — correct throttling,
+ * not a defect, and the client does not retry.
+ */
+export async function awaitRefilledBudgets(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 15_000));
+}
