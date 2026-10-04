@@ -3,7 +3,9 @@ import { FakeStompClient } from "../../test/fakeApi";
 import type { ChatMessageEnvelope, RoomStateSnapshot } from "./rooms-types";
 import {
   backoffDelay,
+  ATTACH_WATCHDOG_MS,
   brokerUrl,
+  MAX_RATE_LIMIT_RETRIES,
   openRoomConnection,
   reconcileVersion,
   type RoomSocketEnvironment,
@@ -63,6 +65,7 @@ function harness() {
     onChat: vi.fn(),
     onError: vi.fn(),
     onConnectionChange: vi.fn(),
+    onGameStalled: vi.fn(),
   };
   const latest = () => FakeStompClient.instances[FakeStompClient.instances.length - 1];
   const connection = openRoomConnection(
@@ -272,9 +275,10 @@ describe("openRoomConnection", () => {
     first.open();
     first.close();
     expect(handlers.onConnectionChange).toHaveBeenCalledWith(false);
-    expect(timers).toHaveLength(1);
+    const live = timers.filter((t) => !t.cleared); // the attach watchdog died with the socket
+    expect(live).toHaveLength(1);
 
-    timers[0]?.callback();
+    live[0].callback();
     const second = latest();
     expect(second).not.toBe(first);
     second.open();
@@ -291,7 +295,7 @@ describe("openRoomConnection", () => {
     timers[0]?.callback();
     latest().open();
     latest().close();
-    expect(timers[1]?.delayMs).toBe(firstDelay);
+    expect(timers[timers.length - 1]?.delayMs).toBe(firstDelay);
   });
 
   it("stops reconnecting and clears a pending timer once closed by the caller", () => {
@@ -365,5 +369,84 @@ describe("game stream", () => {
     latest().open();
     latest().emit("/topic/game.s-1", undefined);
     expect(listener).toHaveBeenCalled();
+  });
+});
+
+describe("a rate-limited attach", () => {
+  const limited = (retryAfterMs?: number) => ({
+    type: "ERROR",
+    payload: { code: "RATE_LIMIT_EXCEEDED", message: "slow down", retryAfterMs },
+  });
+  const syncs = (client: FakeStompClient) =>
+    client.published.filter((p) => p.destination === "/app/game.s-1.sync").length;
+  interface Timer {
+    callback: () => void;
+    delayMs: number;
+    cleared: boolean;
+  }
+  const pending = (timers: Timer[]) => timers.filter((t) => !t.cleared);
+
+  it("re-runs the subscribe and sync after a back-off, and recovers when the stream delivers", () => {
+    const { connection, latest, timers, handlers } = harness();
+    const listener = vi.fn();
+    connection.attachGame("s-1", null, listener);
+    latest().open();
+    const client = latest();
+    expect(syncs(client)).toBe(1);
+    const armed = timers.length; // the attach watchdog
+
+    client.emit("/user/queue/errors", limited(6_500));
+    client.emit("/user/queue/errors", limited(6_500)); // one pending retry covers the burst
+    expect(timers).toHaveLength(armed + 1);
+    expect(timers[armed].delayMs).toBeGreaterThanOrEqual(6_500);
+    expect(handlers.onError).not.toHaveBeenCalled();
+
+    timers[armed].callback();
+    expect(syncs(client)).toBe(2);
+    expect(client.isSubscribed("/topic/game.s-1")).toBe(true);
+
+    client.emit("/user/queue/game", { type: "GAME_SYNC" });
+    client.emit("/user/queue/room-state", { type: "ROOM_STATE", version: 1, payload: snapshot() });
+    expect(listener).toHaveBeenCalledWith({ type: "GAME_SYNC" });
+    const settled = timers.length;
+    client.emit("/user/queue/errors", limited()); // a later flood is not an incomplete attach
+    expect(handlers.onError).toHaveBeenCalledTimes(1);
+    expect(timers).toHaveLength(settled);
+  });
+
+  it("treats an attach that never completes as dropped, even with no error frame", () => {
+    const { connection, latest, timers, handlers } = harness();
+    connection.attachGame("s-1", null, vi.fn());
+    latest().open();
+    const client = latest();
+
+    const watchdog = pending(timers)[0];
+    expect(watchdog.delayMs).toBe(ATTACH_WATCHDOG_MS);
+    watchdog.callback();
+    const retry = timers[timers.length - 1];
+    retry.callback();
+    expect(syncs(client)).toBe(2);
+    expect(handlers.onError).not.toHaveBeenCalled();
+  });
+
+  it("gives up after the retry limit, reports a stall, and retryAttach starts over", () => {
+    const { connection, latest, timers, handlers } = harness();
+    connection.attachGame("s-1", null, vi.fn());
+    latest().open();
+    const client = latest();
+
+    for (let i = 0; i < MAX_RATE_LIMIT_RETRIES; i += 1) {
+      client.emit("/user/queue/errors", limited());
+      timers[timers.length - 1].callback();
+    }
+    expect(handlers.onGameStalled).not.toHaveBeenCalledWith(true);
+    client.emit("/user/queue/errors", limited());
+    expect(handlers.onGameStalled).toHaveBeenCalledWith(true);
+    expect(handlers.onError).toHaveBeenCalledTimes(1);
+
+    const before = syncs(client);
+    connection.retryAttach();
+    expect(handlers.onGameStalled).toHaveBeenLastCalledWith(false);
+    expect(syncs(client)).toBe(before + 1);
   });
 });

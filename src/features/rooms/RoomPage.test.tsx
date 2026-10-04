@@ -109,6 +109,7 @@ function setConnection(extra: Partial<RoomConnectionState> = {}) {
     lastError: null,
     ended: null,
     connection: conn,
+    gameStalled: false,
     ...extra,
   } satisfies RoomConnectionState;
   return conn;
@@ -439,6 +440,30 @@ describe("In-game and results views (VW-RGAME-001…005, VW-RRESULT-001…005)",
     await userEvent.click(screen.getByRole("button", { name: "Return to lobby" }));
     expect(screen.queryByTitle("Game")).toBeNull();
     expect(screen.getByRole("button", { name: "Start game" })).toBeInTheDocument();
+  });
+
+  it("a stalled game attach shows an error and a Retry that re-runs it", async () => {
+    const conn = setConnection({
+      snapshot: snapshot({
+        state: "IN_PROGRESS",
+        sessionId: "s-1",
+        gameFrontendUrl: "http://g-1.games.localhost:8080/play/s-1",
+      }),
+      gameStalled: true,
+    });
+    const retryAttach = vi.fn();
+    Object.assign(conn, { retryAttach });
+    installFakeApi({
+      ...session,
+      "GET /api/rooms/r-1": { body: resource({ viewerRole: "PLAYER" }), headers: hint },
+      "POST /api/rooms/r-1/participants": {
+        body: { room: resource({ viewerRole: "PLAYER" }), releasedRoom: null },
+      },
+    });
+    renderAt("/rooms/r-1");
+    await screen.findByText(/The game could not be loaded/);
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(retryAttach).toHaveBeenCalledTimes(1);
   });
 
   it("a snapshot already in the Lobby shows the lobby, not an empty frame", async () => {

@@ -140,10 +140,8 @@ function RoomView({
   const navigate = useNavigate();
   const showToast = useToast();
   const { principal } = useAuth();
-  const { snapshot, connected, chatMessages, lastError, ended, connection } = useRoomConnection(
-    roomId,
-    instanceHint,
-  );
+  const { snapshot, connected, chatMessages, lastError, ended, connection, gameStalled } =
+    useRoomConnection(roomId, instanceHint);
 
   // The session on screen. It outlives `GAME_ENDED` (the snapshot's `sessionId` is cleared then)
   // until the player dismisses the results; derived during render, not in an effect.
@@ -204,6 +202,7 @@ function RoomView({
           game={game}
           userId={principal?.userId ?? null}
           connection={connection}
+          gameStalled={gameStalled}
           chatMessages={chatMessages}
           onLeave={leave}
           onReturnToLobby={() => {

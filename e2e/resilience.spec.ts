@@ -96,3 +96,39 @@ test("a Lobby abandoned by its host disappears from the list", async ({ browser 
     await watcher.context.close();
   }
 });
+
+// Three game attaches in under 30 s for one user: the start itself, then two reloads. Each attach
+// is a REQUEST_GAME_SYNC and a REQUEST_ROOM_STATE against a `snapshot` bucket of burst 2 refilling
+// 1 per 3 s (`rate-limiting.md` Tier 6), so frames are dropped with RATE_LIMIT_EXCEEDED. The client
+// retries after a back-off and the board still renders without a manual reload.
+test("a game attach dropped by the rate limiter recovers on its own", async ({ browser }) => {
+  const a = await newPlayer(browser, "alice");
+  const b = await newPlayer(browser, "bob");
+  let roomId: string | undefined;
+  try {
+    await login(a, "alice");
+    await login(b, "bob");
+    roomId = await createRoom(a);
+    await enterFromList(b, "alice", "Join");
+    await readyAndStart(a, b);
+
+    // The limiter tells a client about a drop at most once a second and not at all when the
+    // `SUBSCRIBE` of the error queue was itself dropped, so the evidence is the client's own
+    // retry: more `REQUEST_GAME_SYNC` frames than the two reloads alone would send.
+    let syncs = 0;
+    b.page.on("websocket", (socket) => {
+      socket.on("framesent", (frame) => {
+        if (String(frame.payload).includes(".sync")) syncs += 1;
+      });
+    });
+    for (let i = 0; i < 2; i += 1) {
+      await b.page.reload();
+      await expect(gameFrame(b.page).locator("[data-cell]")).toHaveCount(9, { timeout: 45_000 });
+    }
+    expect(syncs).toBeGreaterThan(2);
+    await playCell([a, b], 0);
+    await expect(gameFrame(b.page).locator('[data-cell="0"]')).not.toHaveText("");
+  } finally {
+    await leaveQuietly([a, b], roomId);
+  }
+});

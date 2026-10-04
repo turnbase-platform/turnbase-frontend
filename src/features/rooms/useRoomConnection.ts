@@ -12,6 +12,8 @@ export interface RoomConnectionState {
   /** Set once the room is gone for this user — `ROOM_CLOSED`, or removal by the host. */
   ended: RoomEnd | null;
   connection: RoomConnection | null;
+  /** The game attach was dropped by the rate limiter and the automatic retries ran out. */
+  gameStalled: boolean;
 }
 
 export type RoomEnd = { kind: "CLOSED"; reason: string } | { kind: "KICKED" };
@@ -43,6 +45,7 @@ export function useRoomConnection(
   const [lastError, setLastError] = useState<RoomErrorEnvelope["payload"] | null>(null);
   const [ended, setEnded] = useState<RoomEnd | null>(null);
   const [connection, setConnection] = useState<RoomConnection | null>(null);
+  const [gameStalled, setGameStalled] = useState(false);
   const seenMessageIds = useRef(new Set<string>());
 
   // Adjusting state during render (not in the effect below) on a room change — the React-
@@ -93,6 +96,7 @@ export function useRoomConnection(
           else setLastError(error);
         },
         onConnectionChange: setConnected,
+        onGameStalled: setGameStalled,
       },
     );
     setConnection(conn);
@@ -104,5 +108,5 @@ export function useRoomConnection(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, instanceHint]);
 
-  return { snapshot, connected, chatMessages, lastError, ended, connection };
+  return { snapshot, connected, chatMessages, lastError, ended, connection, gameStalled };
 }

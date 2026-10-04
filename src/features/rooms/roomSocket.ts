@@ -9,6 +9,16 @@ import type {
 
 const BASE_DELAY_MS = 1_000;
 const MAX_DELAY_MS = 30_000;
+/** Retries of an attach the Tier 6 limiter dropped, before the view is told to ask the user. */
+export const MAX_RATE_LIMIT_RETRIES = 4;
+/**
+ * How long an attach may stay incomplete before it is treated as dropped. The limiter tells the
+ * client at most once a second per bucket, and a dropped `SUBSCRIBE` of `/user/queue/errors`
+ * means it cannot tell at all (`rate-limiting.md` Tier 6), so the error frame is not enough.
+ */
+export const ATTACH_WATCHDOG_MS = 4_000;
+/** One `snapshot` token (`rate-limiting.md` Tier 6) — a retry sooner than this is dropped again. */
+const SNAPSHOT_REFILL_MS = 3_000;
 
 /**
  * Full jitter over an exponential ceiling — the same formula as
@@ -42,6 +52,11 @@ export interface RoomConnectionHandlers {
   onChat: (envelope: ChatMessageEnvelope) => void;
   onError: (error: RoomErrorEnvelope["payload"]) => void;
   onConnectionChange?: (connected: boolean) => void;
+  /**
+   * `true` once an attach dropped by `RATE_LIMIT_EXCEEDED` has used up its retries; `false` again
+   * when the stream delivers or the user retries.
+   */
+  onGameStalled?: (stalled: boolean) => void;
 }
 
 interface StompSubscriptionLike {
@@ -121,6 +136,8 @@ export interface RoomConnection {
   /** `SUBMIT_ACTION` on `/app/game.{sessionId}.action`; never carries player identity (FR-FA-002). */
   submitGameAction: (payload: unknown) => void;
   requestRoomState: () => void;
+  /** The user's retry after the automatic ones ran out (`onGameStalled(true)`). */
+  retryAttach: () => void;
   sendMemberCommand: (type: string, payload?: unknown) => void;
   sendHostCommand: (type: string, payload?: unknown) => void;
   sendChatMessage: (channel: "ROOM" | "TEAM", text: string) => void;
@@ -154,6 +171,11 @@ export function openRoomConnection(
   let game: { sessionId: string; teamId: string | null; listener: GameStreamListener } | null =
     null;
   let gameSubscriptions: StompSubscriptionLike[] = [];
+  let baseSubscriptions: StompSubscriptionLike[] = [];
+  let gameDelivered = false;
+  let rateLimitRetries = 0;
+  let recoveryTimer: unknown = null;
+  let watchdogTimer: unknown = null;
 
   function parseOrDrop(body: string): unknown {
     try {
@@ -170,7 +192,13 @@ export function openRoomConnection(
     gameSubscriptions = [];
     if (!game) return;
     const attached = game;
+    gameDelivered = false;
     const deliver = (message: { body: string }) => {
+      if (!gameDelivered) {
+        gameDelivered = true;
+        rateLimitRetries = 0;
+        handlers.onGameStalled?.(false);
+      }
       attached.listener(parseOrDrop(message.body));
     };
     gameSubscriptions.push(current.subscribe(`/topic/game.${attached.sessionId}`, deliver));
@@ -242,9 +270,95 @@ export function openRoomConnection(
     handlers.onSnapshot(envelope.payload, envelope.version);
   }
 
+  /** Something the join needs has not arrived: no room snapshot yet, or no game message yet. */
+  function attachIncomplete(): boolean {
+    return localVersion === null || (game !== null && !gameDelivered);
+  }
+
+  function clearRecovery() {
+    if (recoveryTimer !== null) environment.clearTimer(recoveryTimer);
+    recoveryTimer = null;
+    if (watchdogTimer !== null) environment.clearTimer(watchdogTimer);
+    watchdogTimer = null;
+  }
+
+  function armWatchdog() {
+    if (watchdogTimer !== null) environment.clearTimer(watchdogTimer);
+    watchdogTimer = environment.setTimer(() => {
+      watchdogTimer = null;
+      if (stopped || !attachIncomplete()) return;
+      recoverFromRateLimit({
+        code: "RATE_LIMIT_EXCEEDED",
+        message: "The room or game did not arrive.",
+      });
+    }, ATTACH_WATCHDOG_MS);
+  }
+
+  /**
+   * A `SUBSCRIBE` or `REQUEST_GAME_SYNC` dropped by Tier 6 leaves the join half-complete with no
+   * signal but `RATE_LIMIT_EXCEEDED` (which names no frame), so the whole attach is re-run once the
+   * bucket has had time to refill.
+   */
+  function rerunAttach() {
+    recoveryTimer = null;
+    if (stopped || !client?.connected) return; // a reconnect re-runs the attach anyway
+    // Only what is still missing: every frame re-sent against a bucket that is still refilling
+    // is one more drop (`snapshot` refills 1 per 3 s, `subscribe` 1 per s).
+    if (localVersion === null) {
+      subscribeRoom(client);
+      requestRoomState();
+    }
+    if (game !== null && !gameDelivered) syncGameSubscriptions(client);
+    armWatchdog();
+  }
+
+  function recoverFromRateLimit(payload: RoomErrorEnvelope["payload"]) {
+    if (recoveryTimer !== null) return; // one pending retry covers every drop in the burst
+    if (rateLimitRetries >= MAX_RATE_LIMIT_RETRIES) {
+      handlers.onGameStalled?.(true);
+      handlers.onError(payload);
+      return;
+    }
+    const delay = Math.max(
+      payload.retryAfterMs ?? 0,
+      SNAPSHOT_REFILL_MS,
+      backoffDelay(rateLimitRetries, environment.random()),
+    );
+    rateLimitRetries += 1;
+    recoveryTimer = environment.setTimer(rerunAttach, delay);
+  }
+
   function handleError(raw: string) {
     const envelope = JSON.parse(raw) as RoomErrorEnvelope;
+    if (envelope.payload.code === "RATE_LIMIT_EXCEEDED" && attachIncomplete()) {
+      recoverFromRateLimit(envelope.payload);
+      return;
+    }
     handlers.onError(envelope.payload);
+  }
+
+  function subscribeAll(current: StompClientLike) {
+    subscribeRoom(current);
+    syncGameSubscriptions(current);
+    armWatchdog();
+  }
+
+  function subscribeRoom(current: StompClientLike) {
+    baseSubscriptions.forEach((subscription) => {
+      subscription.unsubscribe();
+    });
+    baseSubscriptions = [
+      current.subscribe(`/topic/room.${roomId}`, (message) => {
+        handleRoomTopicMessage(message.body);
+      }),
+      current.subscribe("/user/queue/room-state", (message) => {
+        handleSnapshot(message.body);
+      }),
+      current.subscribe("/user/queue/errors", (message) => {
+        handleError(message.body);
+      }),
+    ];
+    syncChatSubscriptions(current);
   }
 
   function connect() {
@@ -258,17 +372,11 @@ export function openRoomConnection(
       attempt = 0;
       handlers.onConnectionChange?.(true);
       // Resubscribe-not-assume: a reconnect does not carry the old subscriptions forward.
-      current.subscribe(`/topic/room.${roomId}`, (message) => {
-        handleRoomTopicMessage(message.body);
-      });
-      current.subscribe("/user/queue/room-state", (message) => {
-        handleSnapshot(message.body);
-      });
-      current.subscribe("/user/queue/errors", (message) => {
-        handleError(message.body);
-      });
-      syncChatSubscriptions(current);
-      syncGameSubscriptions(current);
+      baseSubscriptions = [];
+      clearRecovery();
+      rateLimitRetries = 0;
+      handlers.onGameStalled?.(false);
+      subscribeAll(current);
       requestRoomState();
     };
 
@@ -277,6 +385,7 @@ export function openRoomConnection(
       chatSubscription = null;
       teamSubscription = null;
       gameSubscriptions = [];
+      clearRecovery(); // the reconnect re-runs the whole attach
       if (stopped) return;
       localVersion = null; // the next snapshot is the source of truth, not this stale value
       awaitingSnapshot = false;
@@ -297,6 +406,7 @@ export function openRoomConnection(
       return () => {
         if (game !== attached) return;
         game = null;
+        handlers.onGameStalled?.(false);
         gameSubscriptions.forEach((subscription) => {
           subscription.unsubscribe();
         });
@@ -307,6 +417,12 @@ export function openRoomConnection(
       if (game) send(`/app/game.${game.sessionId}.action`, "SUBMIT_ACTION", payload);
     },
     requestRoomState,
+    retryAttach: () => {
+      clearRecovery();
+      rateLimitRetries = 0;
+      handlers.onGameStalled?.(false);
+      rerunAttach();
+    },
     sendMemberCommand: (type, payload) => {
       send(`/app/room.${roomId}.member`, type, payload);
     },
@@ -326,6 +442,7 @@ export function openRoomConnection(
     },
     close: () => {
       stopped = true;
+      clearRecovery();
       if (timer !== null) environment.clearTimer(timer);
       client?.deactivate();
       client = null;

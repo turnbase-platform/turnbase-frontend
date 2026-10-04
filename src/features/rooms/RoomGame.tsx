@@ -14,6 +14,8 @@ export interface RoomGameProps {
   game: { sessionId: string; gameFrontendUrl: string };
   userId: string | null;
   connection: RoomConnection;
+  /** The game stream never arrived because the rate limiter kept dropping the attach. */
+  gameStalled?: boolean;
   chatMessages: ChatMessageEnvelope["payload"][];
   onLeave: () => void;
   onReturnToLobby: () => void;
@@ -29,6 +31,7 @@ export function RoomGame({
   game,
   userId,
   connection,
+  gameStalled = false,
   chatMessages,
   onLeave,
   onReturnToLobby,
@@ -40,6 +43,18 @@ export function RoomGame({
     <Stack gap={4}>
       <Heading level={1}>{snapshot.gameName}</Heading>
       {over && <Banner status="info" title="The game is over." />}
+      {gameStalled && (
+        <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
+          <Banner status="error" title="The game could not be loaded — too many requests." />
+          <Button
+            label="Retry"
+            variant="primary"
+            onClick={() => {
+              connection.retryAttach();
+            }}
+          />
+        </Stack>
+      )}
       <GameFrame
         gameFrontendUrl={game.gameFrontendUrl}
         sessionId={game.sessionId}
