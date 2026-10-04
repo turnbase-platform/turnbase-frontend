@@ -73,7 +73,13 @@ test("create, join, ready, start and play Tic-Tac-Toe to a win", async ({ browse
   for (const p of [a, b]) {
     await expect(p.page.getByText("The game is over.")).toBeVisible();
   }
-  await expect(gameFrame(c.page).getByRole("status")).toHaveText("Game over.");
+  // The results payload reaches each frame: the winner (X, three marks) and the loser are told, and
+  // the spectator is told whose mark won.
+  const winner = movers[0];
+  const loser = movers[1];
+  await expect(gameFrame(winner.page).getByRole("status")).toHaveText("You won.");
+  await expect(gameFrame(loser.page).getByRole("status")).toHaveText("You lost.");
+  await expect(gameFrame(c.page).getByRole("status")).toHaveText("X won.");
 
   // Nothing of the room or the game reached the outsider.
   expect(await outsiderFrames(d.page)).toEqual([]);
