@@ -612,3 +612,85 @@ describe("Spectator views (VW-RLOBBY-012, 013, 015; VW-RGAME-006)", () => {
     expect(screen.queryByRole("heading", { name: "Chat" })).toBeNull();
   });
 });
+
+describe("Reload warning (FR-DC-008)", () => {
+  const playing = (extra: Partial<RoomStateSnapshot> = {}) =>
+    snapshot({
+      state: "IN_PROGRESS",
+      sessionId: "s-1",
+      gameFrontendUrl: "http://g-1.games.localhost:8080/play/s-1",
+      ...extra,
+    });
+  const spectating = () =>
+    snapshot({
+      players: snapshot().players.filter((p) => p.playerId !== "u-1"),
+      spectators: [{ playerId: "u-1", username: "alice" }],
+    });
+
+  /** True when something on `window` asks the browser to confirm leaving. */
+  function warns() {
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  }
+
+  async function open(snap: RoomStateSnapshot, viewerRole: "PLAYER" | "SPECTATOR" = "PLAYER") {
+    setConnection({ snapshot: snap });
+    installFakeApi({
+      ...session,
+      "GET /api/rooms/r-1": { body: resource({ viewerRole }), headers: hint },
+      "POST /api/rooms/r-1/participants": {
+        body: { room: resource({ viewerRole }), releasedRoom: null },
+      },
+      "DELETE /api/rooms/r-1/participants/me": { status: 204 },
+      "GET /api/rooms?sort=createdAt%2Cdesc&page=1&size=25": {
+        body: {
+          content: [],
+          pagination: { page: 1, size: 25, totalElements: 0, totalPages: 0 },
+          reservedSlot: null,
+        },
+      },
+    });
+    renderAt("/rooms/r-1");
+    await screen.findByRole("heading", { name: "Tic-Tac-Toe" });
+  }
+
+  it("is registered for a participant in Lobby", async () => {
+    await open(snapshot());
+    expect(warns()).toBe(true);
+  });
+
+  it("is registered on the results overlay", async () => {
+    await open(playing());
+    expect(warns()).toBe(false);
+    act(() => {
+      mocked.state = {
+        ...(mocked.state ?? ({} as RoomConnectionState)),
+        snapshot: snapshot(), // GAME_ENDED: back in LOBBY, the game still shown
+      };
+      mocked.rerender?.();
+    });
+    expect(screen.getByRole("button", { name: "Return to lobby" })).toBeInTheDocument();
+    expect(warns()).toBe(true);
+  });
+
+  it("is removed after an explicit Leave room", async () => {
+    await open(snapshot());
+    expect(warns()).toBe(true);
+    await userEvent.click(screen.getByRole("button", { name: "Leave room" }));
+    await waitFor(() => {
+      expect(where()).toBe("/rooms");
+    });
+    expect(warns()).toBe(false);
+  });
+
+  it("is not registered for a spectator", async () => {
+    await open(spectating(), "SPECTATOR");
+    expect(warns()).toBe(false);
+  });
+
+  it("is not registered in an In Progress room", async () => {
+    await open(playing());
+    expect(warns()).toBe(false);
+  });
+});

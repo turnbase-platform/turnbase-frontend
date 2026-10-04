@@ -8,6 +8,7 @@ import {
   login,
   newPlayer,
   playCell,
+  TTT_TITLE,
 } from "./support";
 
 // IMP-M8-10: /rooms/:id in its three states and four roles — host `alice`, player `bob`,
@@ -127,5 +128,41 @@ test("lobby → game → results for host, player, spectator and an outsider", a
     await expect(a.page.getByRole("heading", { name: "Players" })).toBeVisible();
   } finally {
     await leaveQuietly([a, b, c, d], roomId);
+  }
+});
+
+// IMP-M9-11 / FR-DC-008: a Lobby reload is an immediate leave, so the browser asks first — and
+// stops asking once the player has left on purpose.
+test("a reload in the Lobby asks for confirmation, and not after Leave room", async ({
+  browser,
+}) => {
+  const a = await newPlayer(browser, "alice");
+  let roomId: string | undefined;
+  try {
+    await login(a, "alice");
+    roomId = await createRoom(a);
+
+    const dialogs: string[] = [];
+    a.page.on("dialog", (dialog) => {
+      dialogs.push(dialog.type());
+      void dialog.accept();
+    });
+
+    // Chromium only shows the prompt for a page the user has interacted with.
+    await a.page.getByRole("heading", { level: 1, name: TTT_TITLE }).click();
+    await a.page.reload();
+    expect(dialogs).toEqual(["beforeunload"]);
+
+    // The reload dropped the seat — and, for a sole host, closed the room (FR-DC-008): start over.
+    roomId = await createRoom(a);
+    const leave = a.page.getByRole("button", { name: "Leave room" });
+    await a.page.getByRole("heading", { level: 1, name: TTT_TITLE }).click();
+    await leave.click();
+    await expect(a.page).toHaveURL(/\/rooms$/);
+    await a.page.getByRole("heading", { level: 1 }).first().click();
+    await a.page.reload();
+    expect(dialogs).toEqual(["beforeunload"]);
+  } finally {
+    await leaveQuietly([a], roomId);
   }
 });

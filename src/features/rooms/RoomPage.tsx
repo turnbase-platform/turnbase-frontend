@@ -12,6 +12,7 @@ import { RoomGame } from "./RoomGame";
 import { RoomLobby } from "./RoomLobby";
 import { getRoom, joinRoom, leaveRoom } from "./roomsApi";
 import type { RoomResource } from "./rooms-types";
+import { useLeaveWarning } from "./useLeaveWarning";
 import { useRoomConnection } from "./useRoomConnection";
 
 type Entry =
@@ -155,9 +156,18 @@ function RoomView({
     setGame({ sessionId: snapshot.sessionId, gameFrontendUrl: snapshot.gameFrontendUrl });
   }
 
+  // FR-DC-008: a participant in Lobby, or on the results overlay (the snapshot is back in LOBBY),
+  // loses the seat on a reload — ask first. Not for spectators, In Progress rooms or a left room.
+  const [left, setLeft] = useState(false);
+  const isPlayer = snapshot?.players.some((player) => player.playerId === principal?.userId);
+  useLeaveWarning(Boolean(isPlayer) && snapshot?.state === "LOBBY" && !ended && !left);
+
   function leave() {
     leaveRoom(roomId)
-      .then(() => navigate("/rooms"))
+      .then(() => {
+        setLeft(true);
+        void navigate("/rooms");
+      })
       .catch(() => {
         showToast({ type: "error", body: "Could not leave the room." });
       });
