@@ -12,6 +12,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { TextInput, type TextInputStatus } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
 import { ApiError } from "../../shared/api";
+import { LoadError } from "../../shared/LoadError";
 import { useAuth } from "../auth/auth-context";
 import { FormError } from "../auth/forms";
 import { fieldStatus } from "../auth/fieldStatus";
@@ -31,6 +32,7 @@ import { autofill } from "../../shared/autofill";
 /** VW-SET-001…007. */
 export function SettingsPage() {
   const [account, setAccount] = useState<AccountResponse | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [params, setParams] = useSearchParams();
   const showToast = useToast();
 
@@ -38,14 +40,10 @@ export function SettingsPage() {
     fetchAccount()
       .then(setAccount)
       .catch(() => {
-        showToast({
-          type: "error",
-          body: "Could not load your account settings. Please try again.",
-        });
+        setLoadFailed(true);
       });
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount only
   useEffect(reload, []);
 
   // oauth-rest-api.md §7a step 3: confirm a Google link initiated from this page.
@@ -76,7 +74,17 @@ export function SettingsPage() {
     return (
       <Stack gap={2} padding={6}>
         <Heading level={1}>Account settings</Heading>
-        <Text>Loading…</Text>
+        {loadFailed ? (
+          <LoadError
+            message="Could not load your account settings."
+            onRetry={() => {
+              setLoadFailed(false);
+              reload();
+            }}
+          />
+        ) : (
+          <Text>Loading…</Text>
+        )}
       </Stack>
     );
   }
@@ -84,7 +92,7 @@ export function SettingsPage() {
   return (
     <Stack gap={8} padding={6} maxWidth={560}>
       <Heading level={1}>Account settings</Heading>
-      <AccountSection account={account} onUpdated={setAccount} />
+      <AccountSection account={account} onUpdated={setAccount} onReload={reload} />
       <AuthMethodsSection account={account} onReload={reload} />
       <PrivacySection
         privacy={account.privacy}
@@ -100,28 +108,61 @@ export function SettingsPage() {
 function AccountSection({
   account,
   onUpdated,
+  onReload,
 }: {
   account: AccountResponse;
   onUpdated: (account: AccountResponse) => void;
+  onReload: () => void;
 }) {
-  const [username, setUsername] = useState(account.username);
-  const [email, setEmail] = useState(account.email);
+  return (
+    <Stack gap={3}>
+      <Heading level={2}>Profile identity</Heading>
+      <IdentityForm field="username" account={account} onUpdated={onUpdated} />
+      {/* VW-SET-002: an address bound to an OAuth provider is not editable, so the form is absent. */}
+      {account.emailSource !== "OAUTH" && (
+        <IdentityForm field="email" account={account} onUpdated={onUpdated} />
+      )}
+      <PasswordSection account={account} onReload={onReload} />
+    </Stack>
+  );
+}
+
+/** VW-SET-001 / VW-SET-002: one field, one form, so each saves (and fails) on its own. */
+function IdentityForm({
+  field,
+  account,
+  onUpdated,
+}: {
+  field: "username" | "email";
+  account: AccountResponse;
+  onUpdated: (account: AccountResponse) => void;
+}) {
+  const { principal, acceptPrincipal } = useAuth();
+  const showToast = useToast();
+  const [value, setValue] = useState(account[field]);
   const [error, setError] = useState<unknown>(null);
   const [isBusy, setIsBusy] = useState(false);
 
-  const usernameLocked = account.usernameChangeableAt !== null;
-  const emailLocked = account.emailSource === "OAUTH" || account.emailChangeableAt !== null;
+  const label = field === "username" ? "Username" : "Email";
+  const lockedUntil =
+    field === "username" ? account.usernameChangeableAt : account.emailChangeableAt;
+  const isLocked = lockedUntil !== null;
 
   function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (value === account[field]) return;
     setIsBusy(true);
     setError(null);
-    const fields: Partial<{ username: string; email: string }> = {};
-    if (username !== account.username) fields.username = username;
-    if (email !== account.email) fields.email = email;
-    updateAccount(fields)
+    // The PATCH answers with the identity alone, so the account is read again for the new
+    // `*ChangeableAt` window (rest-conventions.md, *The account representation*).
+    updateAccount({ [field]: value })
+      .then(fetchAccount)
       .then((updated) => {
         onUpdated(updated);
+        if (field === "username" && principal) {
+          acceptPrincipal({ ...principal, username: value });
+        }
+        showToast({ type: "info", body: `${label} updated.` });
       })
       .catch(setError)
       .finally(() => {
@@ -130,49 +171,39 @@ function AccountSection({
   }
 
   return (
-    <Stack gap={3}>
-      <Heading level={2}>Profile identity</Heading>
-      <form onSubmit={submit} noValidate>
-        <Stack gap={3}>
-          <TextInput
-            label="Username"
-            value={username}
-            onChange={setUsername}
-            status={fieldStatus(error, "username")}
-            htmlName="username"
-            isDisabled={usernameLocked}
-            disabledMessage={
-              usernameLocked ? "You can change your username again later." : undefined
-            }
-            isRequired
-          />
-          <TextInput
-            label="Email"
-            type="email"
-            value={email}
-            onChange={setEmail}
-            status={fieldStatus(error, "email")}
-            htmlName="email"
-            isDisabled={emailLocked}
-            disabledMessage={
-              account.emailSource === "OAUTH"
-                ? "Your email is managed by Google."
-                : emailLocked
-                  ? "You can change your email again later."
-                  : undefined
-            }
-            isRequired
-          />
-          <FormError error={error} />
-          <Button type="submit" label="Save changes" variant="primary" isLoading={isBusy} />
-        </Stack>
-      </form>
-      <PasswordSection account={account} />
-    </Stack>
+    <form onSubmit={submit} noValidate>
+      <Stack gap={3}>
+        <TextInput
+          label={label}
+          type={field === "email" ? "email" : undefined}
+          value={value}
+          onChange={setValue}
+          status={fieldStatus(error, field)}
+          htmlName={field}
+          isDisabled={isLocked}
+          disabledMessage={
+            isLocked
+              ? `You can change your ${field} again on ${new Date(lockedUntil).toLocaleDateString()}.`
+              : undefined
+          }
+          isRequired
+        />
+        <FormError error={error} />
+        {!isLocked && (
+          <Button type="submit" label={`Save ${field}`} variant="primary" isLoading={isBusy} />
+        )}
+      </Stack>
+    </form>
   );
 }
 
-function PasswordSection({ account }: { account: AccountResponse }) {
+function PasswordSection({
+  account,
+  onReload,
+}: {
+  account: AccountResponse;
+  onReload: () => void;
+}) {
   const showToast = useToast();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -205,7 +236,7 @@ function PasswordSection({ account }: { account: AccountResponse }) {
       });
   }
 
-  if (!account.authMethods.includes("PASSWORD")) return <AddPasswordForm />;
+  if (!account.authMethods.includes("PASSWORD")) return <AddPasswordForm onAdded={onReload} />;
 
   return (
     <Stack gap={3}>
@@ -250,7 +281,7 @@ function PasswordSection({ account }: { account: AccountResponse }) {
   );
 }
 
-function AddPasswordForm() {
+function AddPasswordForm({ onAdded }: { onAdded: () => void }) {
   const showToast = useToast();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -269,12 +300,10 @@ function AddPasswordForm() {
     setError(null);
     addPasswordMethod(password, confirmPassword)
       .then(() => {
-        showToast({
-          type: "info",
-          body: "Password sign-in added. Refresh to see it reflected below.",
-        });
+        showToast({ type: "info", body: "Password sign-in added." });
         setPassword("");
         setConfirmPassword("");
+        onAdded();
       })
       .catch((failure: unknown) => {
         setError(failure);
@@ -331,7 +360,10 @@ function AuthMethodsSection({
   function remove(method: "PASSWORD" | "GOOGLE") {
     setIsBusy(true);
     removeAuthMethod(method)
-      .then(onReload)
+      .then(() => {
+        showToast({ type: "info", body: "Sign-in method removed." });
+        onReload();
+      })
       .catch((failure: unknown) => {
         const message =
           failure instanceof ApiError && failure.status === 422
@@ -358,6 +390,7 @@ function AuthMethodsSection({
               canRemove ? (
                 <Button
                   label="Remove"
+                  aria-label={`Remove ${method === "PASSWORD" ? "Password" : "Google"}`}
                   variant="ghost"
                   isLoading={isBusy}
                   onClick={() => {
@@ -394,7 +427,10 @@ function PrivacySection({
   function save(fields: Partial<PrivacySettings>) {
     setIsBusy(true);
     updatePrivacy(fields)
-      .then(onUpdated)
+      .then((saved) => {
+        onUpdated(saved);
+        showToast({ type: "info", body: "Privacy settings saved." });
+      })
       .catch(() => {
         showToast({ type: "error", body: "Could not save that setting. Please try again." });
       })

@@ -6,10 +6,11 @@ export function fetchAccount(): Promise<AccountResponse> {
   return apiFetch<AccountResponse>("/api/users/me");
 }
 
+/** `200` carries the identity only, not {@link AccountResponse}; read `GET /api/users/me` after it. */
 export function updateAccount(
   fields: Partial<{ username: string; email: string }>,
-): Promise<AccountResponse> {
-  return apiFetch<AccountResponse>("/api/users/me", { method: "PATCH", body: fields });
+): Promise<unknown> {
+  return apiFetch<unknown>("/api/users/me", { method: "PATCH", body: fields });
 }
 
 export interface ChangePasswordBody {

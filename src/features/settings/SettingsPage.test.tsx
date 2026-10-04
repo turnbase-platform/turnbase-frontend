@@ -91,7 +91,7 @@ describe("SettingsPage (VW-SET-001…007)", () => {
     renderAt("/settings");
 
     await screen.findByText("Password");
-    expect(screen.queryByRole("button", { name: "Remove" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Remove/ })).toBeNull();
   });
 
   it("VW-SET-005: Remove is enabled with two sign-in methods linked", async () => {
@@ -102,9 +102,8 @@ describe("SettingsPage (VW-SET-001…007)", () => {
     });
     renderAt("/settings");
 
-    const removeButtons = await screen.findAllByRole("button", { name: "Remove" });
-    expect(removeButtons).toHaveLength(2);
-    await userEvent.click(removeButtons[1]);
+    expect(await screen.findAllByRole("button", { name: /^Remove/ })).toHaveLength(2);
+    await userEvent.click(screen.getByRole("button", { name: "Remove Google" }));
 
     await waitFor(() => {
       expect(
@@ -165,5 +164,67 @@ describe("SettingsPage (VW-SET-001…007)", () => {
     expect(
       api.calls.some((call) => call.method === "DELETE" && call.path === "/api/users/me"),
     ).toBe(true);
+  });
+
+  it("a failed load shows an error with Retry, not a permanent Loading…", async () => {
+    let calls = 0;
+    installFakeApi({
+      ...signedIn,
+      "GET /api/users/me": () => (++calls === 1 ? { status: 500 } : { body: account }),
+    });
+    renderAt("/settings");
+
+    expect(await screen.findByText("Could not load your account settings.")).toBeInTheDocument();
+    expect(screen.queryByText("Loading…")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByRole("button", { name: "Save username" })).toBeInTheDocument();
+  });
+
+  it("VW-SET-002: the email form is absent for an address bound to Google", async () => {
+    installFakeApi({
+      ...signedIn,
+      "GET /api/users/me": {
+        body: { ...account, authMethods: ["GOOGLE"], emailSource: "OAUTH" },
+      },
+    });
+    renderAt("/settings");
+
+    expect(await screen.findByRole("button", { name: "Save username" })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Email/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save email" })).toBeNull();
+  });
+
+  it("VW-SET-001: saves a new username, confirms it, and shows a field error from the server", async () => {
+    const api = installFakeApi({
+      ...signedIn,
+      "GET /api/users/me": { body: account },
+      "PATCH /api/users/me": (call) =>
+        (call.body as { username: string }).username === "taken"
+          ? {
+              status: 400,
+              body: {
+                type: "about:blank",
+                title: "Bad Request",
+                status: 400,
+                errors: [{ field: "username", message: "That username is not allowed." }],
+              },
+            }
+          : { body: { ...account, username: "alice2" } },
+    });
+    renderAt("/settings");
+
+    const input = await screen.findByLabelText(/^Username/);
+    await userEvent.clear(input);
+    await userEvent.type(input, "taken");
+    await userEvent.click(screen.getByRole("button", { name: "Save username" }));
+    expect(await screen.findByText("That username is not allowed.")).toBeInTheDocument();
+
+    await userEvent.clear(input);
+    await userEvent.type(input, "alice2");
+    await userEvent.click(screen.getByRole("button", { name: "Save username" }));
+    expect((await screen.findAllByText("Username updated.")).length).toBeGreaterThan(0);
+    expect(
+      api.calls.filter((call) => call.method === "PATCH" && call.path === "/api/users/me"),
+    ).toHaveLength(2);
   });
 });
