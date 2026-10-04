@@ -160,73 +160,75 @@ function CatalogBody({
 
   return (
     <Stack gap={3}>
-      <Table dividers="rows">
-        <TableHeader>
-          <TableRow isHeaderRow>
-            <TableHeaderCell>Game</TableHeaderCell>
-            <TableHeaderCell>Author</TableHeaderCell>
-            <TableHeaderCell>Players</TableHeaderCell>
-            <TableHeaderCell>AI</TableHeaderCell>
-            <TableHeaderCell>Spectators</TableHeaderCell>
-            <TableHeaderCell>Version</TableHeaderCell>
-            <TableHeaderCell>Created</TableHeaderCell>
-            <TableHeaderCell>Updated</TableHeaderCell>
-            <TableHeaderCell>Actions</TableHeaderCell>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {content.map((game) => (
-            <Fragment key={game.gameId}>
-              <TableRow>
-                <TableCell>
-                  <Stack direction="horizontal" gap={2} wrap="wrap">
-                    <Link href={`/games/${game.gameId}`} hasUnderline>
-                      {game.title}
-                    </Link>
-                    <BadgeLabel badge={game.badge} />
-                  </Stack>
-                </TableCell>
-                <TableCell>{game.authorUsername}</TableCell>
-                <TableCell>
-                  {game.minPlayers === game.maxPlayers
-                    ? String(game.minPlayers)
-                    : `${String(game.minPlayers)}–${String(game.maxPlayers)}`}
-                </TableCell>
-                <TableCell>{game.supportsAi ? "Yes" : "No"}</TableCell>
-                <TableCell>{game.supportsSpectators ? "Yes" : "No"}</TableCell>
-                <TableCell>{game.version}</TableCell>
-                <TableCell>{formatDate(game.createdAt)}</TableCell>
-                <TableCell>{formatDate(game.updatedAt)}</TableCell>
-                <TableCell>
-                  {/* Wraps rather than overflows: the cell clips what spills out of it (CA-04). */}
-                  <Stack direction="horizontal" gap={2} wrap="wrap">
-                    <Button
-                      label={expanded === game.gameId ? "Hide description" : "Show description"}
-                      variant="ghost"
-                      aria-expanded={expanded === game.gameId}
-                      onClick={() => {
-                        onToggle(game.gameId);
-                      }}
-                    />
-                    <CreateRoomButton
-                      gameId={game.gameId}
-                      supportsSpectators={game.supportsSpectators}
-                    />
-                  </Stack>
-                </TableCell>
-              </TableRow>
-              {expanded === game.gameId && (
+      <div className="catalog-table">
+        <Table dividers="rows">
+          <TableHeader>
+            <TableRow isHeaderRow>
+              <TableHeaderCell>Game</TableHeaderCell>
+              <TableHeaderCell>Author</TableHeaderCell>
+              <TableHeaderCell>Players</TableHeaderCell>
+              <TableHeaderCell>AI</TableHeaderCell>
+              <TableHeaderCell>Spectators</TableHeaderCell>
+              <TableHeaderCell>Version</TableHeaderCell>
+              <TableHeaderCell>Created</TableHeaderCell>
+              <TableHeaderCell>Updated</TableHeaderCell>
+              <TableHeaderCell>Actions</TableHeaderCell>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {content.map((game) => (
+              <Fragment key={game.gameId}>
                 <TableRow>
-                  <TableCell colSpan={9}>
-                    {/* Plain text: the catalog row's short description is never markup. */}
-                    <Text>{game.shortDescription}</Text>
+                  <TableCell>
+                    <Stack direction="horizontal" gap={2} wrap="wrap">
+                      <Link href={`/games/${game.gameId}`} hasUnderline>
+                        {game.title}
+                      </Link>
+                      <BadgeLabel badge={game.badge} />
+                    </Stack>
+                  </TableCell>
+                  <TableCell>{game.authorUsername}</TableCell>
+                  <TableCell>
+                    {game.minPlayers === game.maxPlayers
+                      ? String(game.minPlayers)
+                      : `${String(game.minPlayers)}–${String(game.maxPlayers)}`}
+                  </TableCell>
+                  <TableCell>{game.supportsAi ? "Yes" : "No"}</TableCell>
+                  <TableCell>{game.supportsSpectators ? "Yes" : "No"}</TableCell>
+                  <TableCell>{game.version}</TableCell>
+                  <TableCell>{formatDate(game.createdAt)}</TableCell>
+                  <TableCell>{formatDate(game.updatedAt)}</TableCell>
+                  <TableCell>
+                    {/* Wraps rather than overflows: the cell clips what spills out of it (CA-04). */}
+                    <Stack direction="horizontal" gap={2} wrap="wrap">
+                      <Button
+                        label={expanded === game.gameId ? "Hide description" : "Show description"}
+                        variant="ghost"
+                        aria-expanded={expanded === game.gameId}
+                        onClick={() => {
+                          onToggle(game.gameId);
+                        }}
+                      />
+                      <CreateRoomButton
+                        gameId={game.gameId}
+                        supportsSpectators={game.supportsSpectators}
+                      />
+                    </Stack>
                   </TableCell>
                 </TableRow>
-              )}
-            </Fragment>
-          ))}
-        </TableBody>
-      </Table>
+                {expanded === game.gameId && (
+                  <TableRow>
+                    <TableCell colSpan={9}>
+                      {/* Plain text: the catalog row's short description is never markup. */}
+                      <Text>{game.shortDescription}</Text>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </Fragment>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       {pagination.totalPages > 1 && (
         <Pagination
           variant="input"

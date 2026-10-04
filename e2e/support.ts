@@ -282,3 +282,80 @@ export async function leaveQuietly(players: Player[], roomId: string | undefined
 export async function awaitRefilledBudgets(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 15_000));
 }
+
+/** An element's rect is read in the page; `ancestors` lists the clipping boxes it must lie inside. */
+interface Stray {
+  element: string;
+  left: number;
+  right: number;
+  limit: string;
+}
+
+/**
+ * IMP-M9-09 (CA-04): every interactive element of the page lies inside the viewport and inside
+ * every ancestor that clips it. A clipped element is still clickable to Playwright, so this reads
+ * bounding boxes. Visually-hidden elements (a 1 px box) are skipped; vertical position is not
+ * checked, since the page scrolls.
+ */
+export async function expectInteractiveInsideViewport(page: Page, label: string): Promise<void> {
+  const strays = await page.evaluate((): Stray[] => {
+    const selector =
+      'a[href], button, input, select, textarea, summary, [role="button"], [role="switch"], [role="radio"], [role="tab"], [role="menuitem"], [tabindex]:not([tabindex="-1"])';
+    const found: Stray[] = [];
+    const describe = (e: Element) =>
+      `${e.tagName.toLowerCase()}[${e.getAttribute("aria-label") ?? ""}] "${e.textContent.trim().slice(0, 30)}"`;
+    for (const element of document.querySelectorAll(selector)) {
+      const rect = element.getBoundingClientRect();
+      if (rect.width <= 1 || rect.height <= 1) continue;
+      if (getComputedStyle(element).visibility === "hidden") continue;
+      const report = (limit: string) =>
+        found.push({ element: describe(element), left: rect.left, right: rect.right, limit });
+      if (rect.left < -0.5 || rect.right > document.documentElement.clientWidth + 0.5) {
+        report(`viewport 0…${String(document.documentElement.clientWidth)}`);
+        continue;
+      }
+      for (let p = element.parentElement; p; p = p.parentElement) {
+        const overflow = getComputedStyle(p).overflowX;
+        if (overflow !== "hidden" && overflow !== "clip") continue;
+        const box = p.getBoundingClientRect();
+        if (rect.left < box.left - 0.5 || rect.right > box.right + 0.5) {
+          report(`clipped by ${describe(p)} ${String(box.left)}…${String(box.right)}`);
+          break;
+        }
+      }
+    }
+    return found;
+  });
+  expect(strays, `${label}: interactive elements outside the viewport`).toEqual([]);
+}
+
+/** IMP-M9-09: an axe-core pass with zero violations. `axe.source` is evaluated, so the CSP is not in the way.
+ * The sandboxed game frame is a separate origin: axe would wait on it for a minute and post to it, so
+ * it is left out (`iframes: false`) and the game UI's own markup is the game's to keep clean. */
+export async function expectNoAxeViolations(page: Page, label: string): Promise<void> {
+  const axe = (await import("axe-core")) as unknown as { default: { source: string } };
+  const { source } = axe.default;
+  await page.evaluate(source);
+  const violations = await page.evaluate(async () => {
+    const axe = (
+      window as unknown as {
+        axe: {
+          run: (context: Document, options: object) => Promise<{ violations: AxeViolation[] }>;
+        };
+      }
+    ).axe;
+    const result = await axe.run(document, { iframes: false });
+    return result.violations.map((v) => ({
+      id: v.id,
+      impact: v.impact,
+      nodes: v.nodes.map((n) => n.target.join(" ")).slice(0, 5),
+    }));
+  });
+  expect(violations, `${label}: axe violations`).toEqual([]);
+}
+
+interface AxeViolation {
+  id: string;
+  impact: string | null;
+  nodes: { target: unknown[] }[];
+}

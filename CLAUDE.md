@@ -75,7 +75,10 @@ acceptance suite (`IMP-M7-13`, extended by `IMP-M8-16`) is Playwright under `e2e
 `make up` in `turnbase-platform` (seeded, with the Tic-Tac-Toe bundle — `local-environment.md` §5),
 then **`make e2e`** here (it checks the stack answers, then runs `npm run e2e`). It covers every
 view's spec (`IMP-M8-06…14`), a forfeit's history row and statistics, the 60 s grace period, the
-Tier 6 flood and its lockout recovery, two simultaneous leaves, a 400 px pass over every route, and a
+Tier 6 flood and its lockout recovery, two simultaneous leaves, a 400 px pass over every route, a desktop pass (1280 and 1920 px: every
+interactive element inside the viewport and its clipping ancestors) and an axe-core pass with zero
+violations over every route, tier and room state (`sweep.spec.ts`; the sandboxed game frame is left
+out of axe), and a
 **tripwire**: `e2e/fixtures.ts` fails any spec whose pages logged a console error, an uncaught
 error or a `5xx` — import `test` from `./fixtures`, never from `@playwright/test`, and call
 `tripwire.allow(/…/)` for one a spec provokes on purpose.
@@ -91,7 +94,9 @@ A run spends two — the wrong password in `auth.spec.ts`, the wrong current pas
 `settings.spec.ts` — so **two runs fit in 24 h and the third fails** on login (seen 2026-10-04); for
 a third, flush the dev stack's Redis (`docker compose exec redis redis-cli flushall`). Stub a failure you only
 need to *render* (as the taken-username `409` is).
-The flood spec locks `dave` out of `CONNECT` for 30 s, doubling per repeat offence within the hour,
+A cold game host can wedge on its first Espresso context after a clean `make up` (every spec that
+starts a game then sees an empty frame): restart `gamehost` and warm it with `game.spec.ts` before
+a run. The flood spec locks `dave` out of `CONNECT` for 30 s, doubling per repeat offence within the hour,
 and waits for it to lapse.
 `awaitRefilledBudgets` waits 15 s before each game spec: the seeded users' Tier 6
 `subscribe`/`snapshot` buckets must refill between games, and a game started on an empty bucket
