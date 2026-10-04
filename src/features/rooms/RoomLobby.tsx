@@ -7,6 +7,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { unmetStartConditions } from "./roomRules";
 import type { RoomConnection } from "./roomSocket";
 import { ChatPanel } from "./ChatPanel";
+import { InviteFriendsButton } from "./InviteFriendsButton";
 import type { ChatMessageEnvelope, RoomErrorEnvelope, RoomStateSnapshot } from "./rooms-types";
 
 export interface RoomLobbyProps {
@@ -35,7 +36,7 @@ function describeError(error: RoomErrorEnvelope["payload"]): string {
 }
 
 /**
- * VW-RLOBBY-001…004, 006, 009, 011…014. Everything shown is read off the `ROOM_STATE`-derived
+ * VW-RLOBBY-001…006, 009, 011…014. Everything shown is read off the `ROOM_STATE`-derived
  * snapshot; every action is a command whose outcome returns as an event. Start is disabled, with
  * the reasons listed, until the conditions above hold (FR-TEAM-009); a Switch is offered only while
  * the target role has a free slot (VW-RLOBBY-012, 013).
@@ -184,6 +185,7 @@ export function RoomLobby({
             }}
           />
         )}
+        {isHost && <InviteFriendsButton roomId={snapshot.roomId} />}
         {isHost && inviteCode && (
           <Button label="Share invite link" variant="secondary" onClick={onShareInvite} />
         )}

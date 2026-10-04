@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FakeEventSource, REGISTERED, installFakeApi } from "../../test/fakeApi";
+import { FakeEventSource, GUEST, REGISTERED, installFakeApi } from "../../test/fakeApi";
 import { renderAt, where } from "../../test/renderApp";
 import type { RoomConnection } from "./roomSocket";
 import type { RoomStateSnapshot } from "./rooms-types";
@@ -354,6 +354,85 @@ describe("Lobby as the host (VW-RLOBBY-006, 009, 011, 014)", () => {
     await openAsHost();
     await userEvent.click(screen.getByRole("button", { name: "Share invite link" }));
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/rooms/join/K7`);
+  });
+});
+
+describe("Invite friends (VW-RLOBBY-005)", () => {
+  const friends = {
+    "GET /api/users/alice/friends": {
+      body: {
+        content: [
+          { userId: "u-3", username: "carol" },
+          { userId: "u-4", username: "dave" },
+        ],
+      },
+    },
+  };
+
+  async function open(
+    asHost: boolean,
+    routes: Parameters<typeof installFakeApi>[0] = {},
+    principal: object = REGISTERED,
+  ) {
+    setConnection({
+      snapshot: snapshot({ hostId: asHost ? "u-1" : "u-9" }),
+    });
+    const api = installFakeApi({
+      "GET /api/auth/session": { body: principal },
+      "GET /api/rooms/r-1": { body: resource({ viewerRole: "PLAYER" }), headers: hint },
+      "POST /api/rooms/r-1/participants": {
+        body: { room: resource({ viewerRole: "PLAYER" }), releasedRoom: null },
+      },
+      ...friends,
+      ...routes,
+    });
+    renderAt("/rooms/r-1");
+    await screen.findByRole("heading", { name: "Tic-Tac-Toe" });
+    return api;
+  }
+
+  it("is hidden from a non-host and from a Guest host", async () => {
+    await open(false);
+    expect(screen.queryByRole("button", { name: "Invite friends" })).toBeNull();
+    cleanup();
+    await open(true, {}, GUEST);
+    expect(screen.queryByRole("button", { name: "Invite friends" })).toBeNull();
+  });
+
+  it("sends one invitation per selected friend", async () => {
+    const api = await open(true, {
+      "POST /api/rooms/r-1/invitations": { status: 201, body: { invitationId: "i-1" } },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Invite friends" }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: "carol" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "dave" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send invitations" }));
+    await waitFor(() => {
+      expect(api.calls.filter((c) => c.path === "/api/rooms/r-1/invitations")).toHaveLength(2);
+    });
+    const bodies = api.calls.filter((c) => c.path.endsWith("/invitations")).map((c) => c.body);
+    expect(bodies).toEqual([{ inviteeUsername: "carol" }, { inviteeUsername: "dave" }]);
+  });
+
+  it("renders a documented 4xx as a message and keeps that friend selected", async () => {
+    await open(true, {
+      "POST /api/rooms/r-1/invitations": {
+        status: 422,
+        body: { status: 422, title: "Unprocessable" },
+      },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Invite friends" }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: "carol" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send invitations" }));
+    expect(await screen.findByText("carol: you can only invite friends.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Send invitations" })).toBeTruthy();
+  });
+
+  it("says so when the host has no friends", async () => {
+    await open(true, { "GET /api/users/alice/friends": { body: { content: [] } } });
+    await userEvent.click(screen.getByRole("button", { name: "Invite friends" }));
+    expect(await screen.findByText(/You have no friends to invite yet/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Send invitations" })).toBeNull();
   });
 });
 

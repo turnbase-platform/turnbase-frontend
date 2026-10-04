@@ -146,11 +146,15 @@ test("Registered: a room invitation is joined from the panel", async ({ browser 
   await login(bob, "bob");
   await clearAll(bob.page);
   await bob.page.reload();
-  const roomId = await createRoom(alice);
+  // INVITE_ONLY: the invitation is the only way in besides a copied link (IMP-M9-01).
+  const roomId = await createRoom(alice, { visibility: "Invite Only" });
 
-  expect(
-    await post(alice.page, `/api/rooms/${roomId}/invitations`, { inviteeUsername: "bob" }),
-  ).toBe(201);
+  await alice.page.getByRole("button", { name: "Invite friends" }).click();
+  await alice.page.getByRole("checkbox", { name: "bob" }).check();
+  await alice.page.getByRole("button", { name: "Send invitations" }).click();
+  await expect(
+    alice.page.getByRole("region", { name: "Notifications" }).getByText("Invitation sent to bob."),
+  ).toBeVisible();
   await expect(bell(bob.page)).toHaveAccessibleName(/1 unread/);
   await bell(bob.page).click();
   await expect(bob.page.getByText(/alice invited you to play/)).toBeVisible();

@@ -165,3 +165,55 @@ test.describe("reconnection card", () => {
     }
   });
 });
+
+// IMP-M9-01: VW-RLOBBY-005 — Invite friends, from the UI, for the rooms that need it.
+test.describe("Invite friends (VW-RLOBBY-005)", () => {
+  test("a FRIENDS_ONLY room is entered through the invitation, and only a registered host sees the control", async ({
+    browser,
+  }) => {
+    const a = await newPlayer(browser, "alice");
+    const b = await newPlayer(browser, "bob");
+    let roomId: string | undefined;
+    try {
+      await login(a, "alice");
+      await login(b, "bob");
+      roomId = await createRoom(a, { visibility: "Friends Only" });
+      await a.page.getByRole("button", { name: "Invite friends" }).click();
+      await a.page.getByRole("checkbox", { name: "bob" }).check();
+      await a.page.getByRole("button", { name: "Send invitations" }).click();
+      await expect(
+        a.page.getByRole("region", { name: "Notifications" }).getByText("Invitation sent to bob."),
+      ).toBeVisible();
+
+      await b.page.getByRole("button", { name: /Notifications/ }).click();
+      await b.page.getByRole("button", { name: "Join", exact: true }).first().click();
+      await expect(b.page).toHaveURL(new RegExp(`/rooms/${roomId}$`));
+      // A non-host player never sees it.
+      await expect(b.page.getByRole("button", { name: "Leave room" })).toBeVisible();
+      await expect(b.page.getByRole("button", { name: "Invite friends" })).toHaveCount(0);
+    } finally {
+      await leaveQuietly([a, b], roomId);
+    }
+  });
+
+  test("a host with no friends is told so; a Guest host has no control", async ({ browser }) => {
+    const carol = await newPlayer(browser, "carol");
+    const guest = await newPlayer(browser, "guest");
+    let carolRoom: string | undefined;
+    let guestRoom: string | undefined;
+    try {
+      await login(carol, "carol");
+      carolRoom = await createRoom(carol);
+      await carol.page.getByRole("button", { name: "Invite friends" }).click();
+      await expect(carol.page.getByText(/You have no friends to invite yet/)).toBeVisible();
+
+      await playAsGuest(guest);
+      guestRoom = await createRoom(guest);
+      await expect(guest.page.getByRole("button", { name: "Share invite link" })).toBeVisible();
+      await expect(guest.page.getByRole("button", { name: "Invite friends" })).toHaveCount(0);
+    } finally {
+      await leaveQuietly([carol], carolRoom);
+      await leaveQuietly([guest], guestRoom);
+    }
+  });
+});

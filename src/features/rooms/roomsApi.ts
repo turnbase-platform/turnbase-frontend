@@ -115,3 +115,14 @@ export function leaveRoom(roomId: string): Promise<undefined> {
     method: "DELETE",
   });
 }
+
+/** `room-invitation-rest-api.md` §2 — the host invites one friend; `201`, or `200` on a repeat. */
+export function inviteFriend(
+  roomId: string,
+  inviteeUsername: string,
+): Promise<{ invitationId: string; inviteeUsername: string }> {
+  return apiFetch<{ invitationId: string; inviteeUsername: string }>(
+    `/api/rooms/${encodeURIComponent(roomId)}/invitations`,
+    { method: "POST", body: { inviteeUsername } },
+  );
+}

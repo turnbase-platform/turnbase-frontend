@@ -137,7 +137,7 @@ export async function playAsGuest(player: Player): Promise<void> {
 /** Catalog → Tic-Tac-Toe → Create room, as the host would. Returns the room id. */
 export async function createRoom(
   host: Player,
-  options: { spectating?: boolean } = {},
+  options: { spectating?: boolean; visibility?: "Friends Only" | "Invite Only" } = {},
 ): Promise<string> {
   const { page } = host;
   await page.goto("/games");
@@ -147,6 +147,7 @@ export async function createRoom(
     .click();
   await page.getByRole("button", { name: "Create room" }).click();
   // FR-CREATE-001: the dialog is where visibility and spectating are chosen.
+  if (options.visibility) await page.getByRole("radio", { name: options.visibility }).check();
   if (options.spectating) await page.getByRole("switch", { name: "Allow spectators" }).click();
   await page.getByRole("button", { name: "Create", exact: true }).click();
   await expect(page).toHaveURL(/\/rooms\/[0-9a-f-]{36}$/);
