@@ -14,6 +14,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { ApiError } from "../../shared/api";
 import { LoadError } from "../../shared/LoadError";
 import { useAuth } from "../auth/auth-context";
+import { useGoogleAvailable } from "../auth/useGoogleAvailable";
 import { FormError } from "../auth/forms";
 import { fieldStatus } from "../auth/fieldStatus";
 import {
@@ -377,6 +378,7 @@ function AuthMethodsSection({
   }
 
   const canRemove = account.authMethods.length > 1;
+  const googleAvailable = useGoogleAvailable();
 
   return (
     <Stack gap={3}>
@@ -402,7 +404,7 @@ function AuthMethodsSection({
           />
         ))}
       </List>
-      {!account.authMethods.includes("GOOGLE") && (
+      {googleAvailable && !account.authMethods.includes("GOOGLE") && (
         <Button
           as="a"
           href="/auth/google?intent=link"
@@ -453,47 +455,59 @@ function PrivacySection({
       />
       {!privacy.profilePrivate && (
         <Stack gap={3}>
-          <SegmentedControl
-            label="Game history visibility"
-            value={privacy.historyVisibility}
-            onChange={(value) => {
-              save({ historyVisibility: value as PrivacySettings["historyVisibility"] });
-            }}
-          >
-            <SegmentedControlItem value="PUBLIC" label="Public" />
-            <SegmentedControlItem value="HIDDEN" label="Hidden" />
-          </SegmentedControl>
-          <SegmentedControl
-            label="Statistics visibility"
-            value={privacy.statsVisibility}
-            onChange={(value) => {
-              save({ statsVisibility: value as PrivacySettings["statsVisibility"] });
-            }}
-          >
-            <SegmentedControlItem value="PUBLIC" label="Public" />
-            <SegmentedControlItem value="HIDDEN" label="Hidden" />
-          </SegmentedControl>
-          <SegmentedControl
-            label="Uploaded games visibility"
-            value={privacy.gamesVisibility}
-            onChange={(value) => {
-              save({ gamesVisibility: value as PrivacySettings["gamesVisibility"] });
-            }}
-          >
-            <SegmentedControlItem value="PUBLIC" label="Public" />
-            <SegmentedControlItem value="HIDDEN" label="Hidden" />
-          </SegmentedControl>
-          <SegmentedControl
-            label="Friends list visibility"
-            value={privacy.friendsVisibility}
-            onChange={(value) => {
-              save({ friendsVisibility: value as PrivacySettings["friendsVisibility"] });
-            }}
-          >
-            <SegmentedControlItem value="PUBLIC" label="Public" />
-            <SegmentedControlItem value="FRIENDS_ONLY" label="Friends only" />
-            <SegmentedControlItem value="HIDDEN" label="Hidden" />
-          </SegmentedControl>
+          <Stack gap={1}>
+            <Text>Game history</Text>
+            <SegmentedControl
+              label="Game history visibility"
+              value={privacy.historyVisibility}
+              onChange={(value) => {
+                save({ historyVisibility: value as PrivacySettings["historyVisibility"] });
+              }}
+            >
+              <SegmentedControlItem value="PUBLIC" label="Public" />
+              <SegmentedControlItem value="HIDDEN" label="Hidden" />
+            </SegmentedControl>
+          </Stack>
+          <Stack gap={1}>
+            <Text>Statistics</Text>
+            <SegmentedControl
+              label="Statistics visibility"
+              value={privacy.statsVisibility}
+              onChange={(value) => {
+                save({ statsVisibility: value as PrivacySettings["statsVisibility"] });
+              }}
+            >
+              <SegmentedControlItem value="PUBLIC" label="Public" />
+              <SegmentedControlItem value="HIDDEN" label="Hidden" />
+            </SegmentedControl>
+          </Stack>
+          <Stack gap={1}>
+            <Text>Uploaded games</Text>
+            <SegmentedControl
+              label="Uploaded games visibility"
+              value={privacy.gamesVisibility}
+              onChange={(value) => {
+                save({ gamesVisibility: value as PrivacySettings["gamesVisibility"] });
+              }}
+            >
+              <SegmentedControlItem value="PUBLIC" label="Public" />
+              <SegmentedControlItem value="HIDDEN" label="Hidden" />
+            </SegmentedControl>
+          </Stack>
+          <Stack gap={1}>
+            <Text>Friends list</Text>
+            <SegmentedControl
+              label="Friends list visibility"
+              value={privacy.friendsVisibility}
+              onChange={(value) => {
+                save({ friendsVisibility: value as PrivacySettings["friendsVisibility"] });
+              }}
+            >
+              <SegmentedControlItem value="PUBLIC" label="Public" />
+              <SegmentedControlItem value="FRIENDS_ONLY" label="Friends only" />
+              <SegmentedControlItem value="HIDDEN" label="Hidden" />
+            </SegmentedControl>
+          </Stack>
         </Stack>
       )}
       <Switch

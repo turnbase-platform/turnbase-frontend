@@ -83,6 +83,42 @@ describe("SettingsPage (VW-SET-001…007)", () => {
     expect(screen.queryByRole("link", { name: "Link Google account" })).toBeNull();
   });
 
+  it("VW-SET-004: Link Google account is offered only when the deployment has Google", async () => {
+    installFakeApi({
+      ...signedIn,
+      "GET /api/users/me": { body: account },
+      "GET /api/auth/providers": { body: { google: true } },
+    });
+    renderAt("/settings");
+
+    expect(await screen.findByRole("link", { name: "Link Google account" })).toBeInTheDocument();
+  });
+
+  it("VW-SET-004: Link Google account is absent when Google is not configured", async () => {
+    const api = installFakeApi({
+      ...signedIn,
+      "GET /api/users/me": { body: account },
+      "GET /api/auth/providers": { body: { google: false } },
+    });
+    renderAt("/settings");
+
+    await screen.findByText("Password");
+    await waitFor(() => {
+      expect(api.calls.some((call) => call.path === "/api/auth/providers")).toBe(true);
+    });
+    expect(screen.queryByRole("link", { name: "Link Google account" })).toBeNull();
+  });
+
+  it("VW-SET-006a: each section visibility control is named on screen", async () => {
+    installFakeApi({ ...signedIn, "GET /api/users/me": { body: account } });
+    renderAt("/settings");
+
+    for (const name of ["Game history", "Statistics", "Uploaded games", "Friends list"]) {
+      expect(await screen.findByText(name)).toBeVisible();
+    }
+    expect(screen.getByRole("radiogroup", { name: "Game history visibility" })).toBeInTheDocument();
+  });
+
   it("VW-SET-005: Remove is hidden with only one sign-in method linked", async () => {
     installFakeApi({
       ...signedIn,

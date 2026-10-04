@@ -81,12 +81,16 @@ test("Registered: every form loads, saves and confirms; delete ends the account"
   await page.getByRole("button", { name: "Change password" }).click();
   await expect(page.getByText("Password changed.").first()).toBeVisible();
 
-  // VW-SET-004/005: a password-only account offers Google linking and no Remove.
-  await expect(page.getByRole("link", { name: "Link Google account" })).toBeVisible();
+  // VW-SET-004/005: the compose stack has no Google client, so no link is offered; and no Remove.
+  await expect(page.getByRole("heading", { name: "Sign-in methods" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Link Google account" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Remove/ })).toHaveCount(0);
 
   // VW-SET-006/006a: private hides the section toggles, public brings them back; both persist.
   await expect(page.getByRole("radio", { name: "Public" })).toHaveCount(4);
+  for (const name of ["Game history", "Statistics", "Uploaded games", "Friends list"]) {
+    await expect(page.getByText(name, { exact: true })).toBeVisible();
+  }
   await page.getByRole("switch", { name: "Make my profile private" }).click();
   await expect(page.getByText("Privacy settings saved.").first()).toBeVisible();
   await expect(page.getByRole("radio", { name: "Public" })).toHaveCount(0);
