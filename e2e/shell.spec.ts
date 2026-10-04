@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
 import { login, newPlayer, playAsGuest } from "./support";
 
 // IMP-M8-06: the shell — nav bar, user menu, landing page, 403/404 views and the redirect rows

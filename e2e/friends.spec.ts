@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
 import { login, newPlayer, playAsGuest } from "./support";
 
 // IMP-M8-12: /friends (VW-FREN-001…005) as Unauth, Guest and the seeded `alice`/`bob` (friends),

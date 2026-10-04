@@ -1,3 +1,4 @@
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 export const TTT_TITLE = "Tic-Tac-Toe";
@@ -22,10 +23,54 @@ const TRACK_SOCKETS = () => {
   };
 };
 
+/**
+ * IMP-M8-16's tripwire: every console error, uncaught page error and `5xx` any player's pages saw
+ * during the running spec. `fixtures.ts` empties it before each test and fails the test if it is not
+ * empty afterwards. A browser reports a deliberate `4xx` as a console error too, so those are not
+ * counted — only a spec that provokes a `5xx` or an error on purpose needs {@link allowTripwire}.
+ */
+const tripped: string[] = [];
+/**
+ * stompjs writes a heartbeat to a socket the browser is already closing when a page navigates away
+ * from a signed-in view (here: onto `/login`). It is library teardown noise, not an application
+ * fault, and it raced one run in two.
+ */
+const teardownNoise = [/WebSocket is already in CLOSING or CLOSED state/];
+let allowed: RegExp[] = [...teardownNoise];
+
+export const tripwire = {
+  reset(): void {
+    tripped.length = 0;
+    allowed = [...teardownNoise];
+  },
+  /** Whatever the spec trips on purpose, by message. */
+  allow(...patterns: RegExp[]): void {
+    allowed.push(...patterns);
+  },
+  seen(): string[] {
+    return tripped.filter((message) => !allowed.some((pattern) => pattern.test(message)));
+  },
+};
+
+function watch(page: Page): void {
+  page.on("console", (m) => {
+    if (m.type() === "error" && !/status of 4\d\d/.test(m.text())) {
+      tripped.push(`console.error ${m.text()} (${page.url()})`);
+    }
+  });
+  page.on("pageerror", (e) => {
+    tripped.push(`pageerror ${e.message} (${page.url()})`);
+  });
+  page.on("response", (r) => {
+    if (r.status() >= 500) tripped.push(`${String(r.status())} ${r.request().method()} ${r.url()}`);
+  });
+}
+
 /** A fresh, isolated browser context: its own cookie jar and storage, as a separate person. */
 export async function newPlayer(browser: Browser, name: string): Promise<Player> {
   const context = await browser.newContext({ baseURL: ORIGIN });
   await context.addInitScript(TRACK_SOCKETS);
+  context.on("page", watch);
   return { name, context, page: await context.newPage() };
 }
 
@@ -56,11 +101,37 @@ export async function login(player: Player, username: string): Promise<void> {
   await expect(page).toHaveURL(/\/rooms$/);
 }
 
+/**
+ * Guests are minted at 5 per address per hour (Tier 5), and a run of this suite wants one in a
+ * dozen specs. So the first spec to ask really presses *Play as Guest*, and every later one — in this
+ * run or the next — signs in with that guest's cookie, for as long as the platform still honours it.
+ */
+const GUEST_CACHE = ".e2e-cache/guest-cookies.json";
+
 export async function playAsGuest(player: Player): Promise<void> {
-  const { page } = player;
+  const { page, context } = player;
+  try {
+    await context.addCookies(
+      JSON.parse(readFileSync(GUEST_CACHE, "utf8")) as Parameters<BrowserContext["addCookies"]>[0],
+    );
+    const session = (await (await page.request.get("/api/auth/session")).json()) as {
+      authenticated?: boolean;
+      userId?: string;
+    };
+    if (session.userId) {
+      await page.goto("/rooms");
+      await expect(page).toHaveURL(/\/rooms$/);
+      return;
+    }
+  } catch {
+    // no cache yet, or an unreadable one: mint below
+  }
+  await context.clearCookies();
   await page.goto("/");
   await page.getByRole("button", { name: "Play as Guest" }).first().click();
   await expect(page).toHaveURL(/\/rooms$/);
+  mkdirSync(".e2e-cache", { recursive: true });
+  writeFileSync(GUEST_CACHE, JSON.stringify(await context.cookies()));
 }
 
 /** Catalog → Tic-Tac-Toe → Create room, as the host would. Returns the room id. */

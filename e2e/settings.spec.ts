@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
 import { newPlayer, playAsGuest, register, uniqueName } from "./support";
 
 // IMP-M8-13: /settings (VW-SET-001…007) as Unauth, Guest and one freshly registered user (the single

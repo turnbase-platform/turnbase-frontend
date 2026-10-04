@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
 import { newPlayer, playAsGuest, uniqueName } from "./support";
 
 // IMP-M8-07: /login, /register, /auth/complete-registration and Play as Guest
@@ -108,10 +109,25 @@ test("Unauth: register — rows, server field error beside its field, mismatch",
   await expect(page.getByText("Enter a valid email address.").first()).toBeVisible();
   await page.unroute("**/api/auth/register");
 
-  // The one real attempt: a taken username is a plain 409 (input-validation.md), shown as the
-  // server's own sentence.
+  // A taken username is a plain 409 (input-validation.md), shown as the server's own sentence.
+  // Stubbed: every 4xx on a Tier 1 path counts toward the address's 5 failures per 24 h, and the
+  // run has only two to spend (the wrong password above, the wrong current password in
+  // `settings.spec.ts`) if it is to be repeatable (IMP-M8-16).
+  await page.route("**/api/auth/register", (route) =>
+    route.fulfill({
+      status: 409,
+      contentType: "application/problem+json",
+      body: JSON.stringify({
+        type: "https://turnbase.io/errors/conflict",
+        title: "Conflict",
+        status: 409,
+        detail: "Username already taken.",
+      }),
+    }),
+  );
   await page.getByRole("button", { name: "Register" }).click();
   await expect(page.getByText("Username already taken.").first()).toBeVisible();
+  await page.unroute("**/api/auth/register");
 
   await page.setViewportSize({ width: 400, height: 900 });
   await expectNoHorizontalScroll(page);

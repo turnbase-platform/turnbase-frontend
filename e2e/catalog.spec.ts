@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
 import { createRoom, enterFromList, login, newPlayer, playAsGuest, TTT_TITLE } from "./support";
 
 // IMP-M8-08: /games and /games/:id and the create-room choice (VW-CAT-001…003, VW-GDET-001…003,

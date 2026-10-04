@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
 import { createRoom, leaveQuietly, login, newPlayer, playAsGuest, roomIdOf } from "./support";
 
 // IMP-M8-14: the bell and panel (VW-NAV-005, VW-NOTIF-001…004, FR-NOTIF-002…005, FR-INV-003,

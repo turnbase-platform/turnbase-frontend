@@ -69,14 +69,37 @@ config**, `typescript-eslint` **strict** + stylistic (type-aware), `eslint-plugi
 
 `git config core.hooksPath .githooks` once, to get the `pre-push` fast-fail.
 
-There is no integration tier here, and CI runs no browser e2e (FR-CICD-005). The MVP browser
-acceptance suite (`IMP-M7-13`) is Playwright under `e2e/`, run by hand against the compose stack:
+There is no integration tier here, and CI runs no browser e2e: the suite needs the full compose
+stack (FR-CICD-005), which a GitHub-hosted runner of this repository does not have. The browser
+acceptance suite (`IMP-M7-13`, extended by `IMP-M8-16`) is Playwright under `e2e/`, run by hand:
 `make up` in `turnbase-platform` (seeded, with the Tic-Tac-Toe bundle — `local-environment.md` §5),
-then `npm run e2e`. It spends one guest and one registration per run against the Tier 5 limit
-(5 and 3 per IP per hour), so `make reset-db` before repeating it.
-`resilience.spec.ts` waits 15 s before each test (`awaitRefilledBudgets`): the seeded users' Tier 6
-`subscribe`/`snapshot` buckets must refill between games, and the client does not retry a dropped
-`SUBSCRIBE` — a game started on an empty bucket renders no board.
+then **`make e2e`** here (it checks the stack answers, then runs `npm run e2e`). It covers every
+view's spec (`IMP-M8-06…14`), a forfeit's history row and statistics, the 60 s grace period, the
+Tier 6 flood and its lockout recovery, two simultaneous leaves, a 400 px pass over every route, and a
+**tripwire**: `e2e/fixtures.ts` fails any spec whose pages logged a console error, an uncaught
+error or a `5xx` — import `test` from `./fixtures`, never from `@playwright/test`, and call
+`tripwire.allow(/…/)` for one a spec provokes on purpose.
+
+**The allowance.** Registration is 3 and guest minting 5 per address per hour (Tier 5). A run spends
+**one** registration (`settings.spec.ts`, which deletes it) and **one** guest: `playAsGuest` signs in
+with a cached guest cookie (`.e2e-cache/`, git-ignored) and only mints when the cache is missing or
+the platform no longer honours it. Everything else uses the seeded users, so a run can be repeated
+(two in a row fit; a third inside the hour waits for the window). New specs must not mint. Tier 1 is
+the other budget: every `4xx` on a login, register or password-change path counts toward **5 failures
+per address per 24 h** (the counter never resets on success, and the 5th starts a doubling lockout).
+A run spends two — the wrong password in `auth.spec.ts`, the wrong current password in
+`settings.spec.ts` — so **two runs fit in 24 h and the third fails** on login (seen 2026-10-04); for
+a third, flush the dev stack's Redis (`docker compose exec redis redis-cli flushall`). Stub a failure you only
+need to *render* (as the taken-username `409` is).
+The flood spec locks `dave` out of `CONNECT` for 30 s, doubling per repeat offence within the hour,
+and waits for it to lapse.
+`awaitRefilledBudgets` waits 15 s before each game spec: the seeded users' Tier 6
+`subscribe`/`snapshot` buckets must refill between games, and a game started on an empty bucket
+needs the client's back-off retry (`IMP-M8-15`).
+
+**`make reset-db` is not the way to start clean** — after it the Game Host timed out creating
+sessions (`DEADLINE_EXCEEDED`, every game start "could not be started") while reporting healthy.
+Use `docker compose down -v` then `make up` in `turnbase-platform`.
 
 ## The iframe boundary
 

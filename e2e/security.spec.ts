@@ -1,5 +1,5 @@
 import { request as httpRequest } from "node:http";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { newPlayer, playAsGuest, ORIGIN } from "./support";
 
 const FOREIGN = "http://evil.example";

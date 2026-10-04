@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import {
   createRoom,
   enterFromList,
@@ -10,18 +10,19 @@ import {
   playAsGuest,
   playCell,
   readyAndStart,
-  register,
   type Player,
 } from "./support";
 
-// One full game with four independent people: A (registered host), B (seeded `bob`),
-// C (guest spectator) and D (seeded `dave`, never in the room).
+// One full game with four independent people: A (seeded `carol`, host), B (seeded `bob`),
+// C (guest spectator) and D (seeded `dave`, never in the room). A is seeded, not registered: a
+// registration is 3 per address per hour, and `settings.spec.ts` needs the one a run can spare.
 test("create, join, ready, start and play Tic-Tac-Toe to a win", async ({ browser }) => {
   const a = await newPlayer(browser, "A");
   const b = await newPlayer(browser, "B");
   const c = await newPlayer(browser, "C");
   const d = await newPlayer(browser, "D");
-  const usernameA = await register(a);
+  const usernameA = "carol";
+  await login(a, usernameA);
   await login(b, "bob");
   await playAsGuest(c);
   await login(d, "dave");
@@ -31,6 +32,14 @@ test("create, join, ready, start and play Tic-Tac-Toe to a win", async ({ browse
     (await p.context.cookies()).find((k) => k.name === "turnbase_session")?.value;
   const cookies = await Promise.all([a, b, c, d].map(cookieOf));
   expect(new Set(cookies).size).toBe(4);
+
+  const played = async () =>
+    (
+      (await (await a.page.request.get(`/api/users/${usernameA}/statistics`)).json()) as {
+        totalPlayed: number;
+      }
+    ).totalPlayed;
+  const playedBefore = await played();
 
   const roomId = await createRoom(a, { spectating: true });
   await listenOnTopics(d.page, [`/topic/room.${roomId}`]);
@@ -73,10 +82,8 @@ test("create, join, ready, start and play Tic-Tac-Toe to a win", async ({ browse
   await a.page.goto(`/users/${usernameA}`);
   await expect(a.page.getByRole("heading", { level: 2, name: "Game history" })).toBeVisible();
   await expect(a.page.getByText("Tic-Tac-Toe").first()).toBeVisible();
-  await expect(a.page.getByText(/Victory|Defeat/)).toBeVisible();
-  const stats = await a.page.request.get(`/api/users/${usernameA}/statistics`);
-  expect(stats.status()).toBe(200);
-  expect(JSON.stringify(await stats.json())).toMatch(/"totalPlayed":\s*1/);
+  await expect(a.page.getByText(/Victory|Defeat/).first()).toBeVisible();
+  await expect.poll(played).toBe(playedBefore + 1);
 
   for (const p of [a, b, c, d]) await p.context.close();
 });

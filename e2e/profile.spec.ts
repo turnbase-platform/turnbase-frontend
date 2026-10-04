@@ -1,5 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
-import { login, newPlayer, playAsGuest } from "./support";
+import { expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
+import { login, newPlayer, playAsGuest, tripwire } from "./support";
 
 // IMP-M8-11: /users/:username (VW-PROF-001…008, FR-STATS-020…027, FR-HIST-020…027) as Unauth,
 // Guest and the seeded `alice` (friends with `bob`), `carol` (a stranger to `bob`) and `dave`,
@@ -140,6 +141,7 @@ test("an error response renders a message with a retry, not an unresolved state"
   browser,
 }) => {
   const { page } = await newPlayer(browser, "unauth");
+  tripwire.allow(/^500 GET .*\/statistics/, /status of 500/);
   let fail = true;
   await page.route("**/api/users/alice/statistics", (route) =>
     fail
