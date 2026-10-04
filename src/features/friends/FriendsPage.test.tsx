@@ -51,7 +51,7 @@ describe("FriendsPage (VW-FREN-001…005)", () => {
     });
     renderAt("/friends");
 
-    await userEvent.click(await screen.findByRole("button", { name: "Remove" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Remove bob" }));
 
     await waitFor(() => {
       expect(
@@ -82,7 +82,7 @@ describe("FriendsPage (VW-FREN-001…005)", () => {
     renderAt("/friends");
 
     expect(await screen.findByText("carol")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    await userEvent.click(screen.getByRole("button", { name: "Accept carol" }));
 
     await waitFor(() => {
       expect(
@@ -110,7 +110,7 @@ describe("FriendsPage (VW-FREN-001…005)", () => {
     });
     renderAt("/friends");
 
-    await userEvent.click(await screen.findByRole("button", { name: "Decline" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Decline carol" }));
 
     await waitFor(() => {
       expect(
@@ -131,5 +131,36 @@ describe("FriendsPage (VW-FREN-001…005)", () => {
 
     expect(await screen.findByText("No pending requests")).toBeInTheDocument();
     expect(await screen.findByText("No friends yet")).toBeInTheDocument();
+  });
+
+  it("a failed load says which list failed, offers Retry, and raises no toast", async () => {
+    const api = installFakeApi({
+      ...signedIn,
+      "GET /api/users/alice/friends": { status: 500, body: { title: "Internal Server Error" } },
+      "GET /api/friend-requests": envelope([]),
+    });
+    renderAt("/friends");
+
+    expect(await screen.findByText("Could not load your friends.")).toBeInTheDocument();
+    expect(screen.getByText("No pending requests")).toBeInTheDocument();
+    expect(screen.queryByText(/Could not complete that action/)).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Retry" })).toHaveLength(1);
+    expect(api.calls.filter((c) => c.path === "/api/users/alice/friends")).toHaveLength(1);
+  });
+
+  it("a failed action names the action and the person", async () => {
+    installFakeApi({
+      ...signedIn,
+      "GET /api/users/alice/friends": envelope([{ userId: "u-2", username: "bob" }]),
+      "GET /api/friend-requests": envelope([]),
+      "DELETE /api/users/me/friends/u-2": { status: 500, body: { title: "Internal Server Error" } },
+    });
+    renderAt("/friends");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Remove bob" }));
+
+    expect(
+      (await screen.findAllByText(/Could not remove bob from your friends/)).length,
+    ).toBeGreaterThan(0);
   });
 });

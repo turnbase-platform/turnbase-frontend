@@ -7,6 +7,8 @@ import { List, ListItem } from "@astryxdesign/core/List";
 import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
+import { ApiError } from "../../shared/api";
+import { LoadError } from "../../shared/LoadError";
 import { useAuth } from "../auth/auth-context";
 import {
   acceptFriendRequest,
@@ -17,28 +19,34 @@ import {
 } from "./friendsApi";
 import type { FriendSummary, PendingRequest } from "./friends-types";
 
+type Loaded<T> = { status: "loading" } | { status: "error" } | { status: "ready"; items: T[] };
+
 /** VW-FREN-001…005. */
 export function FriendsPage() {
   const { principal } = useAuth();
   const username = principal?.username ?? "";
-  const [friends, setFriends] = useState<FriendSummary[] | null>(null);
-  const [requests, setRequests] = useState<PendingRequest[] | null>(null);
+  const [friends, setFriends] = useState<Loaded<FriendSummary>>({ status: "loading" });
+  const [requests, setRequests] = useState<Loaded<PendingRequest>>({ status: "loading" });
   const showToast = useToast();
 
   function reloadFriends() {
     fetchFriends(username)
       .then((page) => {
-        setFriends(page.content);
+        setFriends({ status: "ready", items: page.content });
       })
-      .catch(fail);
+      .catch(() => {
+        setFriends({ status: "error" });
+      });
   }
 
   function reloadRequests() {
     fetchPendingRequests()
       .then((page) => {
-        setRequests(page.content);
+        setRequests({ status: "ready", items: page.content });
       })
-      .catch(fail);
+      .catch(() => {
+        setRequests({ status: "error" });
+      });
   }
 
   useEffect(() => {
@@ -47,12 +55,22 @@ export function FriendsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
-  function fail() {
-    showToast({ type: "error", body: "Could not complete that action. Please try again." });
+  /** Runs one action; a failure names it, then both lists are re-read so a stale row goes away. */
+  function act(failure: string, run: () => Promise<unknown>) {
+    run()
+      .catch((error: unknown) => {
+        const detail = error instanceof ApiError && error.status === 422 ? ` ${error.message}` : "";
+        showToast({ type: "error", body: `${failure}.${detail}` });
+      })
+      .finally(() => {
+        reloadFriends();
+        reloadRequests();
+      });
   }
 
-  const incoming = requests?.filter((request) => request.direction === "INCOMING") ?? [];
-  const outgoing = requests?.filter((request) => request.direction === "OUTGOING") ?? [];
+  const all = requests.status === "ready" ? requests.items : [];
+  const incoming = all.filter((request) => request.direction === "INCOMING");
+  const outgoing = all.filter((request) => request.direction === "OUTGOING");
 
   return (
     <Stack gap={6} padding={6}>
@@ -60,8 +78,10 @@ export function FriendsPage() {
 
       <Stack gap={2}>
         <Heading level={2}>Incoming requests</Heading>
-        {requests === null ? (
+        {requests.status === "loading" ? (
           <Text>Loading…</Text>
+        ) : requests.status === "error" ? (
+          <LoadError message="Could not load your friend requests." onRetry={reloadRequests} />
         ) : incoming.length === 0 ? (
           <EmptyState title="No pending requests" isCompact />
         ) : (
@@ -74,19 +94,24 @@ export function FriendsPage() {
                   <Stack direction="horizontal" gap={2}>
                     <Button
                       label="Accept"
+                      aria-label={`Accept ${request.counterpartUsername}`}
                       variant="primary"
                       onClick={() => {
-                        acceptFriendRequest(request.requestId)
-                          .then(reloadFriends)
-                          .then(reloadRequests)
-                          .catch(fail);
+                        act(
+                          `Could not accept ${request.counterpartUsername}'s friend request`,
+                          () => acceptFriendRequest(request.requestId),
+                        );
                       }}
                     />
                     <Button
                       label="Decline"
+                      aria-label={`Decline ${request.counterpartUsername}`}
                       variant="secondary"
                       onClick={() => {
-                        deleteFriendRequest(request.requestId).then(reloadRequests).catch(fail);
+                        act(
+                          `Could not decline ${request.counterpartUsername}'s friend request`,
+                          () => deleteFriendRequest(request.requestId),
+                        );
                       }}
                     />
                   </Stack>
@@ -108,9 +133,12 @@ export function FriendsPage() {
                 endContent={
                   <Button
                     label="Cancel"
+                    aria-label={`Cancel request to ${request.counterpartUsername}`}
                     variant="ghost"
                     onClick={() => {
-                      deleteFriendRequest(request.requestId).then(reloadRequests).catch(fail);
+                      act(`Could not cancel your request to ${request.counterpartUsername}`, () =>
+                        deleteFriendRequest(request.requestId),
+                      );
                     }}
                   />
                 }
@@ -122,9 +150,11 @@ export function FriendsPage() {
 
       <Stack gap={2}>
         <Heading level={2}>Your friends</Heading>
-        {friends === null ? (
+        {friends.status === "loading" ? (
           <Text>Loading…</Text>
-        ) : friends.length === 0 ? (
+        ) : friends.status === "error" ? (
+          <LoadError message="Could not load your friends." onRetry={reloadFriends} />
+        ) : friends.items.length === 0 ? (
           <EmptyState
             title="No friends yet"
             description="Visit a profile to send a friend request."
@@ -132,7 +162,7 @@ export function FriendsPage() {
           />
         ) : (
           <List header="Your friends" hasDividers>
-            {friends.map((friend) => (
+            {friends.items.map((friend) => (
               <ListItem
                 key={friend.userId}
                 label={friend.username}
@@ -141,9 +171,12 @@ export function FriendsPage() {
                     <Link href={`/users/${friend.username}`}>View profile</Link>
                     <Button
                       label="Remove"
+                      aria-label={`Remove ${friend.username}`}
                       variant="ghost"
                       onClick={() => {
-                        removeFriend(friend.userId).then(reloadFriends).catch(fail);
+                        act(`Could not remove ${friend.username} from your friends`, () =>
+                          removeFriend(friend.userId),
+                        );
                       }}
                     />
                   </Stack>
