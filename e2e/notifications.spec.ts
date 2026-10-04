@@ -105,10 +105,8 @@ test("Registered: a friend request arrives live, is declined, and the answer is 
   await expect(bell(dave.page)).toBeVisible();
   await dave.page.setViewportSize({ width: 400, height: 800 });
 
-  // The platform pushes nothing live for a persisted notification (IMP-M8-18 builds it, and
-  // moves the no-reload assertion here); until then the badge is read on load.
+  // The platform pushes the persisted notification to the open stream: no reload.
   expect(await post(carol.page, "/api/friend-requests", { recipientUsername: "dave" })).toBe(201);
-  await dave.page.reload();
   await expect(bell(dave.page)).toHaveAccessibleName(/1 unread/);
 
   await bell(dave.page).click();
@@ -118,7 +116,6 @@ test("Registered: a friend request arrives live, is declined, and the answer is 
   await expect(dave.page.getByText("carol sent you a friend request.")).toHaveCount(0);
   await expect(dave.page.getByText("You have no notifications.")).toBeVisible();
 
-  await carol.page.reload();
   await expect(bell(carol.page)).toHaveAccessibleName(/1 unread/);
   await bell(carol.page).click();
   await expect(carol.page.getByText("dave declined your friend request.")).toBeVisible();
@@ -153,7 +150,6 @@ test("Registered: a room invitation is joined from the panel", async ({ browser 
   expect(
     await post(alice.page, `/api/rooms/${roomId}/invitations`, { inviteeUsername: "bob" }),
   ).toBe(201);
-  await bob.page.reload();
   await expect(bell(bob.page)).toHaveAccessibleName(/1 unread/);
   await bell(bob.page).click();
   await expect(bob.page.getByText(/alice invited you to play/)).toBeVisible();
