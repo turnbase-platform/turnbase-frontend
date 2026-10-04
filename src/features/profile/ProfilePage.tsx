@@ -7,6 +7,7 @@ import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Link } from "@astryxdesign/core/Link";
 import { List, ListItem } from "@astryxdesign/core/List";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
@@ -247,7 +248,7 @@ function FriendsSection({ username }: { username: string }) {
         (state.items.length === 0 ? (
           <EmptyState title="No friends yet" isCompact />
         ) : (
-          <List header="Friends">
+          <List header={<VisuallyHidden>Friends</VisuallyHidden>}>
             {state.items.map((friend) => (
               <ListItem
                 key={friend.userId}
@@ -278,7 +279,7 @@ function UploadedGamesSection({ username }: { username: string }) {
         (state.items.length === 0 ? (
           <EmptyState title="No uploaded games yet" isCompact />
         ) : (
-          <List header="Uploaded games">
+          <List header={<VisuallyHidden>Uploaded games</VisuallyHidden>}>
             {state.items.map((game) => (
               <ListItem
                 key={game.gameId}

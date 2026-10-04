@@ -5,6 +5,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { List, ListItem } from "@astryxdesign/core/List";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Stack } from "@astryxdesign/core/Stack";
 import { Switch } from "@astryxdesign/core/Switch";
@@ -383,7 +384,7 @@ function AuthMethodsSection({
   return (
     <Stack gap={3}>
       <Heading level={2}>Sign-in methods</Heading>
-      <List header="Sign-in methods">
+      <List header={<VisuallyHidden>Sign-in methods</VisuallyHidden>}>
         {account.authMethods.map((method) => (
           <ListItem
             key={method}

@@ -4,6 +4,7 @@ import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Link } from "@astryxdesign/core/Link";
 import { List, ListItem } from "@astryxdesign/core/List";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
@@ -85,7 +86,7 @@ export function FriendsPage() {
         ) : incoming.length === 0 ? (
           <EmptyState title="No pending requests" isCompact />
         ) : (
-          <List header="Incoming requests" hasDividers>
+          <List header={<VisuallyHidden>Incoming requests</VisuallyHidden>} hasDividers>
             {incoming.map((request) => (
               <ListItem
                 key={request.requestId}
@@ -125,7 +126,7 @@ export function FriendsPage() {
       {outgoing.length > 0 && (
         <Stack gap={2}>
           <Heading level={2}>Sent requests</Heading>
-          <List header="Sent requests" hasDividers>
+          <List header={<VisuallyHidden>Sent requests</VisuallyHidden>} hasDividers>
             {outgoing.map((request) => (
               <ListItem
                 key={request.requestId}
@@ -161,7 +162,7 @@ export function FriendsPage() {
             isCompact
           />
         ) : (
-          <List header="Your friends" hasDividers>
+          <List header={<VisuallyHidden>Your friends</VisuallyHidden>} hasDividers>
             {friends.items.map((friend) => (
               <ListItem
                 key={friend.userId}

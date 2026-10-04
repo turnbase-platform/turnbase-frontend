@@ -24,7 +24,7 @@ const TRACK_SOCKETS = () => {
 };
 
 /**
- * IMP-M8-16's tripwire: every console error, uncaught page error and `5xx` any player's pages saw
+ * IMP-M8-16's tripwire: every console error or warning, uncaught page error and `5xx` any player's pages saw
  * during the running spec. `fixtures.ts` empties it before each test and fails the test if it is not
  * empty afterwards. A browser reports a deliberate `4xx` as a console error too, so those are not
  * counted — only a spec that provokes a `5xx` or an error on purpose needs {@link allowTripwire}.
@@ -54,8 +54,8 @@ export const tripwire = {
 
 function watch(page: Page): void {
   page.on("console", (m) => {
-    if (m.type() === "error" && !/status of 4\d\d/.test(m.text())) {
-      tripped.push(`console.error ${m.text()} (${page.url()})`);
+    if ((m.type() === "warning" || m.type() === "error") && !/status of 4\d\d/.test(m.text())) {
+      tripped.push(`console.${m.type()} ${m.text()} (${page.url()})`);
     }
   });
   page.on("pageerror", (e) => {

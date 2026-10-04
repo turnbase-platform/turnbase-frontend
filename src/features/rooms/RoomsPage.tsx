@@ -195,7 +195,7 @@ export function RoomsPage() {
       )}
       {state.status === "loaded" &&
         (state.result.content.length === 0 ? (
-          <EmptyState title="No rooms to join right now" />
+          <EmptyState title="No rooms to join right now" headingLevel={2} />
         ) : (
           <Stack gap={3}>
             {/* At phone width the table scrolls inside this box, not the page (RR-07). */}

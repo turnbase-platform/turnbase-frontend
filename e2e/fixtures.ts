@@ -4,7 +4,7 @@ import { tripwire } from "./support";
 export { expect } from "@playwright/test";
 
 /**
- * `test` with IMP-M8-16's tripwire armed: any console error, uncaught page error or `5xx` seen by a
+ * `test` with IMP-M8-16's tripwire armed: any console error or warning, uncaught page error or `5xx` seen by a
  * player's page fails the spec that saw it, even when every assertion passed.
  */
 export const test = base.extend<{ tripwire: undefined }>({

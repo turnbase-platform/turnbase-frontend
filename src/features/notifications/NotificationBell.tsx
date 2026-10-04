@@ -75,7 +75,8 @@ export function NotificationBell() {
       }
     >
       <Button
-        label={unread > 0 ? `Notifications, ${String(unread)} unread` : "Notifications"}
+        label="Notifications"
+        aria-label={unread > 0 ? `Notifications, ${String(unread)} unread` : "Notifications"}
         variant="ghost"
         endContent={unread > 0 ? <Badge variant="error" label={String(unread)} /> : undefined}
       />
