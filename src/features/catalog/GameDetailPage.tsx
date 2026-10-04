@@ -83,7 +83,10 @@ function GameDetailFor({ gameId }: { gameId: string }) {
           By <Link href={`/users/${game.authorUsername}`}>{game.authorUsername}</Link> · version{" "}
           {game.version}
         </Text>
-        <CreateRoomButton gameId={game.gameId} supportsSpectators={game.supportsSpectators} />
+        {/* A horizontal stack does not stretch its child to the content width. */}
+        <Stack direction="horizontal">
+          <CreateRoomButton gameId={game.gameId} supportsSpectators={game.supportsSpectators} />
+        </Stack>
       </Stack>
 
       <Stack gap={2}>

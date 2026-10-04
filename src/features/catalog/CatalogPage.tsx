@@ -179,8 +179,10 @@ function CatalogBody({
             <Fragment key={game.gameId}>
               <TableRow>
                 <TableCell>
-                  <Stack direction="horizontal" gap={2}>
-                    <Link href={`/games/${game.gameId}`}>{game.title}</Link>
+                  <Stack direction="horizontal" gap={2} wrap="wrap">
+                    <Link href={`/games/${game.gameId}`} hasUnderline>
+                      {game.title}
+                    </Link>
                     <BadgeLabel badge={game.badge} />
                   </Stack>
                 </TableCell>
@@ -196,7 +198,8 @@ function CatalogBody({
                 <TableCell>{formatDate(game.createdAt)}</TableCell>
                 <TableCell>{formatDate(game.updatedAt)}</TableCell>
                 <TableCell>
-                  <Stack direction="horizontal" gap={2}>
+                  {/* Wraps rather than overflows: the cell clips what spills out of it (CA-04). */}
+                  <Stack direction="horizontal" gap={2} wrap="wrap">
                     <Button
                       label={expanded === game.gameId ? "Hide description" : "Show description"}
                       variant="ghost"

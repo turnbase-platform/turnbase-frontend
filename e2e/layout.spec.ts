@@ -90,3 +90,68 @@ test.describe("signed in", () => {
     }
   });
 });
+
+// IMP-M9-04 (CA-04): at desktop widths a row's actions lie inside their cell and the viewport. A
+// clipped element is still clickable to Playwright, so this asserts bounding boxes, not visibility.
+test("catalog rows keep their actions inside the cell and viewport at desktop widths", async ({
+  browser,
+}) => {
+  const a = await newPlayer(browser, "alice");
+  try {
+    await login(a, "alice");
+    for (const width of [1280, 1440, 1920]) {
+      await a.page.setViewportSize({ width, height: 900 });
+      await a.page.goto("/games");
+      const create = a.page.getByRole("button", { name: "Create room" }).first();
+      await expect(create).toBeVisible();
+      const geometry = await a.page.evaluate(() => {
+        const row = document.querySelector("tbody tr");
+        const button = [...(row?.querySelectorAll("button") ?? [])].find(
+          (b) => b.textContent === "Create room",
+        );
+        const cell = button?.closest("td");
+        const link = row?.querySelector("a");
+        const badge = row?.querySelector(".astryx-badge");
+        if (!button || !cell || !link || !badge) throw new Error("catalog row is incomplete");
+        const rect = (e: Element) => e.getBoundingClientRect();
+        return {
+          button: rect(button).toJSON() as DOMRect,
+          cell: rect(cell).toJSON() as DOMRect,
+          viewport: innerWidth,
+          badgeClipped: [badge, ...badge.querySelectorAll("*")].some(
+            (e) => e.scrollWidth > e.clientWidth,
+          ),
+          decoration: getComputedStyle(link).textDecorationLine,
+        };
+      });
+      const at = `at ${String(width)} px`;
+      expect(
+        geometry.button.left,
+        `Create room starts inside its cell ${at}`,
+      ).toBeGreaterThanOrEqual(geometry.cell.left);
+      expect(geometry.button.right, `Create room ends inside its cell ${at}`).toBeLessThanOrEqual(
+        geometry.cell.right,
+      );
+      expect(
+        geometry.button.right,
+        `Create room ends inside the viewport ${at}`,
+      ).toBeLessThanOrEqual(geometry.viewport);
+      expect(geometry.badgeClipped, `the badge label is cut ${at}`).toBe(false);
+      expect(geometry.decoration, `the title reads as a link ${at}`).toContain("underline");
+    }
+
+    // The detail page's button keeps its natural width.
+    await a.page.setViewportSize({ width: 1280, height: 900 });
+    await a.page.goto("/games");
+    await a.page
+      .getByRole("link", { name: /Tic-Tac-Toe/ })
+      .first()
+      .click();
+    const detail = a.page.getByRole("button", { name: "Create room" });
+    await expect(detail).toBeVisible();
+    const box = await detail.boundingBox();
+    expect(box?.width ?? Infinity, "the detail page's Create room is stretched").toBeLessThan(200);
+  } finally {
+    await a.context.close();
+  }
+});
