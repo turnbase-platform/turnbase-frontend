@@ -23,6 +23,8 @@ export interface StreamAlert {
 export interface StreamHandlers {
   onNotification: (notification: StreamNotification) => void;
   onAlert: (alert: StreamAlert) => void;
+  /** Every (re)connect: whatever was pushed while the stream was down is only in the table. */
+  onOpen?: () => void;
 }
 
 /** The slice of `EventSource` used — lets tests drive the stream without a network. */
@@ -100,6 +102,7 @@ export function openNotificationStream(
 
     current.onopen = () => {
       attempt = 0;
+      handlers.onOpen?.();
     };
     current.onerror = () => {
       if (stopped || current.readyState !== CLOSED) return; // transient — the browser retries

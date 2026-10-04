@@ -5,6 +5,8 @@ import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { ApiError } from "../../shared/api";
+import { LoadError } from "../../shared/LoadError";
+import { useAuth } from "../auth/auth-context";
 import {
   acceptFriendRequest,
   deleteFriendRequest,
@@ -36,6 +38,9 @@ interface Props {
 export function NotificationPanel({ reloadKey, onChanged, onClose }: Props) {
   const navigate = useNavigate();
   const showToast = useToast();
+  // VW-NOTIF-002/003: the Accept / Decline rows are Registered-only; a Guest never sees them.
+  const { tier } = useAuth();
+  const [failed, setFailed] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -49,10 +54,13 @@ export function NotificationPanel({ reloadKey, onChanged, onClose }: Props) {
         if (next < upTo && next < result.pagination.totalPages) return collect(next + 1, collected);
         setItems(collected);
         setTotalPages(result.pagination.totalPages);
+        setFailed(false);
         return undefined;
       });
     return collect(1, [])
-      .catch(() => undefined) // a 401 is already handled centrally; the list stays as it was
+      .catch(() => {
+        setFailed(true); // a 401 is already handled centrally; anything else offers Retry
+      })
       .then(() => {
         setLoaded(true);
       });
@@ -125,7 +133,8 @@ export function NotificationPanel({ reloadKey, onChanged, onClose }: Props) {
 
   function row(item: NotificationItem) {
     const unread = item.readAt === null;
-    const actionable = item.type === "ROOM_INVITATION" || item.type === "FRIEND_REQUEST";
+    const actionable =
+      tier === "registered" && (item.type === "ROOM_INVITATION" || item.type === "FRIEND_REQUEST");
     return (
       <li key={item.notificationId} data-unread={unread}>
         <Stack gap={1}>
@@ -134,7 +143,7 @@ export function NotificationPanel({ reloadKey, onChanged, onClose }: Props) {
             {actionable && (
               <>
                 <Button
-                  label="Accept"
+                  label={item.type === "ROOM_INVITATION" ? "Join" : "Accept"}
                   size="sm"
                   onClick={() => {
                     void attempt(
@@ -200,7 +209,15 @@ export function NotificationPanel({ reloadKey, onChanged, onClose }: Props) {
           }}
         />
       </Stack>
-      {loaded && items.length === 0 && <Text>You have no notifications.</Text>}
+      {failed && (
+        <LoadError
+          message="Could not load notifications."
+          onRetry={() => {
+            void load(page);
+          }}
+        />
+      )}
+      {loaded && !failed && items.length === 0 && <Text>You have no notifications.</Text>}
       <ul aria-label="Notifications">{items.map(row)}</ul>
       {page < totalPages && (
         <Button

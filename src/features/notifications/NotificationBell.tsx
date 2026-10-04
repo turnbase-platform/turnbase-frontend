@@ -34,6 +34,10 @@ export function NotificationBell() {
   useEffect(() => {
     refresh();
     return openNotificationStream({
+      onOpen: () => {
+        refresh();
+        setReloadKey((key) => key + 1);
+      },
       onNotification: () => {
         refresh();
         setReloadKey((key) => key + 1);
@@ -71,7 +75,7 @@ export function NotificationBell() {
       }
     >
       <Button
-        label="Notifications"
+        label={unread > 0 ? `Notifications, ${String(unread)} unread` : "Notifications"}
         variant="ghost"
         endContent={unread > 0 ? <Badge variant="error" label={String(unread)} /> : undefined}
       />

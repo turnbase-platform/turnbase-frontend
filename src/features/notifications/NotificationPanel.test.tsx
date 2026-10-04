@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FakeEventSource, REGISTERED, installFakeApi } from "../../test/fakeApi";
+import { FakeEventSource, GUEST, REGISTERED, installFakeApi } from "../../test/fakeApi";
 import { renderAt } from "../../test/renderApp";
 
 const envelope = (content: unknown[], totalPages = 1) => ({
@@ -87,7 +87,7 @@ describe("NotificationPanel (VW-NOTIF-001…004)", () => {
     });
     await openPanel();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Accept" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Join" }));
 
     await waitFor(() => {
       expect(called(api, "POST", "/api/rooms/room-9/participants")).toBe(true);
@@ -208,5 +208,64 @@ describe("NotificationPanel (VW-NOTIF-001…004)", () => {
 
     expect(await screen.findByText("You and carol are now friends.")).toBeInTheDocument();
     expect(called(api, "GET", "/api/notifications?page=2&size=25")).toBe(true);
+  });
+
+  it("VW-NOTIF-002/003: a Guest sees the list but no Join / Accept / Decline", async () => {
+    installFakeApi({
+      ...base,
+      "GET /api/auth/session": { body: GUEST },
+      "GET /api/notifications?page=1&size=25": envelope([invitation, friendRequest]),
+    });
+    await openPanel();
+
+    expect(await screen.findByText("bob invited you to play Chess.")).toBeVisible();
+    for (const name of ["Join", "Accept", "Decline"]) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+    expect(screen.getAllByRole("button", { name: "Dismiss" })).toHaveLength(2);
+  });
+
+  it("an unknown type renders a generic line, not nothing", async () => {
+    installFakeApi({
+      ...base,
+      "GET /api/notifications?page=1&size=25": envelope([{ ...friendRequest, type: "BRAND_NEW" }]),
+    });
+    await openPanel();
+
+    expect(await screen.findByText("You have a new notification.")).toBeVisible();
+  });
+
+  it("a failed load says so and Retry reloads", async () => {
+    const api = installFakeApi({
+      ...base,
+      "GET /api/notifications?page=1&size=25": { status: 500, body: { message: "boom" } },
+    });
+    await openPanel();
+
+    expect(await screen.findByText("Could not load notifications.")).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => {
+      expect(api.calls.filter((c) => c.path === "/api/notifications?page=1&size=25")).toHaveLength(
+        2,
+      );
+    });
+  });
+
+  it("re-reads the badge when the stream (re)opens", async () => {
+    const api = installFakeApi({
+      ...base,
+      "GET /api/notifications?page=1&size=25": envelope([]),
+    });
+    renderAt("/games");
+    await screen.findByRole("button", { name: /Notifications/ });
+    const before = api.calls.filter((c) => c.path === "/api/notifications/unread-count").length;
+
+    FakeEventSource.instances.at(-1)?.onopen?.(new Event("open"));
+
+    await waitFor(() => {
+      expect(
+        api.calls.filter((c) => c.path === "/api/notifications/unread-count").length,
+      ).toBeGreaterThan(before);
+    });
   });
 });
