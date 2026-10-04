@@ -46,6 +46,8 @@ async function expectPublicSections(page: Page) {
   await expect(page.getByRole("heading", { level: 2, name: "Game history" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "Friends" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "Uploaded games" })).toBeVisible();
+  // A seeded user uploaded nothing; the whole catalog must not leak in (IMP-M9-02).
+  await expect(page.getByText("No uploaded games yet")).toBeVisible();
   await expect(page.getByText("Loading…")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Retry" })).toHaveCount(0);
 }
