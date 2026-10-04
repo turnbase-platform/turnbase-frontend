@@ -60,10 +60,11 @@ test("leaving mid-game forfeits: the opponent is told and can return to the lobb
     await playCell([a, b], 0);
 
     await a.page.getByRole("button", { name: "Leave room" }).click();
-    await expect(a.page).toHaveURL(/\/rooms$/);
 
-    // The game is not stuck: bob sees it end and can return to the lobby.
-    await expect(b.page.getByText("The game is over.")).toBeVisible();
+    // The game is not stuck: bob sees it end and can return to the lobby. The leave reaches the
+    // engine inline, not on the 5 s sweep (IMP-M9-05, CA-05), so it is bounded by 1 s.
+    await expect(b.page.getByText("The game is over.")).toBeVisible({ timeout: 1_000 });
+    await expect(a.page).toHaveURL(/\/rooms$/);
     await b.page.getByRole("button", { name: "Return to lobby" }).click();
     await expect(b.page.getByRole("button", { name: "Start game" })).toBeVisible();
   } finally {
