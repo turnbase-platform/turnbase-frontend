@@ -18,3 +18,13 @@ export interface OwnedGame {
 export function fetchOwnedGames(username: string): Promise<ListEnvelope<OwnedGame>> {
   return apiFetch<ListEnvelope<OwnedGame>>(`/api/games?owner=${encodeURIComponent(username)}`);
 }
+
+/** `statistics-rest-api.md` §2: `GET /api/users/{username}/statistics`. */
+export interface Statistics {
+  totalPlayed: number;
+  mostPlayedGame: { gameId: string; title: string } | null;
+}
+
+export function fetchStatistics(username: string): Promise<Statistics> {
+  return apiFetch<Statistics>(`/api/users/${encodeURIComponent(username)}/statistics`);
+}

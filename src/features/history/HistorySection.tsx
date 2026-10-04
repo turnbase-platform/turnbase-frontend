@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
@@ -9,6 +8,7 @@ import { Pagination } from "@astryxdesign/core/Pagination";
 import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
+import { LoadError } from "../../shared/LoadError";
 import { formatDate } from "../../shared/format";
 import type { ListEnvelope } from "../../shared/pagination";
 import { fetchHistory } from "./historyApi";
@@ -25,6 +25,7 @@ export function HistorySection({ username }: { username: string }) {
   const [page, setPage] = useState(1);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +39,7 @@ export function HistorySection({ username }: { username: string }) {
     return () => {
       cancelled = true;
     };
-  }, [username, search, page]);
+  }, [username, search, page, attempt]);
 
   return (
     <Stack gap={2}>
@@ -55,7 +56,13 @@ export function HistorySection({ username }: { username: string }) {
       />
       {state.status === "loading" && <Text>Loading…</Text>}
       {state.status === "error" && (
-        <Banner status="error" title="Could not load game history. Please try again." />
+        <LoadError
+          message="Could not load game history."
+          onRetry={() => {
+            setState({ status: "loading" });
+            setAttempt((n) => n + 1);
+          }}
+        />
       )}
       {state.status === "loaded" &&
         (state.result.content.length === 0 ? (

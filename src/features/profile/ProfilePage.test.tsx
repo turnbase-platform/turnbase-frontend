@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FakeEventSource, REGISTERED, ANONYMOUS, installFakeApi } from "../../test/fakeApi";
+import { FakeEventSource, REGISTERED, GUEST, ANONYMOUS, installFakeApi } from "../../test/fakeApi";
 import { renderAt } from "../../test/renderApp";
 
 const session = { "GET /api/auth/session": ANONYMOUS };
@@ -88,6 +88,10 @@ describe("ProfilePage (VW-PROF-001…008)", () => {
         },
       },
       "GET /api/users/alice/friends": friendsEnvelope([{ userId: "u-2", username: "bob" }]),
+      "GET /api/users/alice/statistics": {
+        body: { totalPlayed: 17, mostPlayedGame: { gameId: "g-1", title: "Chess" } },
+      },
+      "GET /api/users/alice/history?page=1&size=25": friendsEnvelope(),
       ...games,
     });
     renderAt("/users/alice");
@@ -97,6 +101,75 @@ describe("ProfilePage (VW-PROF-001…008)", () => {
     expect(await screen.findByRole("heading", { level: 2, name: "Friends" })).toBeInTheDocument();
     expect(await screen.findByText("bob")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Edit profile" })).toBeInTheDocument();
+    // FR-STATS-020…022: the totals the API returns, the most played game linked.
+    expect(await screen.findByText("17")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Chess" })).toHaveAttribute("href", "/games/g-1");
+  });
+
+  it("FR-STATS-023: a user with no games shows 0 and a placeholder, no link", async () => {
+    installFakeApi({
+      "GET /api/auth/session": { body: REGISTERED },
+      "GET /api/notifications/unread-count": { body: { unreadCount: 0 } },
+      "GET /api/users/alice": {
+        body: {
+          username: "alice",
+          userId: "u-1",
+          kind: "REGISTERED",
+          profilePrivate: false,
+          visibleSections: ["statistics"],
+        },
+      },
+      "GET /api/users/alice/statistics": { body: { totalPlayed: 0, mostPlayedGame: null } },
+    });
+    renderAt("/users/alice");
+
+    expect(await screen.findByText("Total games played")).toBeInTheDocument();
+    expect(screen.getByText("0")).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument();
+  });
+
+  it("an error response renders a message with a retry that reloads the profile", async () => {
+    let calls = 0;
+    installFakeApi({
+      ...session,
+      "GET /api/auth/providers": { body: { google: false } },
+      "GET /api/users/guest-4f2a": () => {
+        calls += 1;
+        return calls === 1
+          ? { status: 500, body: { type: "internal", status: 500 } }
+          : { body: { username: "guest-4f2a" } };
+      },
+    });
+    renderAt("/users/guest-4f2a");
+
+    expect(await screen.findByText("Could not load this profile.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => {
+      expect(screen.queryByText("Could not load this profile.")).toBeNull();
+    });
+    expect(calls).toBe(2);
+  });
+
+  it("a failing section says so and offers a retry instead of showing an empty list", async () => {
+    installFakeApi({
+      ...session,
+      "GET /api/auth/providers": { body: { google: false } },
+      "GET /api/users/alice": {
+        body: {
+          username: "alice",
+          userId: "u-1",
+          kind: "REGISTERED",
+          profilePrivate: false,
+          visibleSections: ["friends"],
+        },
+      },
+      "GET /api/users/alice/friends": { status: 500, body: { type: "internal", status: 500 } },
+    });
+    renderAt("/users/alice");
+
+    expect(await screen.findByText("Could not load friends.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+    expect(screen.queryByText("No friends yet")).toBeNull();
   });
 
   it("a public profile lets a stranger send a friend request", async () => {
@@ -136,6 +209,28 @@ describe("ProfilePage (VW-PROF-001…008)", () => {
     expect(
       api.calls.some((call) => call.method === "POST" && call.path === "/api/friend-requests"),
     ).toBe(true);
+  });
+
+  it("VW-PROF-006: a Guest viewer gets no friend action even when the server sends a state", async () => {
+    installFakeApi({
+      "GET /api/auth/session": { body: GUEST },
+      "GET /api/notifications/unread-count": { body: { unreadCount: 0 } },
+      "GET /api/users/alice": {
+        body: {
+          username: "alice",
+          userId: "u-1",
+          kind: "REGISTERED",
+          profilePrivate: false,
+          visibleSections: ["uploadedGames"],
+          relationshipState: "NONE",
+        },
+      },
+      ...games,
+    });
+    renderAt("/users/alice");
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Uploaded games" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Add friend" })).toBeNull();
   });
 
   it("unknown username renders the not-found page", async () => {

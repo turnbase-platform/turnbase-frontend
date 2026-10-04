@@ -15,6 +15,8 @@ import { useAuth } from "../auth/auth-context";
 import { NotFoundPage } from "../../app/pages/NotFoundPage";
 import { fetchOwnedGames, fetchProfile, type OwnedGame } from "./profileApi";
 import type { ProfileResponse } from "./profile-types";
+import { LoadError } from "../../shared/LoadError";
+import { StatisticsSection } from "./StatisticsSection";
 import { HistorySection } from "../history/HistorySection";
 import { fetchFriends, removeFriend, sendFriendRequest } from "../friends/friendsApi";
 import type { FriendSummary } from "../friends/friends-types";
@@ -36,6 +38,7 @@ export function ProfilePage() {
 function ProfileForUsername({ username }: { username: string }) {
   const { principal } = useAuth();
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +57,7 @@ function ProfileForUsername({ username }: { username: string }) {
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [username, attempt]);
 
   if (state.status === "loading") {
     return (
@@ -70,7 +73,13 @@ function ProfileForUsername({ username }: { username: string }) {
     return (
       <Stack gap={2} padding={6}>
         <Heading level={1}>{username}</Heading>
-        <Banner status="error" title="Could not load this profile. Please try again." />
+        <LoadError
+          message="Could not load this profile."
+          onRetry={() => {
+            setState({ status: "loading" });
+            setAttempt((n) => n + 1);
+          }}
+        />
       </Stack>
     );
   }
@@ -108,17 +117,16 @@ function ProfileForUsername({ username }: { username: string }) {
         <Heading level={1}>{profile.username}</Heading>
         {isOwner && <Link href="/settings">Edit profile</Link>}
       </Stack>
-      {!isOwner && profile.relationshipState && <RelationshipAction profile={profile} />}
+      {/* VW-PROF-006/007: friend actions are Registered-only. The server also sends a Guest
+          viewer a `relationshipState`, so the viewer's kind is checked here, not inferred. */}
+      {!isOwner && principal?.kind === "REGISTERED" && profile.relationshipState && (
+        <RelationshipAction profile={profile} />
+      )}
       {isPrivateToViewer ? (
         <Banner status="info" title="This profile is private." />
       ) : (
         <Stack gap={6}>
-          {sections.includes("statistics") && (
-            <Stack gap={2}>
-              <Heading level={2}>Statistics</Heading>
-              <Text>Coming soon.</Text>
-            </Stack>
-          )}
+          {sections.includes("statistics") && <StatisticsSection username={profile.username} />}
           {sections.includes("gameHistory") && <HistorySection username={profile.username} />}
           {sections.includes("friends") && <FriendsSection username={profile.username} />}
           {sections.includes("uploadedGames") && (
@@ -135,8 +143,8 @@ function RelationshipAction({ profile }: { profile: ProfileResponse }) {
   const [isBusy, setIsBusy] = useState(false);
   const showToast = useToast();
 
-  function fail() {
-    showToast({ type: "error", body: "Could not complete that action. Please try again." });
+  function fail(action: string) {
+    showToast({ type: "error", body: `Could not ${action}. Please try again.` });
     setIsBusy(false);
   }
 
@@ -154,7 +162,9 @@ function RelationshipAction({ profile }: { profile: ProfileResponse }) {
               setState("NONE");
               setIsBusy(false);
             })
-            .catch(fail);
+            .catch(() => {
+              fail("remove this friend");
+            });
         }}
       />
     );
@@ -182,80 +192,104 @@ function RelationshipAction({ profile }: { profile: ProfileResponse }) {
             setState(result.outcome === "FRIENDS" ? "FRIENDS" : "REQUEST_SENT");
             setIsBusy(false);
           })
-          .catch(fail);
+          .catch(() => {
+            fail("send the friend request");
+          });
       }}
     />
   );
 }
 
-function FriendsSection({ username }: { username: string }) {
-  const [friends, setFriends] = useState<FriendSummary[] | null>(null);
+type ListState<T> = { status: "loading" } | { status: "loaded"; items: T[] } | { status: "error" };
+
+/** Loads a profile section's list; `retry` re-runs it after a failure. */
+function useSectionList<T>(load: () => Promise<T[]>, key: string) {
+  const [state, setState] = useState<ListState<T>>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    fetchFriends(username)
-      .then((page) => {
-        setFriends(page.content);
+    let cancelled = false;
+    load()
+      .then((items) => {
+        if (!cancelled) setState({ status: "loaded", items });
       })
       .catch(() => {
-        setFriends([]);
+        if (!cancelled) setState({ status: "error" });
       });
-  }, [username]);
+    return () => {
+      cancelled = true;
+    };
+    // `load` is a fresh closure per render; `key` (the username) is what it depends on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, attempt]);
+
+  return {
+    state,
+    retry: () => {
+      setState({ status: "loading" });
+      setAttempt((n) => n + 1);
+    },
+  };
+}
+
+function FriendsSection({ username }: { username: string }) {
+  const { state, retry } = useSectionList<FriendSummary>(
+    () => fetchFriends(username).then((page) => page.content),
+    username,
+  );
 
   return (
     <Stack gap={2}>
       <Heading level={2}>Friends</Heading>
-      {friends === null ? (
-        <Text>Loading…</Text>
-      ) : friends.length === 0 ? (
-        <EmptyState title="No friends yet" isCompact />
-      ) : (
-        <List header="Friends">
-          {friends.map((friend) => (
-            <ListItem
-              key={friend.userId}
-              label={friend.username}
-              href={`/users/${friend.username}`}
-            />
-          ))}
-        </List>
-      )}
+      {state.status === "loading" && <Text>Loading…</Text>}
+      {state.status === "error" && <LoadError message="Could not load friends." onRetry={retry} />}
+      {state.status === "loaded" &&
+        (state.items.length === 0 ? (
+          <EmptyState title="No friends yet" isCompact />
+        ) : (
+          <List header="Friends">
+            {state.items.map((friend) => (
+              <ListItem
+                key={friend.userId}
+                label={friend.username}
+                href={`/users/${friend.username}`}
+              />
+            ))}
+          </List>
+        ))}
     </Stack>
   );
 }
 
 function UploadedGamesSection({ username }: { username: string }) {
-  const [games, setGames] = useState<OwnedGame[] | null>(null);
-
-  useEffect(() => {
-    fetchOwnedGames(username)
-      .then((page) => {
-        setGames(page.content);
-      })
-      .catch(() => {
-        setGames([]);
-      });
-  }, [username]);
+  const { state, retry } = useSectionList<OwnedGame>(
+    () => fetchOwnedGames(username).then((page) => page.content),
+    username,
+  );
 
   return (
     <Stack gap={2}>
       <Heading level={2}>Uploaded games</Heading>
-      {games === null ? (
-        <Text>Loading…</Text>
-      ) : games.length === 0 ? (
-        <EmptyState title="No uploaded games yet" isCompact />
-      ) : (
-        <List header="Uploaded games">
-          {games.map((game) => (
-            <ListItem
-              key={game.gameId}
-              label={game.title}
-              description={game.shortDescription}
-              href={`/games/${game.gameId}`}
-              endContent={<Badge label={game.badge} />}
-            />
-          ))}
-        </List>
+      {state.status === "loading" && <Text>Loading…</Text>}
+      {state.status === "error" && (
+        <LoadError message="Could not load uploaded games." onRetry={retry} />
       )}
+      {state.status === "loaded" &&
+        (state.items.length === 0 ? (
+          <EmptyState title="No uploaded games yet" isCompact />
+        ) : (
+          <List header="Uploaded games">
+            {state.items.map((game) => (
+              <ListItem
+                key={game.gameId}
+                label={game.title}
+                description={game.shortDescription}
+                href={`/games/${game.gameId}`}
+                endContent={<Badge label={game.badge} />}
+              />
+            ))}
+          </List>
+        ))}
     </Stack>
   );
 }
