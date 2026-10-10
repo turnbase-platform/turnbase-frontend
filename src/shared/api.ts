@@ -45,6 +45,24 @@ export function rateLimitMessage(error: ApiError, what = "attempts"): string {
     : `Too many ${what}. Please try again in ${formatWait(wait)}.`;
 }
 
+/**
+ * AUD-16: the sentence for a refused action, said by its cause. A `4xx` the server explained
+ * (`422 business-rule-violation`, `409 conflict`) keeps its own `detail` — that is the real reason
+ * ("This room is full."). The classes whose `detail` is deliberately terse or generic are
+ * restated in the user's terms, and a failure that never reached the server is not blamed on them.
+ */
+export function denialMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof ApiError)) {
+    return "Could not reach TurnBase. Check your connection and try again.";
+  }
+  if (error.status === 429) return rateLimitMessage(error, "requests");
+  if (error.status === 403) return "You do not have permission to do that.";
+  if (error.status === 404) return "This room does not exist, or it has been closed.";
+  if (error.status === 503) return "The room is temporarily unavailable. Please try again.";
+  if (error.status >= 500) return "Something went wrong on our side. Please try again.";
+  return error.problem.detail ?? fallback;
+}
+
 export interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;

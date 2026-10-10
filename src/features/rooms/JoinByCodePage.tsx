@@ -6,6 +6,7 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { Link } from "@astryxdesign/core/Link";
 import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
+import { denialMessage } from "../../shared/api";
 import { joinRoom, resolveInviteCode } from "./roomsApi";
 import type { RoomResource } from "./rooms-types";
 
@@ -31,7 +32,7 @@ export function JoinByCodePage() {
       .catch((failure: unknown) => {
         setState({
           status: "failed",
-          reason: failure instanceof Error ? failure.message : "Could not join the room.",
+          reason: denialMessage(failure, "Could not join the room."),
         });
       });
   }

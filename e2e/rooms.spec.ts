@@ -36,6 +36,20 @@ async function expectNoHorizontalScroll(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+async function enterFromListNoNavigation(
+  guest: Awaited<ReturnType<typeof newPlayer>>,
+  hostName: string,
+): Promise<void> {
+  const { page } = guest;
+  await page.goto("/rooms");
+  const button = page.getByRole("button", { name: new RegExp(`^Join .* hosted by ${hostName}`) });
+  await expect(async () => {
+    await page.getByRole("button", { name: "Refresh" }).click();
+    await expect(button.first()).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
+  await button.first().click();
+}
+
 async function createRoomWith(
   host: Awaited<ReturnType<typeof newPlayer>>,
   visibility: string,
@@ -128,6 +142,40 @@ test("join link: a wrong code, then a full-room code, each show their own reason
     await expect(guest.page.getByText(/no available role/)).toBeVisible();
   } finally {
     await leaveQuietly([alice, bob], roomId);
+  }
+});
+
+// IMP-M10-16 (AUD-16): a refused join says its real cause, one refusal per error class.
+test("a refused join names the real reason for each error class", async ({ browser }) => {
+  const alice = await newPlayer(browser, "alice");
+  const dave = await newPlayer(browser, "dave");
+  let roomId: string | undefined;
+  try {
+    await login(alice, "alice");
+    await login(dave, "dave");
+    roomId = await createRoom(alice, {});
+    const refusals: [number, string, string, RegExp][] = [
+      [422, "business-rule-violation", "This room is full.", /This room is full\./],
+      [403, "forbidden", "Forbidden", /You do not have permission/],
+      [404, "not-found", "No such room.", /does not exist, or it has been closed/],
+      [429, "rate-limit-exceeded", "Too many requests.", /Too many requests\. Please try again/],
+    ];
+    for (const [status, slug, detail, copy] of refusals) {
+      await dave.page.route("**/api/rooms/*/participants*", (route) =>
+        route.request().method() === "POST"
+          ? route.fulfill({
+              status,
+              contentType: "application/problem+json",
+              body: JSON.stringify({ type: `https://turnbase.io/errors/${slug}`, status, detail }),
+            })
+          : route.fallback(),
+      );
+      await enterFromListNoNavigation(dave, "alice");
+      await expect(dave.page.getByText(copy).first()).toBeVisible();
+      await dave.page.unroute("**/api/rooms/*/participants*");
+    }
+  } finally {
+    await leaveQuietly([alice, dave], roomId);
   }
 });
 

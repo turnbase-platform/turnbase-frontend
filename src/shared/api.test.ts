@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, apiFetch, onUnauthorized } from "./api";
+import { ApiError, apiFetch, denialMessage, onUnauthorized } from "./api";
 import { installFakeApi } from "../test/fakeApi";
 
 afterEach(() => {
@@ -81,5 +81,34 @@ describe("apiFetch", () => {
       expect(listener).not.toHaveBeenCalled();
       off();
     });
+  });
+});
+
+describe("denialMessage (AUD-16)", () => {
+  const refused = (status: number, detail?: string, retryAfter?: number) =>
+    new ApiError(status, { status, detail }, retryAfter);
+
+  it("keeps the server's own reason for a rule or conflict refusal", () => {
+    expect(denialMessage(refused(422, "This room is full."), "x")).toBe("This room is full.");
+    expect(denialMessage(refused(409, "Already taken."), "x")).toBe("Already taken.");
+  });
+
+  it("states permission, missing, rate-limit and server classes in plain terms", () => {
+    expect(denialMessage(refused(403, "Forbidden"), "x")).toBe(
+      "You do not have permission to do that.",
+    );
+    expect(denialMessage(refused(404, "No such room."), "x")).toMatch(/does not exist/);
+    expect(denialMessage(refused(429, "Too many", 90), "x")).toBe(
+      "Too many requests. Please try again in 2 minutes.",
+    );
+    expect(denialMessage(refused(503), "x")).toMatch(/temporarily unavailable/);
+    expect(denialMessage(refused(500, "NPE"), "x")).toMatch(/our side/);
+  });
+
+  it("falls back when a 4xx has no detail, and blames the network for a non-API failure", () => {
+    expect(denialMessage(refused(400), "Could not join the room.")).toBe(
+      "Could not join the room.",
+    );
+    expect(denialMessage(new TypeError("fetch failed"), "x")).toMatch(/Could not reach/);
   });
 });

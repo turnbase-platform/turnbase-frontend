@@ -18,6 +18,7 @@ import {
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
+import { denialMessage } from "../../shared/api";
 import { joinRoom, listRooms, type ListRoomsParams } from "./roomsApi";
 import type { RoomListEnvelope, RoomListRow } from "./rooms-types";
 
@@ -111,7 +112,7 @@ export function RoomsPage() {
           // The flags are advisory (FR-LIST-003a): the room may have filled since the list loaded.
           showToast({
             type: "error",
-            body: failure instanceof Error ? failure.message : "Could not join the room.",
+            body: denialMessage(failure, "Could not join the room."),
           });
           setJoining(null);
           setReload((n) => n + 1);

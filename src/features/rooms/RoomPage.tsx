@@ -8,6 +8,7 @@ import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { useToast } from "@astryxdesign/core/Toast";
 import { useAuth } from "../auth/auth-context";
+import { denialMessage } from "../../shared/api";
 import { RoomGame } from "./RoomGame";
 import { RoomLobby } from "./RoomLobby";
 import { getRoom, joinRoom, leaveRoom } from "./roomsApi";
@@ -80,7 +81,7 @@ function RoomEntry({ id }: { id: string }) {
         });
       })
       .catch((error: unknown) => {
-        setFailure(error instanceof Error ? error.message : "Could not join the room.");
+        setFailure(denialMessage(error, "Could not join the room."));
       });
   }
 
