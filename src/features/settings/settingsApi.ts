@@ -8,7 +8,7 @@ export function fetchAccount(): Promise<AccountResponse> {
 
 /** `200` carries the identity only, not {@link AccountResponse}; read `GET /api/users/me` after it. */
 export function updateAccount(
-  fields: Partial<{ username: string; email: string }>,
+  fields: Partial<{ username: string; email: string; currentPassword: string }>,
 ): Promise<unknown> {
   return apiFetch<unknown>("/api/users/me", { method: "PATCH", body: fields });
 }
@@ -45,6 +45,10 @@ export function removeAuthMethod(method: "PASSWORD" | "GOOGLE"): Promise<undefin
   return apiFetch<undefined>(`/api/users/me/auth-methods/${method}`, { method: "DELETE" });
 }
 
-export function deleteAccount(): Promise<undefined> {
-  return apiFetch<undefined>("/api/users/me", { method: "DELETE" });
+/** `currentPassword` is required when the account has a password method (`IMP-GATE-99`). */
+export function deleteAccount(currentPassword?: string): Promise<undefined> {
+  return apiFetch<undefined>("/api/users/me", {
+    method: "DELETE",
+    ...(currentPassword === undefined ? {} : { body: { currentPassword } }),
+  });
 }

@@ -185,7 +185,11 @@ describe("SettingsPage (VW-SET-001…007)", () => {
     });
     renderAt("/settings");
 
-    await userEvent.click(await screen.findByRole("button", { name: "Delete my account" }));
+    await userEvent.type(
+      (await screen.findAllByLabelText(/^Confirm with your password/))[1],
+      "pw-123",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Delete my account" }));
     // The action is gated behind an AlertDialog — clicking the opener alone must not call the API.
     expect(
       api.calls.some((call) => call.method === "DELETE" && call.path === "/api/users/me"),
@@ -200,6 +204,30 @@ describe("SettingsPage (VW-SET-001…007)", () => {
     expect(
       api.calls.some((call) => call.method === "DELETE" && call.path === "/api/users/me"),
     ).toBe(true);
+    expect(
+      api.calls.find((call) => call.method === "DELETE" && call.path === "/api/users/me")?.body,
+    ).toEqual({ currentPassword: "pw-123" });
+  });
+
+  it("IMP-M10-12: an email change sends the confirming password", async () => {
+    const api = installFakeApi({
+      ...signedIn,
+      "GET /api/users/me": { body: account },
+      "PATCH /api/users/me": { body: { username: "alice", email: "b@example.com" } },
+    });
+    renderAt("/settings");
+
+    const email = await screen.findByLabelText(/^Email/);
+    await userEvent.clear(email);
+    await userEvent.type(email, "b@example.com");
+    await userEvent.type(screen.getAllByLabelText(/^Confirm with your password/)[0], "pw-123");
+    await userEvent.click(screen.getByRole("button", { name: "Save email" }));
+
+    await waitFor(() => {
+      expect(
+        api.calls.find((call) => call.method === "PATCH" && call.path === "/api/users/me")?.body,
+      ).toEqual({ email: "b@example.com", currentPassword: "pw-123" });
+    });
   });
 
   it("a failed load shows an error with Retry, not a permanent Loading…", async () => {

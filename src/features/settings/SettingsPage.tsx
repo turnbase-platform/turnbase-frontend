@@ -102,7 +102,7 @@ export function SettingsPage() {
           setAccount({ ...account, privacy });
         }}
       />
-      <DeleteAccountSection />
+      <DeleteAccountSection needsPassword={account.authMethods.includes("PASSWORD")} />
     </Stack>
   );
 }
@@ -142,6 +142,9 @@ function IdentityForm({
   const { principal, acceptPrincipal } = useAuth();
   const showToast = useToast();
   const [value, setValue] = useState(account[field]);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  // An email change is permanent, so a credential account proves the current password (IMP-GATE-99).
+  const needsPassword = field === "email" && account.authMethods.includes("PASSWORD");
   const [error, setError] = useState<unknown>(null);
   const [isBusy, setIsBusy] = useState(false);
 
@@ -157,13 +160,17 @@ function IdentityForm({
     setError(null);
     // The PATCH answers with the identity alone, so the account is read again for the new
     // `*ChangeableAt` window (rest-conventions.md, *The account representation*).
-    updateAccount({ [field]: value })
+    updateAccount({
+      [field]: value,
+      ...(needsPassword ? { currentPassword: confirmPassword } : {}),
+    })
       .then(fetchAccount)
       .then((updated) => {
         onUpdated(updated);
         if (field === "username" && principal) {
           acceptPrincipal({ ...principal, username: value });
         }
+        setConfirmPassword("");
         showToast({ type: "info", body: `${label} updated.` });
       })
       .catch(setError)
@@ -190,6 +197,17 @@ function IdentityForm({
           }
           isRequired
         />
+        {needsPassword && !isLocked && (
+          <TextInput
+            label="Confirm with your password"
+            type="password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            htmlName="emailCurrentPassword"
+            {...autofill("current-password")}
+            isRequired
+          />
+        )}
         <FormError error={error} />
         {!isLocked && (
           <Button type="submit" label={`Save ${field}`} variant="primary" isLoading={isBusy} />
@@ -523,22 +541,29 @@ function PrivacySection({
   );
 }
 
-function DeleteAccountSection() {
+function DeleteAccountSection({ needsPassword }: { needsPassword: boolean }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const showToast = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
+  const [password, setPassword] = useState("");
 
   function confirmDelete() {
     setIsBusy(true);
-    deleteAccount()
+    deleteAccount(needsPassword ? password : undefined)
       .then(() => {
         void navigate("/", { replace: true });
       })
       .then(() => logout())
-      .catch(() => {
-        showToast({ type: "error", body: "Could not delete your account. Please try again." });
+      .catch((failure: unknown) => {
+        showToast({
+          type: "error",
+          body:
+            failure instanceof ApiError && failure.status === 422
+              ? "That password is incorrect."
+              : "Could not delete your account. Please try again.",
+        });
         setIsBusy(false);
         setIsOpen(false);
       });
@@ -548,9 +573,20 @@ function DeleteAccountSection() {
     <Stack gap={3}>
       <Heading level={2}>Delete account</Heading>
       <Banner status="warning" title="Deleting your account cannot be undone." />
+      {needsPassword && (
+        <TextInput
+          label="Confirm with your password"
+          type="password"
+          value={password}
+          onChange={setPassword}
+          htmlName="deleteAccountPassword"
+          {...autofill("current-password")}
+        />
+      )}
       <Button
         label="Delete my account"
         variant="destructive"
+        isDisabled={needsPassword && password === ""}
         onClick={() => {
           setIsOpen(true);
         }}

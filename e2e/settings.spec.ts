@@ -67,6 +67,12 @@ test("Registered: every form loads, saves and confirms; delete ends the account"
   // VW-SET-002
   const email = `${renamed}@example.test`;
   await page.getByLabel(/^Email/).fill(email);
+  // A permanent change re-authenticates (IMP-M10-12): a wrong password is refused, nothing changes.
+  await page.locator('input[name="emailCurrentPassword"]').fill("not-my-password");
+  await page.getByRole("button", { name: "Save email" }).click();
+  await expect(page.getByText("Current password is incorrect.").first()).toBeVisible();
+  await expect(page.getByText("Email updated.")).toHaveCount(0);
+  await page.locator('input[name="emailCurrentPassword"]').fill("Correct-horse-9battery");
   await page.getByRole("button", { name: "Save email" }).click();
   await expect(page.getByText("Email updated.").first()).toBeVisible();
 
@@ -100,6 +106,8 @@ test("Registered: every form loads, saves and confirms; delete ends the account"
   await expect(page.getByRole("radio", { name: "Public" })).toHaveCount(4);
 
   // VW-SET-007: cancelling keeps the account; confirming deletes it and ends the session.
+  await expect(page.getByRole("button", { name: "Delete my account" })).toBeDisabled();
+  await page.locator('input[name="deleteAccountPassword"]').fill("Another-horse-9battery");
   await page.getByRole("button", { name: "Delete my account" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Account settings" })).toBeVisible();
