@@ -193,7 +193,17 @@ function RelationshipAction({ profile }: { profile: ProfileResponse }) {
             setState(result.outcome === "FRIENDS" ? "FRIENDS" : "REQUEST_SENT");
             setIsBusy(false);
           })
-          .catch(() => {
+          .catch((error: unknown) => {
+            // FR-SOC-021 / social-rest-api.md §3: a refused send is `422` with a generic detail.
+            // Say so rather than "try again" — retrying will not change the answer.
+            if (error instanceof ApiError && error.status === 422) {
+              showToast({
+                type: "error",
+                body: error.problem.detail ?? "This friend request could not be sent.",
+              });
+              setIsBusy(false);
+              return;
+            }
             fail("send the friend request");
           });
       }}

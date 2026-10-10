@@ -157,3 +157,37 @@ test("an error response renders a message with a retry, not an unresolved state"
   await expect(page.getByText("Total games played")).toBeVisible();
   await expect(page.getByText("Could not load statistics.")).toHaveCount(0);
 });
+
+test("Registered: a send to a user who blocks requests shows the refusal (IMP-M10-13)", async ({
+  browser,
+}) => {
+  const setBlock = (page: Page, blockFriendRequests: boolean) =>
+    page.evaluate(async (value) => {
+      const response = await fetch("/api/users/me/privacy", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blockFriendRequests: value }),
+      });
+      return response.status;
+    }, blockFriendRequests);
+
+  const dave = await newPlayer(browser, "dave");
+  const carol = await newPlayer(browser, "carol");
+  await login(dave, "dave");
+  await login(carol, "carol");
+  try {
+    expect(await setBlock(dave.page, true)).toBe(200);
+
+    await carol.page.goto("/users/dave");
+    await carol.page.getByRole("button", { name: "Add friend" }).click();
+
+    await expect(
+      carol.page.getByText("This friend request could not be sent.").first(),
+    ).toBeVisible();
+    await expect(carol.page.getByText("Friend request sent.")).toHaveCount(0);
+  } finally {
+    await setBlock(dave.page, false);
+    await dave.context.close();
+    await carol.context.close();
+  }
+});

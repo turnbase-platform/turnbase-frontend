@@ -211,6 +211,42 @@ describe("ProfilePage (VW-PROF-001…008)", () => {
     ).toBe(true);
   });
 
+  it("FR-SOC-021: a refused send shows the refusal, not a success state or a retry prompt", async () => {
+    installFakeApi({
+      "GET /api/auth/session": { body: { ...REGISTERED, username: "carol", userId: "u-3" } },
+      "GET /api/notifications/unread-count": { body: { unreadCount: 0 } },
+      "GET /api/users/alice": {
+        body: {
+          username: "alice",
+          userId: "u-1",
+          kind: "REGISTERED",
+          profilePrivate: false,
+          visibleSections: ["uploadedGames"],
+          relationshipState: "NONE",
+        },
+      },
+      "POST /api/friend-requests": {
+        status: 422,
+        body: {
+          type: "business-rule-violation",
+          status: 422,
+          detail: "This friend request could not be sent.",
+        },
+      },
+      ...games,
+    });
+    renderAt("/users/alice");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Add friend" }));
+
+    expect(
+      (await screen.findAllByText("This friend request could not be sent.")).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText("Friend request sent.")).toBeNull();
+    expect(screen.queryByText(/Please try again/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Add friend" })).toBeInTheDocument();
+  });
+
   it("VW-PROF-006: a Guest viewer gets no friend action even when the server sends a state", async () => {
     installFakeApi({
       "GET /api/auth/session": { body: GUEST },
