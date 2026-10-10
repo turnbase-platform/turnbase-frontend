@@ -170,3 +170,22 @@ describe("forwarded client address (rate-limiting.md § Client identity, IMP-M10
     expect(config).not.toContain("proxy_add_x_forwarded_for");
   });
 });
+
+describe("the gRPC registry is not on the public edge (IMP-M10-06)", () => {
+  const { config } = render({});
+  const servers = config.split(/^server \{/m).slice(1);
+
+  it("refuses /turnbase.gamehost.v1.* with 404 in the fall-through and the platform server", () => {
+    expect(servers).toHaveLength(2);
+    for (const server of servers) {
+      const block = /location \^~ \/turnbase\.gamehost\.v1\. \{([^}]*)\}/.exec(server)?.[1] ?? "";
+      expect(block.trim()).toBe("return 404;");
+    }
+  });
+
+  it("never proxies a registry path", () => {
+    const locations = [...config.matchAll(/^\s*location\s+(.+?)\s*\{/gm)].map((m) => m[1]);
+    expect(locations.filter((l) => l.includes("gamehost"))).toHaveLength(2);
+    expect(config).not.toMatch(/grpc_pass/);
+  });
+});
