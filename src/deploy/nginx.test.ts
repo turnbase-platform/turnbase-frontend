@@ -154,3 +154,19 @@ describe("routing (local-environment.md §1)", () => {
     expect(block).toContain("proxy_set_header Host $http_host;");
   });
 });
+
+describe("forwarded client address (rate-limiting.md § Client identity, IMP-M10-05)", () => {
+  const { config } = render({});
+  const lines = config.split("\n").filter((line) => line.includes("X-Forwarded-For"));
+
+  it("sets X-Forwarded-For wherever it proxies (fall-through, server, /ws)", () => {
+    expect(lines).toHaveLength(3);
+  });
+
+  it("overwrites the header with the observed peer, never appending a client value", () => {
+    for (const line of lines) {
+      expect(line.trim()).toBe("proxy_set_header X-Forwarded-For $remote_addr;");
+    }
+    expect(config).not.toContain("proxy_add_x_forwarded_for");
+  });
+});
