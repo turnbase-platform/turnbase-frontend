@@ -42,6 +42,30 @@ describe("FriendsPage (VW-FREN-001…005)", () => {
     );
   });
 
+  it("IMP-M10-11: re-reads on a pushed FRIEND_* notification and on reconnect, not on others", async () => {
+    let requests: unknown[] = [];
+    installFakeApi({
+      ...signedIn,
+      "GET /api/users/alice/friends": envelope([]),
+      "GET /api/friend-requests": () => envelope(requests),
+    });
+    renderAt("/friends");
+    expect(await screen.findByText("No pending requests")).toBeInTheDocument();
+
+    requests = [{ requestId: "r-1", direction: "INCOMING", counterpartUsername: "carol" }];
+    const stream = FakeEventSource.instances[FakeEventSource.instances.length - 1];
+    stream.emit("notification", { type: "ROOM_INVITATION", notificationId: "n-0" });
+    stream.emit("notification", { type: "FRIEND_REQUEST", notificationId: "n-1" });
+
+    expect(await screen.findByRole("button", { name: "Accept carol" })).toBeInTheDocument();
+
+    requests = [];
+    stream.onopen?.(new Event("open"));
+    await waitFor(() => {
+      expect(screen.getByText("No pending requests")).toBeInTheDocument();
+    });
+  });
+
   it("VW-FREN-003: removes a friend", async () => {
     const api = installFakeApi({
       ...signedIn,

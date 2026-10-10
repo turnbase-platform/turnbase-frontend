@@ -8,6 +8,7 @@ import { apiFetch } from "../../shared/api";
 import { useAuth } from "../auth/auth-context";
 import { alertMessage, isTerminal } from "./alerts";
 import { NotificationPanel } from "./NotificationPanel";
+import { isFriendNotification, signalFriendChange } from "./liveSignal";
 import { openNotificationStream } from "./notificationStream";
 
 /**
@@ -37,10 +38,12 @@ export function NotificationBell() {
       onOpen: () => {
         refresh();
         setReloadKey((key) => key + 1);
+        signalFriendChange();
       },
-      onNotification: () => {
+      onNotification: (notification) => {
         refresh();
         setReloadKey((key) => key + 1);
+        if (isFriendNotification(notification.type)) signalFriendChange();
       },
       onAlert: (alert) => {
         const message = alertMessage(alert);

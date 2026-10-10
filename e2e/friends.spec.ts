@@ -120,6 +120,27 @@ test("Registered: a request is received, declined, and the sender sees it go", a
   await dave.context.close();
 });
 
+// IMP-M10-11 (AUD-11): the open Friends view follows a friend-request change over SSE, no reload.
+test("A friend request appears in the recipient's open Friends view without a reload", async ({
+  browser,
+}) => {
+  const carol = await newPlayer(browser, "carol");
+  const dave = await newPlayer(browser, "dave");
+  await login(carol, "carol");
+  await login(dave, "dave");
+  await clearRequests(carol.page);
+
+  await dave.page.goto("/friends");
+  await expect(dave.page.getByText("No pending requests")).toBeVisible();
+
+  expect(await post(carol.page, "/api/friend-requests", { recipientUsername: "dave" })).toBe(201);
+  await expect(dave.page.getByRole("button", { name: "Accept carol" })).toBeVisible();
+
+  await clearRequests(carol.page);
+  await carol.context.close();
+  await dave.context.close();
+});
+
 test("Registered: accept makes friends, remove ends it", async ({ browser }) => {
   const carol = await newPlayer(browser, "carol");
   const dave = await newPlayer(browser, "dave");

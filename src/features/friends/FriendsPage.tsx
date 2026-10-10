@@ -11,6 +11,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { ApiError } from "../../shared/api";
 import { LoadError } from "../../shared/LoadError";
 import { useAuth } from "../auth/auth-context";
+import { subscribeFriendChanges } from "../notifications/liveSignal";
 import {
   acceptFriendRequest,
   deleteFriendRequest,
@@ -55,6 +56,17 @@ export function FriendsPage() {
     reloadRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
+
+  // Pushed FRIEND_* notifications and stream (re)connects: re-read, no polling.
+  useEffect(
+    () =>
+      subscribeFriendChanges(() => {
+        reloadFriends();
+        reloadRequests();
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [username],
+  );
 
   /** Runs one action; a failure names it, then both lists are re-read so a stale row goes away. */
   function act(failure: string, run: () => Promise<unknown>) {
