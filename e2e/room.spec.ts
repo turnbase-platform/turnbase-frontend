@@ -18,8 +18,11 @@ import {
 test.beforeEach(awaitRefilledBudgets);
 test.setTimeout(150_000);
 
-const noHorizontalScroll = (page: Page) =>
-  page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+/** Polled: a resize reaches the header's narrow layout one frame after the viewport changes. */
+const expectNoHorizontalScroll = (page: Page) =>
+  expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+    .toBe(true);
 
 test("lobby → game → results for host, player, spectator and an outsider", async ({ browser }) => {
   const a = await newPlayer(browser, "alice");
@@ -72,7 +75,7 @@ test("lobby → game → results for host, player, spectator and an outsider", a
 
     // 400 px: the lobby stays inside the viewport.
     await a.page.setViewportSize({ width: 400, height: 800 });
-    expect(await noHorizontalScroll(a.page)).toBe(true);
+    await expectNoHorizontalScroll(a.page);
     await a.page.setViewportSize({ width: 1280, height: 800 });
 
     await b.page.getByRole("button", { name: "Ready", exact: true }).click();
@@ -113,7 +116,7 @@ test("lobby → game → results for host, player, spectator and an outsider", a
       await expect(p.page.getByRole("button", { name: "Leave room" })).toBeVisible();
     }
     await b.page.setViewportSize({ width: 400, height: 800 });
-    expect(await noHorizontalScroll(b.page)).toBe(true);
+    await expectNoHorizontalScroll(b.page);
     // Reachable: the page scrolls vertically to it, and nothing covers it once there.
     const leave = b.page.getByRole("button", { name: "Leave room" });
     await leave.scrollIntoViewIfNeeded();

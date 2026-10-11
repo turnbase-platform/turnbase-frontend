@@ -6,7 +6,7 @@ The platform frontend. React 19 + TypeScript, built with Vite, served as a stati
 
 | | |
 |---|---|
-| Registry | `../docs/implementation/registry.md` — `IMP-M0-05`, `IMP-M6-01…06` |
+| Registry | `../docs/implementation/registry.md` — `IMP-M0-05`, `IMP-M6-01…06`, and M12 (`IMP-M12-01…11`, closed): the TurnBase identity |
 | Conventions | `../docs/implementation/conventions.md` — **normative**, §1 *Frontend* and §6 |
 | Design system | `../docs/decisions/0013-astryx-design-system.md` and `0017-turnbase-visual-identity.md` (the look, amending 0013 §4) — **read both before writing any view** |
 | Design | `../docs/specs/platform-frontend/shell-architecture.md`, `design-system.md` |
@@ -103,11 +103,18 @@ then **`make e2e`** here (it checks the stack answers, then runs `npm run e2e`).
 view's spec (`IMP-M8-06…14`), a forfeit's history row and statistics, the 60 s grace period, the
 Tier 6 flood and its lockout recovery, two simultaneous leaves, a 400 px pass over every route, a desktop pass (1280 and 1920 px: every
 interactive element inside the viewport and its clipping ancestors) and an axe-core pass with zero
-violations over every route, tier and room state (`sweep.spec.ts`; the sandboxed game frame is left
-out of axe), and a
+violations over every route, tier and room state, **in Light and in Dark** (`sweep.spec.ts`; the
+sandboxed game frame is left out of axe), a reduced-motion check (`motion.spec.ts`: no `--px` and a
+static sky under `prefers-reduced-motion`, the Reduce-motion setting, and Cursor effects off), and a
 **tripwire**: `e2e/fixtures.ts` fails any spec whose pages logged a console error, an uncaught
 error or a `5xx` — import `test` from `./fixtures`, never from `@playwright/test`, and call
 `tripwire.allow(/…/)` for one a spec provokes on purpose.
+
+**The compose stack serves a prebuilt image.** `docker compose build` does nothing for the frontend:
+after a change run `docker build -t turnbase/frontend:dev .` here, then `docker compose -f
+deploy/compose/docker-compose.yml up -d --force-recreate frontend` in `turnbase-platform`. Vite inlines
+assets under 4 KB, which turned two font subsets into `data:` URIs that `font-src 'self'` blocks;
+`vite.config.ts` keeps `.woff2` out of that, and the tripwire is what notices if it regresses.
 
 **The allowance.** Registration is 3 and guest minting 5 per address per hour (Tier 5). A run spends
 **one** registration (`settings.spec.ts`, which deletes it) and **one** guest: `playAsGuest` signs in

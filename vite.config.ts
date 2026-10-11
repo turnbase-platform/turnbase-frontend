@@ -9,6 +9,12 @@ const PLATFORM_ORIGIN = "http://turnbase.localhost:8080";
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // The shell CSP is `font-src 'self'`: Vite's default inlining turns the small @fontsource
+    // subsets (latin-ext, vietnamese) into `data:` URIs, which the browser blocks and logs.
+    assetsInlineLimit: (file) =>
+      file.endsWith(".woff2") || file.endsWith(".woff") ? false : undefined,
+  },
   server: {
     proxy: {
       "/api": { target: PLATFORM_ORIGIN, changeOrigin: true },

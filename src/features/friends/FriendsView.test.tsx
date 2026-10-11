@@ -55,6 +55,11 @@ describe("FriendsView", () => {
     expect(state.remove).toHaveBeenCalledWith({ userId: "u-2", username: "bob" });
   });
 
+  it("titles the sent requests with a heading", () => {
+    view(friends());
+    expect(screen.getByRole("heading", { name: "Sent requests" })).toBeTruthy();
+  });
+
   it("links each friend to their profile and shows no presence group", () => {
     view(friends());
     expect(screen.getByRole("link", { name: "View profile" }).getAttribute("href")).toBe(
@@ -73,7 +78,7 @@ describe("FriendsView", () => {
     );
     expect(screen.getByText("No pending requests")).toBeTruthy();
     expect(screen.getByText("No friends yet")).toBeTruthy();
-    expect(screen.queryByText("Sent")).toBeNull();
+    expect(screen.queryByText("Sent requests")).toBeNull();
   });
 
   it("offers Retry for the list that failed, leaving the other readable", async () => {

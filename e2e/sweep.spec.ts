@@ -20,6 +20,9 @@ import {
 // `src/app/routes.tsx`, for every tier, and over each room state. Layout is checked at 1280 and
 // 1920 px; axe at 1280 px (colour contrast and structure do not change with the width).
 
+// Every route is checked in Light and in Dark, so the sweeps outlast the suite's 90 s default.
+test.setTimeout(180_000);
+
 const DESKTOP = [1280, 1920] as const;
 
 /** The page is measured once its heading is up, so a view still on "Loading…" is not mistaken for a finished one. */
@@ -33,7 +36,23 @@ async function sweep(page: Page, label: string, navigate?: string): Promise<void
     await expectInteractiveInsideViewport(page, `${label} at ${String(width)} px`);
   }
   await page.setViewportSize({ width: 1280, height: 900 });
-  await expectNoAxeViolations(page, label);
+  // Light and Dark (Appearance → Auto follows the OS), IMP-M12-11: contrast is checked in both.
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme });
+    // Colours transition between appearances; axe must read the settled ones, not a midpoint.
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            document
+              .getAnimations()
+              .filter((a) => a instanceof CSSTransition && a.playState === "running").length,
+        ),
+      )
+      .toBe(0);
+    await expectNoAxeViolations(page, `${label} (${colorScheme})`);
+  }
+  await page.emulateMedia({ colorScheme: "light" });
 }
 
 test("anonymous routes: desktop layout and axe", async ({ browser }) => {
@@ -77,14 +96,14 @@ test("guest routes: desktop layout and axe", async ({ browser }) => {
     for (const route of ["/rooms", "/rooms/join/NOSUCHCODE", "/friends", "/games"]) {
       await sweep(guest.page, `guest ${route}`, route);
     }
-    await sweepSettings(guest.page, "guest");
+    // A guest is told the page needs an account: no tabs to sweep.
+    await sweep(guest.page, "guest /settings", "/settings");
   } finally {
     await guest.context.close();
   }
 });
 
 test.describe("registered", () => {
-  test.setTimeout(180_000);
   test.beforeEach(awaitRefilledBudgets);
 
   test("account routes and every room state: desktop layout and axe", async ({ browser }) => {

@@ -54,8 +54,8 @@ function Requests({ friends }: { friends: Friends }) {
       )}
       {outgoing.length > 0 && (
         <div className={styles.group}>
-          <Heading level={3}>Sent</Heading>
-          <List header={<VisuallyHidden>Sent requests</VisuallyHidden>} hasDividers>
+          <Heading level={3}>Sent requests</Heading>
+          <List header={<VisuallyHidden>Requests you sent</VisuallyHidden>} hasDividers>
             {outgoing.map((request) => (
               <ListItem
                 key={request.requestId}

@@ -36,9 +36,9 @@ test("Unauth: catalog and detail show no Create room; 400 px does not scroll the
   await expect(page.getByRole("button", { name: "Create room" })).toHaveCount(0); // VW-CAT-003
   await expectNoHorizontalScroll(page);
 
-  await page.getByLabel("Search games").fill("zzz-no-such-game"); // VW-CAT-001, empty state
+  await page.getByLabel("Search games", { exact: true }).fill("zzz-no-such-game"); // VW-CAT-001, empty state
   await expect(page.getByText("No games match your search")).toBeVisible();
-  await page.getByLabel("Search games").fill("tic");
+  await page.getByLabel("Search games", { exact: true }).fill("tic");
   await page
     .getByRole("link", { name: new RegExp(TTT_TITLE) })
     .first()

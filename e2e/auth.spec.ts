@@ -20,11 +20,15 @@ function watchConsole(page: Page): string[] {
   return errors;
 }
 
+/** Polled: a resize reaches the header's narrow layout one frame after the viewport changes. */
 async function expectNoHorizontalScroll(page: Page) {
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
-  expect(overflow).toBeLessThanOrEqual(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      ),
+    )
+    .toBeLessThanOrEqual(0);
 }
 
 test("Unauth: login — rows, redirect, wrong password, 429 wait", async ({ browser }) => {

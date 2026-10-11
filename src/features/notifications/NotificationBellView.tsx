@@ -5,7 +5,10 @@ import { IBell } from "../../ui";
 import { NotificationPanel } from "./NotificationPanel";
 import type { NotificationBell } from "./useNotificationBell";
 
-/** VW-NAV-005: the bell with its unread count, opening the panel. */
+/**
+ * VW-NAV-005: the bell with its unread count, opening the panel. The bell is an icon, never the
+ * word "Notifications": with the logo and the account menu that word does not fit a phone's header.
+ */
 export function NotificationBellView({ bell }: { bell: NotificationBell }) {
   const { unread } = bell;
   return (
@@ -27,12 +30,13 @@ export function NotificationBellView({ bell }: { bell: NotificationBell }) {
       }
     >
       <Button
-        label="Notifications"
-        aria-label={unread > 0 ? `Notifications, ${String(unread)} unread` : "Notifications"}
+        label={unread > 0 ? `Notifications, ${String(unread)} unread` : "Notifications"}
         variant="ghost"
         icon={<IBell size={18} />}
-        endContent={unread > 0 ? <Badge variant="error" label={String(unread)} /> : undefined}
-      />
+        isIconOnly={unread === 0}
+      >
+        {unread > 0 ? <Badge variant="error" label={String(unread)} /> : undefined}
+      </Button>
     </Popover>
   );
 }
