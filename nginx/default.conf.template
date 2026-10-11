@@ -91,11 +91,24 @@ server {
     proxy_pass http://${TURNBASE_FRONTEND_UPSTREAM};
   }
 
-  # The shell. SPA fallback: anything that is not a real static asset resolves to index.html.
-  # `frame-src` is derived by 15-derive-origins.envsh and owned by game-asset-serving.md §6.3;
-  # everything else is shell-architecture.md §6. `always` puts it on error responses too.
+  # The shell. `frame-src` is derived by 15-derive-origins.envsh and owned by
+  # game-asset-serving.md §6.3; everything else is shell-architecture.md §6. `always` puts the
+  # header on error responses too.
+  set $shell_csp "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-src ${TURNBASE_FRAME_SRC}; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; object-src 'none'";
+
+  # IMP-M10-17: the SPA fallback is for the shell's own routes only (src/app/routes.tsx — keep the
+  # two in step). Any other path is a 404 that still carries index.html, so the shell renders its 404
+  # view (VW-404-001) under the right status. /auth/ is not a prefix here: only complete-registration
+  # is a shell route (IMP-GATE-76).
+  location ~ ^/(login|register|auth/complete-registration|games(/[^/]+)?|users/[^/]+|rooms(/.*)?|friends|settings)?/?$ {
+    try_files /index.html =404;
+    add_header Content-Security-Policy $shell_csp always;
+  }
+
+  # Real static assets; a miss is a 404 with the shell as the body.
   location / {
-    try_files $uri $uri/ /index.html;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-src ${TURNBASE_FRAME_SRC}; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; object-src 'none'" always;
+    try_files $uri =404;
+    error_page 404 /index.html;
+    add_header Content-Security-Policy $shell_csp always;
   }
 }

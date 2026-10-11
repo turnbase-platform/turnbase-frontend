@@ -38,7 +38,9 @@ test("Unauth: nav, landing and redirects", async ({ browser }) => {
   const { page } = await newPlayer(browser, "unauth");
   const errors: string[] = [];
   page.on("console", (m) => {
-    if (m.type() === "error" || m.type() === "warning") errors.push(m.text());
+    // The 404 view below is a deliberate 404 (IMP-M10-17); a browser logs that as a console error.
+    if ((m.type() === "error" || m.type() === "warning") && !/status of 4\d\d/.test(m.text()))
+      errors.push(m.text());
   });
   await page.goto("/");
   await expect(nav(page).getByRole("link", { name: "TurnBase" })).toBeVisible();
@@ -119,4 +121,34 @@ test("Registered: nav, user menu, redirect and logout", async ({ browser }) => {
   await page.getByRole("menuitem", { name: "Log out" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(nav(page).getByText("Log in", { exact: true })).toBeVisible();
+});
+
+// IMP-M10-17 (VW-404-001): the edge answers an unknown path with 404 — the shell still loads, so the
+// 404 view renders — while every shell route keeps 200.
+test("an unknown path is a 404 that still renders the 404 view", async ({ page }) => {
+  for (const path of ["/nope", "/games/x/y", "/assets/missing.js", "/auth/other"]) {
+    const res = await page.request.get(path);
+    expect(res.status(), path).toBe(404);
+  }
+  const res = await page.goto("/nope");
+  expect(res?.status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+  expect(res?.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+
+  for (const path of [
+    "/",
+    "/login",
+    "/register",
+    "/games",
+    "/games/abc",
+    "/users/bob",
+    "/rooms",
+    "/rooms/join/ABCD",
+    "/rooms/xyz",
+    "/friends",
+    "/settings",
+    "/auth/complete-registration",
+  ]) {
+    expect((await page.request.get(path)).status(), path).toBe(200);
+  }
 });
