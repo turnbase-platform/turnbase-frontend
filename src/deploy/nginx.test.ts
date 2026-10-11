@@ -76,10 +76,12 @@ describe("frame-src derivation (game-asset-serving.md §6.3)", () => {
 
 describe("the served Content-Security-Policy (shell-architecture.md §6)", () => {
   const { config } = render({});
-  const policy = /add_header Content-Security-Policy "([^"]+)" always;/.exec(config)?.[1] ?? "";
+  const policy = /set \$shell_csp "([^"]+)";/.exec(config)?.[1] ?? "";
+  const served = config.match(/add_header Content-Security-Policy \$shell_csp always;/g) ?? [];
   const directives = policy.split("; ");
 
   it("carries every directive of §6, on the shell document, `always`", () => {
+    expect(served).toHaveLength(2); // the shell routes and the static/404 fallback
     expect(directives).toEqual([
       "default-src 'self'",
       "script-src 'self'",
