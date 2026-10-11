@@ -16,7 +16,12 @@ const template = readFileSync(file("default.conf.template"), "utf8");
 
 /** Runs the entrypoint script, then renders the template exactly as the image's step does. */
 function render(env: Record<string, string>): { config: string; vars: Record<string, string> } {
-  const names = ["TURNBASE_FRAME_SRC", "TURNBASE_PLATFORM_HOST", "TURNBASE_FRONTEND_UPSTREAM"];
+  const names = [
+    "TURNBASE_FRAME_SRC",
+    "TURNBASE_GAME_HOST_REGEX",
+    "TURNBASE_PLATFORM_HOST",
+    "TURNBASE_FRONTEND_UPSTREAM",
+  ];
   const script = `. "${file("15-derive-origins.envsh")}"; ${names
     .map((name) => `printf '%s=%s\\n' ${name} "$${name}"`)
     .join("; ")}`;
@@ -30,7 +35,9 @@ function render(env: Record<string, string>): { config: string; vars: Record<str
   );
   const config = execFileSync(
     "envsubst",
-    ["$TURNBASE_FRAME_SRC $TURNBASE_PLATFORM_HOST $TURNBASE_FRONTEND_UPSTREAM"],
+    [
+      "$TURNBASE_FRAME_SRC $TURNBASE_GAME_HOST_REGEX $TURNBASE_PLATFORM_HOST $TURNBASE_FRONTEND_UPSTREAM",
+    ],
     {
       env: { ...cleanEnv, ...vars },
       input: template,
@@ -189,5 +196,55 @@ describe("the gRPC registry is not on the public edge (IMP-M10-06)", () => {
     const locations = [...config.matchAll(/^\s*location\s+(.+?)\s*\{/gm)].map((m) => m[1]);
     expect(locations.filter((l) => l.includes("gamehost"))).toHaveLength(2);
     expect(config).not.toMatch(/grpc_pass/);
+  });
+});
+
+describe("known hosts only (IMP-M10-18)", () => {
+  const { config, vars } = render({});
+  const fallThrough = config.split(/^server \{/m)[1];
+
+  it("derives the games-host regex from the origin template", () => {
+    expect(vars.TURNBASE_GAME_HOST_REGEX).toBe("[a-z0-9-]+\\.games\\.localhost");
+    expect(
+      render({ TURNBASE_GAME_FRONTEND_ORIGIN_TEMPLATE: "https://games.example.net:8443/x" }).vars
+        .TURNBASE_GAME_HOST_REGEX,
+    ).toBe("games\\.example\\.net");
+  });
+
+  it("admits only the games origin to the fall-through and refuses the rest with 421", () => {
+    expect(config).toMatch(/~\*\^\[a-z0-9-\]\+\\\.games\\\.localhost\$ 1;/);
+    expect(config).toMatch(/map \$host \$known_game_host \{\s+default 0;/);
+    expect(/if \(\$known_game_host = 0\) \{\s*return 421;\s*\}/.test(fallThrough)).toBe(true);
+  });
+
+  it("the nginx regex matches a game host and rejects foreign ones", () => {
+    const re = new RegExp(`^${vars.TURNBASE_GAME_HOST_REGEX}$`, "i");
+    expect(re.test("tictactoe.games.localhost")).toBe(true);
+    for (const host of ["evil.example.com", "games.localhost", "x.games.localhost.evil.com", ""]) {
+      expect(re.test(host)).toBe(false);
+    }
+  });
+});
+
+describe("hardening headers (IMP-M10-18)", () => {
+  const { config } = render({});
+
+  it("ships all four beside the CSP, on both shell locations, `always`", () => {
+    for (const header of [
+      'X-Content-Type-Options "nosniff"',
+      'Referrer-Policy "strict-origin-when-cross-origin"',
+      'X-Frame-Options "DENY"',
+      "Strict-Transport-Security $hsts",
+    ]) {
+      expect(
+        config.match(new RegExp(`add_header ${header.replace(/[$]/g, "\\$")} always;`, "g")),
+      ).toHaveLength(2);
+    }
+  });
+
+  it("sends HSTS only for requests that arrived over TLS", () => {
+    expect(config).toMatch(
+      /map \$http_x_forwarded_proto \$hsts \{\s+default '';\s+https\s+'max-age=31536000; includeSubDomains';/,
+    );
   });
 });

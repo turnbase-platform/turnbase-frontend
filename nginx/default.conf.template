@@ -12,11 +12,29 @@ map $http_upgrade $connection_upgrade {
   ''      close;
 }
 
-# Fall-through: any Host that is not the platform host (in practice *.games.localhost) goes to
-# the monolith untouched, so the wildcard is never enumerated here.
+# IMP-M10-18: the Hosts the fall-through may serve — the games origin, as derived by
+# 15-derive-origins.envsh. The platform host has its own server below.
+map $host $known_game_host {
+  default 0;
+  ~*^${TURNBASE_GAME_HOST_REGEX}$ 1;
+}
+
+# HSTS only when the request reached the edge over TLS (a terminator in front sets the header).
+# An empty value makes `add_header` omit the header.
+map $http_x_forwarded_proto $hsts {
+  default '';
+  https   'max-age=31536000; includeSubDomains';
+}
+
+# Fall-through: a Host in the games origin (in practice *.games.localhost) goes to the monolith
+# untouched, so the wildcard is never enumerated here. Any other Host is not ours: 421.
 server {
   listen 8080 default_server;
   server_name _;
+
+  if ($known_game_host = 0) {
+    return 421;
+  }
 
   # IMP-M10-06: GameHostRegistryService shares the monolith's listener (local-environment.md §7.8), so
   # unreachability from the public edge IS its access control. Refused here, ahead of the proxy.
@@ -91,6 +109,9 @@ server {
     proxy_pass http://${TURNBASE_FRONTEND_UPSTREAM};
   }
 
+  # IMP-M10-18: `add_header` is inherited only by a location that sets none of its own, so the four
+  # hardening headers repeat beside the CSP below. X-Frame-Options mirrors `frame-ancestors 'none'`:
+  # the shell is never framed (games are framed by it, not the reverse).
   # The shell. `frame-src` is derived by 15-derive-origins.envsh and owned by
   # game-asset-serving.md §6.3; everything else is shell-architecture.md §6. `always` puts the
   # header on error responses too.
@@ -103,6 +124,10 @@ server {
   location ~ ^/(login|register|auth/complete-registration|games(/[^/]+)?|users/[^/]+|rooms(/.*)?|friends|settings)?/?$ {
     try_files /index.html =404;
     add_header Content-Security-Policy $shell_csp always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Strict-Transport-Security $hsts always;
   }
 
   # Real static assets; a miss is a 404 with the shell as the body.
@@ -110,5 +135,9 @@ server {
     try_files $uri =404;
     error_page 404 /index.html;
     add_header Content-Security-Policy $shell_csp always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Strict-Transport-Security $hsts always;
   }
 }

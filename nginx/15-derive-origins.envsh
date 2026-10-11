@@ -23,5 +23,11 @@ TURNBASE_FRAME_SRC=$(printf '%s' "$TURNBASE_GAME_FRONTEND_ORIGIN_TEMPLATE" | sed
 TURNBASE_PLATFORM_HOST=$(printf '%s' "$TURNBASE_PLATFORM_ORIGIN" |
   sed -E 's#^[A-Za-z][A-Za-z0-9+.-]*://##; s#[/?#].*$##; s#:[0-9]+$##')
 
+# The Hosts the fall-through server may proxy (IMP-M10-18): the games origin as a case-insensitive
+# regex for nginx's `map`. Scheme, port and path are dropped, dots escaped, `{gameId}` becomes one
+# DNS label. Anything else is refused with 421 rather than handed to the monolith.
+TURNBASE_GAME_HOST_REGEX=$(printf '%s' "$TURNBASE_GAME_FRONTEND_ORIGIN_TEMPLATE" |
+  sed -E 's#^[A-Za-z][A-Za-z0-9+.-]*://##; s#[/?#].*$##; s#:[0-9]+$##; s#\.#\\.#g; s#\{gameId\}#[a-z0-9-]+#g')
+
 export TURNBASE_PLATFORM_ORIGIN TURNBASE_GAME_FRONTEND_ORIGIN_TEMPLATE TURNBASE_FRONTEND_UPSTREAM
-export TURNBASE_FRAME_SRC TURNBASE_PLATFORM_HOST
+export TURNBASE_FRAME_SRC TURNBASE_PLATFORM_HOST TURNBASE_GAME_HOST_REGEX
