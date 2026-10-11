@@ -1,0 +1,29 @@
+/* Tall panels scroll inside themselves; the negative margin keeps the card's shadow unclipped. */
+.scroll {
+  max-height: calc(100svh - 280px);
+  overflow-y: auto;
+  margin: calc(-1 * var(--spacing-1));
+  padding: var(--spacing-1);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.foot {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 640px) {
+  .scroll {
+    max-height: calc(100svh - 220px);
+  }
+}

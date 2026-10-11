@@ -1,0 +1,43 @@
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.nebula {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(46% 38% at 18% 14%, var(--tb-glow-a), transparent 70%),
+    radial-gradient(40% 44% at 86% 24%, var(--tb-glow-b), transparent 70%),
+    radial-gradient(50% 40% at 62% 100%, var(--tb-glow-c), transparent 70%);
+  transition: opacity 0.8s var(--tb-ease);
+}
+
+.sky[data-dim="true"] .nebula {
+  opacity: 0.45;
+}
+
+/* A zero-size element whose computed colour tells the canvas what --tb-star-* resolves to. */
+.probe {
+  position: fixed;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nebula {
+    transition: none;
+  }
+}

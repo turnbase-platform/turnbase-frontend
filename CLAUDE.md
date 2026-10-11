@@ -30,7 +30,7 @@ ships something, that is a tool call, not a guess.
 
 Stop at the first rung that works. **A swizzle is a fork with a nice name** — it stops receiving
 upstream accessibility fixes and cannot be codemodded on upgrade. `src/ui/` holds what the TurnBase
-identity needs and Astryx does not ship (effects, `Starfield`, `Logo`, icons, `Person`, `PillTabs`,
+identity needs and Astryx does not ship (effects, `Starfield`, `Logo`, icons, `PillTabs`, `Pane`,
 the list-query kit). Application code imports `@astryxdesign/core/<Component>` **directly**; there is
 no wrapper layer.
 

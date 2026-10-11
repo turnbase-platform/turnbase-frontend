@@ -1,0 +1,5 @@
+.art {
+  display: block;
+  image-rendering: pixelated;
+  shape-rendering: crispEdges;
+}

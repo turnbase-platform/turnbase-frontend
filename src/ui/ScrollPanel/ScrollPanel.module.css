@@ -1,0 +1,59 @@
+.panel {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  background: transparent;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--spacing-3) var(--spacing-1) var(--spacing-3) var(--spacing-3);
+  border-radius: inherit;
+}
+
+.scroll:focus-visible {
+  outline: 2px solid var(--tb-cyan);
+  outline-offset: -2px;
+}
+
+/* Firefox only: Chromium and Safari take the ::-webkit-scrollbar rules, which also drop the arrows. */
+@supports not selector(::-webkit-scrollbar) {
+  .scroll {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--tb-cyan) 45%, transparent) transparent;
+  }
+}
+
+.scroll::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+  height: 8px;
+}
+
+.scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: color-mix(in srgb, var(--tb-cyan) 45%, transparent);
+  background-clip: padding-box;
+}
+
+.scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--tb-cyan);
+  background-clip: padding-box;
+}
+
+.scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}

@@ -1,0 +1,57 @@
+/* Separate 44px controls, sharing the toolbar's height and radius. */
+.bar {
+  display: flex;
+  flex: none;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-inline-start: auto;
+}
+
+.count {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.size {
+  width: 112px;
+}
+
+.square {
+  display: inline-flex;
+  flex: none;
+}
+
+.square :global(.astryx-button) {
+  width: 44px;
+  height: 44px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+}
+
+.number :global(.astryx-button) {
+  min-width: 44px;
+  padding-inline: var(--spacing-2);
+}
+
+.gap {
+  width: 20px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.prev {
+  transform: rotate(90deg);
+}
+
+.next {
+  transform: rotate(-90deg);
+}
+
+@media (max-width: 760px) {
+  .bar {
+    flex-wrap: wrap;
+    margin-inline-start: 0;
+  }
+}

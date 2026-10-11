@@ -1,0 +1,38 @@
+@keyframes forward {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--spacing-5) + var(--spacing-1) / 2));
+  }
+}
+
+@keyframes backward {
+  from {
+    opacity: 0;
+    transform: translateX(calc(-1 * (var(--spacing-5) + var(--spacing-1) / 2)));
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--spacing-3)) scale(0.99);
+  }
+}
+
+.pane[data-direction="fwd"] {
+  animation: forward 0.26s var(--tb-ease) both;
+}
+
+.pane[data-direction="back"] {
+  animation: backward 0.26s var(--tb-ease) both;
+}
+
+.pane[data-direction="up"] {
+  animation: rise 0.28s var(--tb-ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pane[data-direction] {
+    animation: none;
+  }
+}
