@@ -8,7 +8,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "theme:build": "npm run astryx -- theme build src/theme/turnbase.theme.ts --icons-specifier @astryxdesign/theme-neutral",
+    "theme:check": "npm run astryx -- theme build src/theme/turnbase.theme.ts --icons-specifier @astryxdesign/theme-neutral --check",
+    "build": "npm run theme:build && tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint src e2e vite.config.ts playwright.config.ts",
     "format": "prettier --write .",
@@ -22,6 +24,7 @@
     "@astryxdesign/core": "0.5.2",
     "@astryxdesign/theme-neutral": "0.5.2",
     "@fontsource/figtree": "5.3.0",
+    "@fontsource/pixelify-sans": "5.3.0",
     "@stomp/stompjs": "7.3.0",
     "@stylexjs/stylex": "0.19.0",
     "react": "19.2.8",

@@ -1,10 +1,10 @@
 import type { ComponentType, ReactNode } from "react";
 import { BrowserRouter, Link, Route, Routes } from "react-router";
 import { LinkProvider } from "@astryxdesign/core/Link";
-import { Theme } from "@astryxdesign/core/theme";
 import { ToastViewport } from "@astryxdesign/core/Toast";
-import { neutralTheme } from "@astryxdesign/theme-neutral/built";
+import { turnbaseTheme } from "../theme/turnbase";
 import { AuthProvider } from "../features/auth/AuthProvider";
+import { AppearanceProvider, ThemedRoot } from "./AppearanceProvider";
 import { NavBar } from "./NavBar";
 import { RouteGuard } from "./RouteGuard";
 import { appRoutes } from "./routes";
@@ -27,27 +27,29 @@ export function App({
   Router?: ComponentType<{ children: ReactNode }>;
 }) {
   return (
-    <Theme theme={neutralTheme}>
-      <Router>
-        <LinkProvider component={Link}>
-          <ToastViewport>
-            <AuthProvider>
-              <NavBar />
-              <main>
-                <Routes>
-                  {appRoutes.map(({ path, access, element }) => (
-                    <Route
-                      key={path}
-                      path={path}
-                      element={<RouteGuard access={access}>{element}</RouteGuard>}
-                    />
-                  ))}
-                </Routes>
-              </main>
-            </AuthProvider>
-          </ToastViewport>
-        </LinkProvider>
-      </Router>
-    </Theme>
+    <AppearanceProvider>
+      <ThemedRoot theme={turnbaseTheme}>
+        <Router>
+          <LinkProvider component={Link}>
+            <ToastViewport>
+              <AuthProvider>
+                <NavBar />
+                <main>
+                  <Routes>
+                    {appRoutes.map(({ path, access, element }) => (
+                      <Route
+                        key={path}
+                        path={path}
+                        element={<RouteGuard access={access}>{element}</RouteGuard>}
+                      />
+                    ))}
+                  </Routes>
+                </main>
+              </AuthProvider>
+            </ToastViewport>
+          </LinkProvider>
+        </Router>
+      </ThemedRoot>
+    </AppearanceProvider>
   );
 }

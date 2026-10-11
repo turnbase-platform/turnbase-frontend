@@ -4,6 +4,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { DropdownMenu, type DropdownMenuOption } from "@astryxdesign/core/DropdownMenu";
 import { Stack } from "@astryxdesign/core/Stack";
 import { TopNav, TopNavHeading, TopNavItem } from "@astryxdesign/core/TopNav";
+import { AppearanceControl } from "./AppearanceControl";
 import { useAuth } from "../features/auth/auth-context";
 import { GuestButton } from "../features/auth/GuestButton";
 import { NotificationBell } from "../features/notifications/NotificationBell";
@@ -75,6 +76,7 @@ export function NavBar() {
       <GuestButton variant="primary" />
     </>
   );
+  const appearance = <AppearanceControl />;
   const account = (
     <>
       <NotificationBell />
@@ -98,6 +100,7 @@ export function NavBar() {
         <Stack direction="horizontal" wrap="wrap" gap={1} padding={2}>
           {links}
           {!isSignedIn && signedOut}
+          {appearance}
         </Stack>
       </Stack>
     );
@@ -108,7 +111,12 @@ export function NavBar() {
       <TopNav
         heading={<TopNavHeading heading="TurnBase" headingHref="/" />}
         startContent={links}
-        endContent={isSignedIn ? account : signedOut}
+        endContent={
+          <>
+            {appearance}
+            {isSignedIn ? account : signedOut}
+          </>
+        }
       />
     </Stack>
   );

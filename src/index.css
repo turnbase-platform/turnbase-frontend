@@ -1,20 +1,26 @@
 /* design-system.md §2: cascade-layer order, and it is not cosmetic — theme tokens must land
    after the component styles that read them, or the page renders with Astryx's built-in
-   defaults and gives no error. */
+   defaults and gives no error. The TurnBase theme is built (ADR-0017 §2) and extends the neutral
+   theme, so its stylesheet is self-contained and replaces the neutral theme.css. */
 @import "@astryxdesign/core/reset.css"; /* @layer reset */
 @import "@astryxdesign/core/astryx.css"; /* @layer astryx-base — component styles */
-@import "@astryxdesign/theme-neutral/theme.css"; /* @layer astryx-theme — token overrides */
+@import "./theme/turnbase.css"; /* @layer astryx-theme — the TurnBase theme, built and committed */
+@import "./theme/tokens.css"; /* our own non-colour --tb-* tokens */
+@import "./theme/surfaces.css"; /* fake glass */
 
-/* The theme names Figtree via --font-family-body/--font-family-heading but does not load it
-   (design-system.md §2). Self-hosted here — shell-architecture.md §6's CSP sets
-   font-src 'self', so a Google Fonts <link> would need widening a security directive for a
-   hosting convenience. Only the weights the theme actually uses (§6 heading scale: semibold,
-   bold; body: normal). */
+/* The theme names its fonts but does not load them (design-system.md §2). Self-hosted —
+   shell-architecture.md §6's CSP sets font-src 'self', so a Google Fonts <link> would need
+   widening a security directive for a hosting convenience. Only the weights in use: Figtree
+   normal / semibold / bold; Pixelify Sans regular / bold, for display moments only (CON-004). */
 @import "@fontsource/figtree/400.css";
 @import "@fontsource/figtree/600.css";
 @import "@fontsource/figtree/700.css";
+@import "@fontsource/pixelify-sans/400.css";
+@import "@fontsource/pixelify-sans/700.css";
 
 body {
+  background: var(--color-background-body);
+  color: var(--color-text-primary);
   font-family: var(--font-family-body);
 }
 

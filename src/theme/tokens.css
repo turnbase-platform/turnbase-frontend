@@ -1,0 +1,19 @@
+/* ADR-0017 §2: our own non-colour tokens, as plain CSS. They add beside Astryx's tokens and
+   redefine none of them (FR-THM-002). Colour tokens (--tb-cyan, --tb-glow-a, …) are declared in
+   turnbase.theme.ts and ride the built stylesheet, so a colour value is written in one place. */
+:root {
+  --tb-gutter: var(--spacing-4);
+
+  /* How strongly the UI answers the cursor: 0 switches the effect off, 1 is full strength. The
+     pointer-effect code reads these; the Cursor-effects setting and prefers-reduced-motion
+     override them to 0 (IMP-M12-03, IMP-M12-10). */
+  --tb-tilt: 0.75;
+  --tb-bg-react: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --tb-tilt: 0;
+    --tb-bg-react: 0;
+  }
+}

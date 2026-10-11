@@ -2,3 +2,7 @@ dist/
 coverage/
 node_modules/
 *.md
+src/theme/turnbase.css
+src/theme/turnbase.js
+src/theme/turnbase.d.ts
+src/theme/turnbase.variants.d.ts

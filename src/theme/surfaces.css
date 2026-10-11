@@ -1,0 +1,64 @@
+/* ADR-0017 §1: fake glass. A tint, a sheen, a cursor spotlight and a lit edge, composed from
+   gradients and shadows — never backdrop-filter (platform-ui-library.md FR-TOK-005). --mx/--my are
+   set per element by the pointer-effect delegation in src/ui; without it the spotlight rests at
+   the top edge. A list container is NOT a glass surface (it is a border and nothing else), so
+   these selectors name cards and the explicit .tb-glass class only. */
+.astryx-card,
+.astryx-clickable-card,
+.tb-glass {
+  position: relative;
+  background-image:
+    radial-gradient(
+      380px circle at var(--mx, 50%) var(--my, 0%),
+      var(--tb-spot-on, transparent),
+      transparent 65%
+    ),
+    linear-gradient(158deg, var(--tb-sheen), transparent 42%);
+  transition:
+    transform 0.25s var(--tb-ease),
+    box-shadow 0.25s var(--tb-ease),
+    border-color 0.25s;
+}
+
+.tb-glass {
+  background-color: var(--color-background-card);
+  border-radius: var(--radius-container);
+  box-shadow: var(--shadow-low);
+}
+
+.astryx-card:hover,
+.astryx-clickable-card:hover,
+.tb-glass:hover {
+  --tb-spot-on: var(--tb-spot);
+}
+
+/* The lit edge: a 1px ring revealed only around the pointer. The border box is painted and the
+   padding box masked out, so no padding length is needed. */
+.astryx-card::after,
+.astryx-clickable-card::after,
+.tb-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+      240px circle at var(--mx, 50%) var(--my, 0%),
+      var(--tb-cyan),
+      transparent 70%
+    )
+    border-box;
+  mask:
+    linear-gradient(currentcolor 0 0) padding-box,
+    linear-gradient(currentcolor 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.astryx-card:hover::after,
+.astryx-clickable-card:hover::after,
+.tb-glass:hover::after {
+  opacity: 0.85;
+}
