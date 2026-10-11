@@ -71,6 +71,31 @@ test("Unauth: nav, landing and redirects", async ({ browser }) => {
   expect(errors).toEqual([]);
 });
 
+// IMP-M10-24 (AUD-24): the tripwire forgives a browser's "status of 4xx" console line, which is exactly
+// where an anonymous visitor's 401 would hide. This spec forgives none: an anonymous first load must
+// leave the console empty and the session probe must have answered 200.
+test("Unauth: an anonymous first load logs no console error and no 4xx", async ({ browser }) => {
+  const { page } = await newPlayer(browser, "anon-console");
+  const logged: string[] = [];
+  const refused: string[] = [];
+  const probes: number[] = [];
+  page.on("console", (m) => {
+    if (m.type() === "error" || m.type() === "warning") logged.push(m.text());
+  });
+  page.on("response", (r) => {
+    if (r.status() >= 400) refused.push(`${String(r.status())} ${r.url()}`);
+    if (new URL(r.url()).pathname === "/api/auth/session") probes.push(r.status());
+  });
+  for (const path of ["/", "/games", "/login"]) {
+    await page.goto(path);
+    await expect(nav(page).getByRole("link", { name: "TurnBase" })).toBeVisible();
+    await expect(nav(page).getByText("Log in", { exact: true })).toBeVisible();
+  }
+  expect(probes).toEqual([200, 200, 200]);
+  expect(refused).toEqual([]);
+  expect(logged).toEqual([]);
+});
+
 test("Guest: nav, 403 explanation and the narrow header", async ({ browser }) => {
   const player = await newPlayer(browser, "guest");
   const { page } = player;

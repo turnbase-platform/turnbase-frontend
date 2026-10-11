@@ -11,6 +11,7 @@ import {
   type FakeReply,
 } from "../test/fakeApi";
 import { renderAt, where } from "../test/renderApp";
+import { onUnauthorized } from "../shared/api";
 
 const session = (reply: FakeReply) => ({ "GET /api/auth/session": reply });
 const signedInAs = (principal: typeof REGISTERED | typeof GUEST) => ({
@@ -268,6 +269,19 @@ describe("route tiers", () => {
     });
     renderAt("/auth/complete-registration");
     expect(await screen.findByRole("heading", { name: "Choose a username" })).toBeInTheDocument();
+  });
+});
+
+describe("the startup session probe (AUD-24)", () => {
+  it("hears a 401 as 'no session', not as a session that ended mid-use", async () => {
+    // A visitor whose cookie is stale: the platform names the rejection with a 401 (FR-SESS-004).
+    const heard = vi.fn();
+    const stop = onUnauthorized(heard);
+    installFakeApi({ ...unauth, ...session(UNAUTHORIZED) });
+    renderAt("/");
+    expect((await screen.findAllByText("Log in")).length).toBeGreaterThan(0);
+    stop();
+    expect(heard).not.toHaveBeenCalled();
   });
 });
 

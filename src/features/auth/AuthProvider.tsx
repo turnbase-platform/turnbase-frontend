@@ -20,8 +20,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     // The probe answers 200 `{authenticated:false}` for a visitor (rest-conventions.md
-    // § Authentication), so an anonymous load logs no console error.
-    apiFetch<Principal | { authenticated: false }>("/api/auth/session")
+    // § Authentication), so an anonymous load logs no console error. A visitor whose cookie
+    // went stale still gets the 401 naming why (FR-SESS-004); that is "no session yet" too, not
+    // a session ending mid-use, so it must not run VW-REDIR-007's listeners (AUD-24).
+    apiFetch<Principal | { authenticated: false }>("/api/auth/session", {
+      expectUnauthorized: true,
+    })
       .then((found) => {
         if (!cancelled && "userId" in found) setPrincipal(found);
       })
