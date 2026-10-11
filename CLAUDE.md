@@ -39,9 +39,13 @@ no wrapper layer.
 - The TurnBase theme is `src/theme/turnbase.theme.ts`, **built** by `astryx theme build` and the
   output committed. It is never injected at runtime — the shell CSP is `style-src 'self'`. A drift
   test fails when the committed output is stale; after editing the source, rebuild.
-- Our own tokens are `--tb-*` in `src/theme/tokens.css`. They add to Astryx's; they never redefine one.
-- **Only `src/theme/**` may contain a colour literal.** `no-raw-spacing-css` has no exemption: round
-  an off-grid length to the `--spacing-*` scale.
+- Colours live in `src/theme/palette.ts` as `[light, dark]` pairs and reach the theme as
+  `light-dark()`; `tokens.css` and `surfaces.css` hold only non-colour `--tb-*` tokens and glass.
+  Own tokens add to Astryx's; they never redefine one.
+- **A colour literal belongs in `palette.ts` only** (and in the generated build, which lint
+  ignores). `no-raw-color-*` still fails everywhere else; `no-raw-spacing-css` has no exemption —
+  round an off-grid length to the `--spacing-*` scale. A unit test holds every text/background
+  pair to WCAG AA in both appearances.
 - Pixelify Sans is for the logo, display headings, big numbers and short labels only. Never in forms,
   tables, chat or rules.
 - No `backdrop-filter`. Fake glass only.
