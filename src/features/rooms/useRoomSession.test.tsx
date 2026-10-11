@@ -52,9 +52,7 @@ const wrapper = authWrapper(fakeAuth(REGISTERED));
 const render = () => renderHook(() => useRoomSession("r-1", room, "pod-a"), { wrapper });
 
 beforeEach(() => {
-  vi.mocked(leaveRoom)
-    .mockReset()
-    .mockResolvedValue(undefined);
+  vi.mocked(leaveRoom).mockReset().mockResolvedValue(undefined);
   navigate.mockReset();
   toast.mockReset();
   warn.mockReset();

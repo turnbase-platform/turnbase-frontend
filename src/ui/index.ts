@@ -22,3 +22,4 @@ export { PageBar } from "./PageBar/PageBar";
 export { pageWindow } from "./PageBar/pageWindow";
 export { ListPage } from "./ListPage/ListPage";
 export { CardPage, FormFields } from "./CardPage/CardPage";
+export { SectionCard } from "./SectionCard/SectionCard";
