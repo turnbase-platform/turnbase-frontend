@@ -1,10 +1,10 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
-import { Stack } from "@astryxdesign/core/Stack";
 import { GameFrame } from "../game/GameFrame";
 import { ChatPanel } from "./ChatPanel";
 import { ParticipantPanel } from "./ParticipantPanel";
+import styles from "./RoomGame.module.css";
 import type { RoomConnection } from "./roomSocket";
 import type { ChatMessageEnvelope, RoomStateSnapshot } from "./rooms-types";
 
@@ -40,11 +40,13 @@ export function RoomGame({
   const me = snapshot.players.find((player) => player.playerId === userId);
 
   return (
-    <Stack gap={4}>
-      <Heading level={1}>{snapshot.gameName}</Heading>
+    <div className={styles.game}>
+      <Heading level={1} type="display-2">
+        {snapshot.gameName}
+      </Heading>
       {over && <Banner status="info" title="The game is over." />}
       {gameStalled && (
-        <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
+        <div className={styles.stalled}>
           <Banner status="error" title="The game could not be loaded — too many requests." />
           <Button
             label="Retry"
@@ -53,25 +55,31 @@ export function RoomGame({
               connection.retryAttach();
             }}
           />
-        </Stack>
+        </div>
       )}
-      <GameFrame
-        gameFrontendUrl={game.gameFrontendUrl}
-        sessionId={game.sessionId}
-        teamId={me?.teamId ?? null}
-        connection={connection}
-      />
-      <ParticipantPanel snapshot={snapshot} userId={userId} connection={connection} />
-      <ChatPanel
-        snapshot={snapshot}
-        userId={userId}
-        messages={chatMessages}
-        connection={connection}
-      />
-      <Stack direction="horizontal" gap={2} wrap="wrap">
+      <div className={styles.layout}>
+        <div className={styles.stage}>
+          <GameFrame
+            gameFrontendUrl={game.gameFrontendUrl}
+            sessionId={game.sessionId}
+            teamId={me?.teamId ?? null}
+            connection={connection}
+          />
+        </div>
+        <aside className={styles.aside}>
+          <ParticipantPanel snapshot={snapshot} userId={userId} connection={connection} />
+          <ChatPanel
+            snapshot={snapshot}
+            userId={userId}
+            messages={chatMessages}
+            connection={connection}
+          />
+        </aside>
+      </div>
+      <div className={styles.actions}>
         {over && <Button label="Return to lobby" variant="primary" onClick={onReturnToLobby} />}
         <Button label="Leave room" variant="secondary" onClick={onLeave} />
-      </Stack>
-    </Stack>
+      </div>
+    </div>
   );
 }

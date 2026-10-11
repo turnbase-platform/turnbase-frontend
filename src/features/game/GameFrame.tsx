@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Banner } from "@astryxdesign/core/Banner";
-import { Stack } from "@astryxdesign/core/Stack";
 import type { RoomConnection } from "../rooms/roomSocket";
 import { trustedGameOrigin } from "./gameOrigin";
 import { parseGameOutbound, type GameInbound } from "./gameMessages";
 import { GameRelay, type GameLogEntry } from "./gameRelay";
+import styles from "./GameFrame.module.css";
 
 /** A game that never sends `ready` gets a visible timeout, not a blank frame (`shell-architecture.md` §5). */
 export const READY_TIMEOUT_MS = 15_000;
@@ -91,7 +91,7 @@ export function GameFrame({
   }
 
   return (
-    <Stack gap={3}>
+    <div className={styles.frame}>
       {failure !== null && <Banner status="error" title={failure} />}
       {timedOut && <Banner status="warning" title="The game is taking too long to start." />}
       <iframe
@@ -101,8 +101,8 @@ export function GameFrame({
         sandbox={GAME_SANDBOX}
         allow=""
         referrerPolicy="no-referrer"
-        style={{ width: "100%", maxWidth: "100%", height: 600, border: 0 }}
+        className={styles.iframe}
       />
-    </Stack>
+    </div>
   );
 }

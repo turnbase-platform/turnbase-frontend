@@ -1,0 +1,51 @@
+.log {
+  height: 16rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-element);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.message {
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+}
+
+.tag {
+  color: var(--color-text-secondary);
+}
+
+.tag[data-channel="TEAM"] {
+  color: var(--tb-magenta);
+}
+
+.author {
+  font-weight: 600;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.compose {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.input {
+  flex: 1 1 0;
+  min-width: 0;
+}

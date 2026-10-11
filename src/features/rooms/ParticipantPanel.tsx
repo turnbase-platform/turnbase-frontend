@@ -1,10 +1,10 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
-import { Heading } from "@astryxdesign/core/Heading";
-import { Stack } from "@astryxdesign/core/Stack";
-import { Text } from "@astryxdesign/core/Text";
+import { ParticipantRow } from "./ParticipantRow";
+import { RoomSection } from "./RoomSection";
 import type { RoomConnection } from "./roomSocket";
 import type { RoomStateSnapshot } from "./rooms-types";
+import styles from "./ParticipantList.module.css";
 
 export interface ParticipantPanelProps {
   snapshot: RoomStateSnapshot;
@@ -24,16 +24,20 @@ export function ParticipantPanel({ snapshot, userId, connection }: ParticipantPa
   };
 
   return (
-    <Stack gap={2}>
-      <Heading level={2}>Participants</Heading>
-      <ul aria-label="Participants">
+    <RoomSection title="Participants">
+      <ul aria-label="Participants" className={styles.list}>
         {snapshot.players.map((entry) => (
-          <li key={entry.playerId}>
-            <Stack direction="horizontal" gap={2} wrap="wrap">
-              <Text>{entry.username}</Text>
-              {entry.playerId === snapshot.hostId && <Badge label="Host" variant="info" />}
-              {!entry.connected && <Badge label="Disconnected" variant="warning" />}
-              {isHost && entry.playerId !== userId && (
+          <ParticipantRow
+            key={entry.playerId}
+            name={entry.username}
+            badges={
+              <>
+                {entry.playerId === snapshot.hostId && <Badge label="Host" variant="info" />}
+                {!entry.connected && <Badge label="Disconnected" variant="warning" />}
+              </>
+            }
+            actions={
+              isHost && entry.playerId !== userId ? (
                 <>
                   <Button
                     label="Transfer host"
@@ -52,16 +56,17 @@ export function ParticipantPanel({ snapshot, userId, connection }: ParticipantPa
                     }}
                   />
                 </>
-              )}
-            </Stack>
-          </li>
+              ) : undefined
+            }
+          />
         ))}
         {snapshot.spectators.map((entry) => (
-          <li key={entry.playerId}>
-            <Stack direction="horizontal" gap={2} wrap="wrap">
-              <Text>{entry.username}</Text>
-              <Badge label="Spectator" variant="neutral" />
-              {isHost && (
+          <ParticipantRow
+            key={entry.playerId}
+            name={entry.username}
+            badges={<Badge label="Spectator" variant="neutral" />}
+            actions={
+              isHost ? (
                 <Button
                   label="Kick"
                   variant="secondary"
@@ -70,11 +75,11 @@ export function ParticipantPanel({ snapshot, userId, connection }: ParticipantPa
                     kick(entry.playerId);
                   }}
                 />
-              )}
-            </Stack>
-          </li>
+              ) : undefined
+            }
+          />
         ))}
       </ul>
-    </Stack>
+    </RoomSection>
   );
 }

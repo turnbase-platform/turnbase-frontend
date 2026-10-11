@@ -2,12 +2,15 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
-import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { unmetStartConditions } from "./roomRules";
 import type { RoomConnection } from "./roomSocket";
 import { ChatPanel } from "./ChatPanel";
 import { InviteFriendsButton } from "./InviteFriendsButton";
+import { ParticipantRow } from "./ParticipantRow";
+import { RoomSection } from "./RoomSection";
+import listStyles from "./ParticipantList.module.css";
+import styles from "./RoomLobby.module.css";
 import type { ChatMessageEnvelope, RoomErrorEnvelope, RoomStateSnapshot } from "./rooms-types";
 
 export interface RoomLobbyProps {
@@ -62,91 +65,105 @@ export function RoomLobby({
   const spectatorSlotFree = snapshot.spectators.length < snapshot.spectatorCapacity;
 
   return (
-    <Stack gap={4}>
-      <Heading level={1}>{snapshot.gameName}</Heading>
+    <div className={styles.lobby}>
+      <Heading level={1} type="display-2">
+        {snapshot.gameName}
+      </Heading>
       {lastError && <Banner status="error" title={describeError(lastError)} />}
 
-      <Stack gap={2}>
-        <Heading level={2}>Players</Heading>
-        <ul aria-label="Players">
-          {snapshot.players.map((entry) => (
-            <li key={entry.playerId}>
-              <Stack direction="horizontal" gap={2} wrap="wrap">
-                <Text>{entry.username}</Text>
-                {entry.playerId === snapshot.hostId && <Badge label="Host" variant="info" />}
-                {entry.playerId !== snapshot.hostId && (
-                  <Badge
-                    label={entry.ready ? "Ready" : "Not ready"}
-                    variant={entry.ready ? "success" : "neutral"}
-                  />
-                )}
-                {!entry.connected && <Badge label="Disconnected" variant="warning" />}
-                {isHost && entry.playerId !== userId && (
+      <div className={styles.grid}>
+        <RoomSection title="Players">
+          <ul aria-label="Players" className={listStyles.list}>
+            {snapshot.players.map((entry) => (
+              <ParticipantRow
+                key={entry.playerId}
+                name={entry.username}
+                badges={
                   <>
-                    <Button
-                      label="Transfer host"
-                      variant="secondary"
-                      aria-label={`Transfer host to ${entry.username}`}
-                      onClick={() => {
-                        connection?.sendHostCommand("TRANSFER_HOST", { newHostId: entry.playerId });
-                      }}
-                    />
-                    <Button
-                      label="Kick"
-                      variant="secondary"
-                      aria-label={`Kick ${entry.username}`}
-                      onClick={() => {
-                        connection?.sendHostCommand("KICK_PLAYER", { playerId: entry.playerId });
-                      }}
-                    />
+                    {entry.playerId === snapshot.hostId ? (
+                      <Badge label="Host" variant="info" />
+                    ) : (
+                      <Badge
+                        label={entry.ready ? "Ready" : "Not ready"}
+                        variant={entry.ready ? "success" : "neutral"}
+                      />
+                    )}
+                    {!entry.connected && <Badge label="Disconnected" variant="warning" />}
                   </>
-                )}
-              </Stack>
-            </li>
-          ))}
-        </ul>
-      </Stack>
-
-      {snapshot.spectators.length > 0 && (
-        <Stack gap={2}>
-          <Heading level={2}>Spectators</Heading>
-          <ul aria-label="Spectators">
-            {snapshot.spectators.map((entry) => (
-              <li key={entry.playerId}>
-                <Stack direction="horizontal" gap={2} wrap="wrap">
-                  <Text>{entry.username}</Text>
-                  {isHost && (
-                    <Button
-                      label="Kick"
-                      variant="secondary"
-                      aria-label={`Kick ${entry.username}`}
-                      onClick={() => {
-                        connection?.sendHostCommand("KICK_PLAYER", { playerId: entry.playerId });
-                      }}
-                    />
-                  )}
-                </Stack>
-              </li>
+                }
+                actions={
+                  isHost && entry.playerId !== userId ? (
+                    <>
+                      <Button
+                        label="Transfer host"
+                        variant="secondary"
+                        aria-label={`Transfer host to ${entry.username}`}
+                        onClick={() => {
+                          connection?.sendHostCommand("TRANSFER_HOST", {
+                            newHostId: entry.playerId,
+                          });
+                        }}
+                      />
+                      <Button
+                        label="Kick"
+                        variant="secondary"
+                        aria-label={`Kick ${entry.username}`}
+                        onClick={() => {
+                          connection?.sendHostCommand("KICK_PLAYER", { playerId: entry.playerId });
+                        }}
+                      />
+                    </>
+                  ) : undefined
+                }
+              />
             ))}
           </ul>
-        </Stack>
-      )}
+        </RoomSection>
 
-      <Stack gap={2}>
-        <Heading level={2}>Game parameters</Heading>
-        {parameters.length === 0 ? (
-          <Text>This game has no parameters.</Text>
-        ) : (
-          <dl aria-label="Game parameters">
-            {parameters.map(([key, value]) => (
-              <div key={key}>
-                <dt>{key}</dt>
-                <dd>{typeof value === "string" ? value : JSON.stringify(value)}</dd>
-              </div>
-            ))}
-          </dl>
+        {snapshot.spectators.length > 0 && (
+          <RoomSection title="Spectators">
+            <ul aria-label="Spectators" className={listStyles.list}>
+              {snapshot.spectators.map((entry) => (
+                <ParticipantRow
+                  key={entry.playerId}
+                  name={entry.username}
+                  actions={
+                    isHost ? (
+                      <Button
+                        label="Kick"
+                        variant="secondary"
+                        aria-label={`Kick ${entry.username}`}
+                        onClick={() => {
+                          connection?.sendHostCommand("KICK_PLAYER", { playerId: entry.playerId });
+                        }}
+                      />
+                    ) : undefined
+                  }
+                />
+              ))}
+            </ul>
+          </RoomSection>
         )}
-      </Stack>
+
+        <RoomSection title="Game parameters">
+          {parameters.length === 0 ? (
+            <Text>This game has no parameters.</Text>
+          ) : (
+            <dl aria-label="Game parameters" className={styles.parameters}>
+              {parameters.map(([key, value]) => (
+                <div key={key} className={styles.parameter}>
+                  <dt>
+                    <Text color="secondary">{key}</Text>
+                  </dt>
+                  <dd>
+                    <Text>{typeof value === "string" ? value : JSON.stringify(value)}</Text>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </RoomSection>
+      </div>
 
       <ChatPanel
         snapshot={snapshot}
@@ -156,16 +173,16 @@ export function RoomLobby({
       />
 
       {unmet.length > 0 && (
-        <ul aria-label="Why the game cannot start yet">
+        <ul aria-label="Why the game cannot start yet" className={styles.unmet}>
           {unmet.map((reason) => (
             <li key={reason}>
-              <Text>{reason}</Text>
+              <Text color="secondary">{reason}</Text>
             </li>
           ))}
         </ul>
       )}
 
-      <Stack direction="horizontal" gap={2} wrap="wrap">
+      <div className={styles.actions}>
         {me && !isHost && (
           <Button
             label={me.ready ? "Not ready" : "Ready"}
@@ -208,7 +225,7 @@ export function RoomLobby({
           />
         )}
         <Button label="Leave room" variant="secondary" onClick={onLeave} />
-      </Stack>
-    </Stack>
+      </div>
+    </div>
   );
 }

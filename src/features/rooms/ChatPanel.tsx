@@ -1,13 +1,7 @@
-import { useState, type SyntheticEvent } from "react";
-import { Button } from "@astryxdesign/core/Button";
-import { Heading } from "@astryxdesign/core/Heading";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { Stack } from "@astryxdesign/core/Stack";
-import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
-import { hasTeamChannel } from "./roomRules";
+import { ChatView } from "./ChatView";
 import type { RoomConnection } from "./roomSocket";
 import type { ChatMessageEnvelope, RoomStateSnapshot } from "./rooms-types";
+import { useChat } from "./useChat";
 
 export interface ChatPanelProps {
   snapshot: RoomStateSnapshot;
@@ -16,69 +10,8 @@ export interface ChatPanelProps {
   connection: RoomConnection | null;
 }
 
-type Channel = "ROOM" | "TEAM";
-
-/**
- * VW-RGAME-006…008. One chronological log for both channels (FR-MSG-004), tagged `[Room]` or
- * `[Team]` (FR-MSG-003). Players only — a spectator gets no panel (FR-CHAN-004); the server
- * refuses a spectator's send regardless (`SPECTATOR_CANNOT_CHAT`), so this is not the control.
- * The team channel is offered when the game has team support (above) and the player holds one, the same
- * condition the server applies to `TEAM_CHAT_NOT_AVAILABLE` / `NO_TEAM_ASSIGNMENT`. The log is
- * the client's own (FR-CHAN-003); nothing here touches the room version (IR-08).
- */
+/** VW-RGAME-006…008: the chat state (`useChat`) in its view. Players only (FR-CHAN-004). */
 export function ChatPanel({ snapshot, userId, messages, connection }: ChatPanelProps) {
-  const me = snapshot.players.find((player) => player.playerId === userId);
-  const [chosen, setChosen] = useState<Channel>("ROOM");
-  const [text, setText] = useState("");
-  if (!me) return null;
-
-  const teamAvailable = hasTeamChannel(snapshot) && me.teamId !== null;
-  const channel: Channel = teamAvailable ? chosen : "ROOM";
-  const log = [...messages].sort((a, b) => a.serverTimestamp.localeCompare(b.serverTimestamp));
-
-  function submit(event: SyntheticEvent) {
-    event.preventDefault();
-    if (text.trim() === "") return;
-    connection?.sendChatMessage(channel, text);
-    setText("");
-  }
-
-  return (
-    <Stack gap={2}>
-      <Heading level={2}>Chat</Heading>
-      <ul aria-label="Chat messages">
-        {log.map((message) => (
-          <li key={message.messageId}>
-            <Text>
-              [{message.channel === "TEAM" ? "Team" : "Room"}] {message.authorUsername}:{" "}
-              {message.text}
-            </Text>
-          </li>
-        ))}
-      </ul>
-      <form onSubmit={submit}>
-        <Stack gap={2}>
-          {teamAvailable && (
-            <SegmentedControl
-              label="Write channel"
-              value={channel}
-              onChange={(value) => {
-                setChosen(value as Channel);
-              }}
-            >
-              <SegmentedControlItem value="ROOM" label="Room" />
-              <SegmentedControlItem value="TEAM" label="Team" />
-            </SegmentedControl>
-          )}
-          <TextInput
-            label={channel === "TEAM" ? "Message your team" : "Message the room"}
-            value={text}
-            onChange={setText}
-            htmlName="chat"
-          />
-          <Button label="Send" type="submit" variant="secondary" />
-        </Stack>
-      </form>
-    </Stack>
-  );
+  const chat = useChat(snapshot, userId, messages, connection);
+  return <ChatView chat={chat} />;
 }
