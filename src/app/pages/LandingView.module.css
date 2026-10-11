@@ -1,0 +1,109 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: var(--spacing-8) var(--tb-gutter);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--spacing-8);
+  align-items: center;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 18rem;
+}
+
+.table {
+  display: grid;
+  place-items: center;
+  width: min(100%, 20rem);
+  aspect-ratio: 1;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+}
+
+.mark {
+  width: 60%;
+  filter: drop-shadow(0 0 var(--spacing-4) var(--tb-glow-a));
+}
+
+.piece {
+  position: absolute;
+  width: var(--spacing-10);
+  animation: bob 5s ease-in-out infinite;
+}
+
+.heart {
+  top: var(--spacing-2);
+  left: var(--spacing-2);
+}
+
+.bolt {
+  top: var(--spacing-4);
+  right: var(--spacing-2);
+  animation-delay: -2s;
+}
+
+.hourglass {
+  bottom: var(--spacing-2);
+  right: var(--spacing-6);
+  animation-delay: -4s;
+}
+
+@keyframes bob {
+  50% {
+    transform: translateY(calc(-1 * var(--spacing-2)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piece {
+    animation: none;
+  }
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--spacing-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feature {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.icon {
+  color: var(--tb-cyan-text);
+}
+
+.features > li {
+  display: flex;
+}
+
+.features > li > * {
+  flex: 1;
+}

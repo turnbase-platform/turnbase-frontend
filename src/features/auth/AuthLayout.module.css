@@ -1,0 +1,25 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-6);
+  max-width: 28rem;
+  margin-inline: auto;
+  padding: var(--spacing-8) var(--tb-gutter);
+}
+
+.page > :last-child {
+  width: 100%;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}

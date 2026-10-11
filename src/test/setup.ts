@@ -28,3 +28,8 @@ if (typeof HTMLDialogElement.prototype.showModal !== "function") {
     this.removeAttribute("open");
   };
 }
+
+// jsdom does not implement canvas drawing and logs "Not implemented" on every getContext call.
+// `null` is the real "no 2D context" answer, which the starfield treats as "draw nothing"; the
+// starfield's own tests install a recording context over it.
+HTMLCanvasElement.prototype.getContext = () => null;

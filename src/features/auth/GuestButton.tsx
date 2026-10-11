@@ -10,8 +10,10 @@ import { useAuth } from "./auth-context";
  * validated `redirect` parameter when the visitor was sent to log in first. */
 export function GuestButton({
   variant = "secondary",
+  size,
 }: {
   variant?: "primary" | "secondary" | "ghost";
+  size?: "sm" | "md" | "lg";
 }) {
   const { startGuest } = useAuth();
   const navigate = useNavigate();
@@ -37,5 +39,7 @@ export function GuestButton({
       });
   }
 
-  return <Button label="Play as Guest" variant={variant} isLoading={isBusy} onClick={play} />;
+  return (
+    <Button label="Play as Guest" variant={variant} size={size} isLoading={isBusy} onClick={play} />
+  );
 }

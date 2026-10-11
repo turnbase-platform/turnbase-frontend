@@ -2,6 +2,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { ApiError, rateLimitMessage } from "../../shared/api";
 import { safeRedirect } from "../../shared/redirect";
+import { IGoogle } from "../../ui";
 
 /** Errors with no field of their own — everything the form cannot point at an input for. */
 export function FormError({
@@ -33,6 +34,7 @@ export function GoogleButton({ redirect }: { redirect: string | null }) {
       as="a"
       href={`/auth/google${target}`}
       label="Continue with Google"
+      icon={<IGoogle />}
       variant="secondary"
       width="100%"
     />
