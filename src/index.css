@@ -23,16 +23,3 @@ body {
   color: var(--color-text-primary);
   font-family: var(--font-family-body);
 }
-
-/* IMP-M9-09: Astryx gives every catalog column the same width and clips a cell's overflow, so at
-   1280 px the 113 px of content in the Actions column cut off a 134 px "Show description". The
-   title and Actions columns keep room for their content; the others give way. */
-.catalog-table th:first-child,
-.catalog-table td:first-child {
-  min-width: 11rem;
-}
-
-.catalog-table th:last-child,
-.catalog-table td:last-child {
-  min-width: 10rem;
-}

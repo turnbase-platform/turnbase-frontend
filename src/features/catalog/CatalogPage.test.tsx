@@ -23,7 +23,7 @@ const game = (n: number, extra: object = {}) => ({
 const page = (content: unknown[], pageNo = 1, totalPages = 1) => ({
   body: {
     content,
-    pagination: { page: pageNo, size: 25, totalElements: content.length, totalPages },
+    pagination: { page: pageNo, size: 25, totalElements: totalPages * 25, totalPages },
   },
 });
 

@@ -1,0 +1,55 @@
+/* 88px is the sticky header plus the page's own vertical padding. */
+.page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1280px;
+  height: calc(100svh - 88px);
+  min-height: 520px;
+  margin-inline: auto;
+  padding: var(--spacing-4) var(--tb-gutter) var(--spacing-5);
+}
+
+.head {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spacing-1) var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-height: 0;
+}
+
+.tools {
+  display: flex;
+  flex: none;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .page {
+    height: auto;
+    padding-inline: var(--tb-gutter);
+  }
+
+  .tools {
+    flex-wrap: wrap;
+  }
+}

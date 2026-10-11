@@ -1,0 +1,75 @@
+.search {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--spacing-3);
+}
+
+.status {
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing-6);
+}
+
+/* IMP-M9-09: Astryx caps every cell at zero width and shares the row out equally, then clips what
+   does not fit (a date cut mid-number, "Show description" cut by its cell). A minimum width per
+   column keeps each one at what it holds; the rest is shared out as before. Together they are wider
+   than a phone, so the scroll panel scrolls the table sideways instead of squeezing the cells. */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+  min-width: 12rem;
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  min-width: 7rem;
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+  min-width: 6rem;
+}
+
+.table th:nth-child(4),
+.table td:nth-child(4) {
+  min-width: 4rem;
+}
+
+.table th:nth-child(5),
+.table td:nth-child(5) {
+  min-width: 6.5rem;
+}
+
+.table th:nth-child(6),
+.table td:nth-child(6) {
+  min-width: 5.5rem;
+}
+
+.table th:nth-child(7),
+.table td:nth-child(7),
+.table th:nth-child(8),
+.table td:nth-child(8) {
+  min-width: 6.5rem;
+}
+
+.table th:nth-child(9),
+.table td:nth-child(9) {
+  min-width: 21.5rem;
+}
+
+/* Every column but the title keeps its text on one line. */
+.table th:not(:first-child),
+.table td:not(:first-child) {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .search {
+    flex: 1 1 100%;
+  }
+}

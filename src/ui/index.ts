@@ -20,3 +20,4 @@ export { SortControl } from "./SortControl/SortControl";
 export { formatSort, parseSort, type SortDirection } from "./SortControl/sort";
 export { PageBar } from "./PageBar/PageBar";
 export { pageWindow } from "./PageBar/pageWindow";
+export { ListPage } from "./ListPage/ListPage";
