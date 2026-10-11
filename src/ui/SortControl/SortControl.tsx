@@ -11,15 +11,19 @@ import { formatSort, parseSort } from "./sort";
 export function SortControl({
   fields,
   sort,
+  fixed = [],
   onChange,
 }: {
   /** The server's sort whitelist: field name → label. */
   fields: Record<string, string>;
   sort: string;
+  /** Fields the server orders one way only (a default order): the direction button is disabled. */
+  fixed?: readonly string[];
   onChange: (sort: string) => void;
 }) {
   const { field, direction } = parseSort(sort);
   const asc = direction === "asc";
+  const isFixed = fixed.includes(field);
   return (
     <div className={styles.row}>
       <div className={styles.field}>
@@ -37,6 +41,7 @@ export function SortControl({
         <Button
           variant="secondary"
           isIconOnly
+          isDisabled={isFixed}
           icon={asc ? <ISortAsc /> : <ISortDesc />}
           label={asc ? "Ascending. Switch to descending" : "Descending. Switch to ascending"}
           onClick={() => {

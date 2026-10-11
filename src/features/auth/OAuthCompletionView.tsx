@@ -2,8 +2,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Link } from "@astryxdesign/core/Link";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { IMail, IUser } from "../../ui";
-import { AuthLayout, FormFields } from "./AuthLayout";
+import { IMail, IUser, CardPage, FormFields } from "../../ui";
 import { fieldStatus } from "./fieldStatus";
 import { FormError } from "./forms";
 import type { OAuthCompletion } from "./useOAuthCompletion";
@@ -11,7 +10,7 @@ import type { OAuthCompletion } from "./useOAuthCompletion";
 /** The username step after Google sign-in, rendered from an {@link OAuthCompletion}. */
 export function OAuthCompletionView({ form }: { form: OAuthCompletion }) {
   return (
-    <AuthLayout title="Choose a username" subtitle="One last step to finish your account.">
+    <CardPage title="Choose a username" subtitle="One last step to finish your account.">
       {form.collision && (
         <Banner
           status="warning"
@@ -52,6 +51,6 @@ export function OAuthCompletionView({ form }: { form: OAuthCompletion }) {
           />
         </FormFields>
       </form>
-    </AuthLayout>
+    </CardPage>
   );
 }

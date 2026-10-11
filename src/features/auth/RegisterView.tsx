@@ -4,8 +4,7 @@ import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { autofill } from "../../shared/autofill";
-import { ILock, IMail, IUser } from "../../ui";
-import { AuthLayout, FormFields } from "./AuthLayout";
+import { ILock, IMail, IUser, CardPage, FormFields } from "../../ui";
 import { fieldStatus } from "./fieldStatus";
 import { FormError, GoogleButton } from "./forms";
 import type { RegisterForm } from "./useRegisterForm";
@@ -14,7 +13,7 @@ import type { RegisterForm } from "./useRegisterForm";
 export function RegisterView({ form }: { form: RegisterForm }) {
   const { error, redirect } = form;
   return (
-    <AuthLayout title="Create an account" subtitle="It takes a minute. Then pick a game.">
+    <CardPage title="Create an account" subtitle="It takes a minute. Then pick a game.">
       <form onSubmit={form.submit} noValidate>
         <FormFields>
           <TextInput
@@ -80,6 +79,6 @@ export function RegisterView({ form }: { form: RegisterForm }) {
           Log in
         </Link>
       </Text>
-    </AuthLayout>
+    </CardPage>
   );
 }

@@ -49,6 +49,18 @@ describe("SortControl", () => {
     expect(onChange).toHaveBeenCalledWith("title,desc");
   });
 
+  it("disables the direction toggle for a field the server orders one way only", () => {
+    render(
+      <SortControl
+        fields={{ newest: "Newest", ...FIELDS }}
+        fixed={["newest"]}
+        sort="newest,desc"
+        onChange={() => undefined}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /Switch to ascending/ })).toBeDisabled();
+  });
+
   it("is controlled: a new prop is what it shows", () => {
     const { rerender } = render(
       <SortControl fields={FIELDS} sort="createdAt,desc" onChange={() => undefined} />,

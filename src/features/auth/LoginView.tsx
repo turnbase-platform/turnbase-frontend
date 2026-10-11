@@ -5,8 +5,7 @@ import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { autofill } from "../../shared/autofill";
-import { ILock, IUser } from "../../ui";
-import { AuthLayout, FormFields } from "./AuthLayout";
+import { ILock, IUser, CardPage, FormFields } from "../../ui";
 import { fieldStatus } from "./fieldStatus";
 import { FormError, GoogleButton } from "./forms";
 import type { LoginForm } from "./useLoginForm";
@@ -15,7 +14,7 @@ import type { LoginForm } from "./useLoginForm";
 export function LoginView({ form }: { form: LoginForm }) {
   const { error, redirect } = form;
   return (
-    <AuthLayout title="Log in" subtitle="Pick up where you left off.">
+    <CardPage title="Log in" subtitle="Pick up where you left off.">
       {form.oauthFailed && (
         <Banner status="error" title="Google sign-in did not complete. Please try again." />
       )}
@@ -65,6 +64,6 @@ export function LoginView({ form }: { form: LoginForm }) {
           Register
         </Link>
       </Text>
-    </AuthLayout>
+    </CardPage>
   );
 }

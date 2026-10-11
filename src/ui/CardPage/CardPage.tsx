@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import { Card } from "@astryxdesign/core/Card";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Text } from "@astryxdesign/core/Text";
-import { Logo } from "../../ui";
-import styles from "./AuthLayout.module.css";
+import { Logo } from "../Logo/Logo";
+import styles from "./CardPage.module.css";
 
-/** The frame every sign-in screen shares: the mark above a glass card with a title and a line. */
-export function AuthLayout({
+/** The frame a single-purpose screen shares (sign-in, joining by invite): the mark above a glass card with a title and a line. */
+export function CardPage({
   title,
   subtitle,
   children,
