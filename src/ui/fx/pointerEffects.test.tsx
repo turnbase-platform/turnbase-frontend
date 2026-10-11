@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
+import { CURSOR_EFFECTS_KEY, REDUCE_MOTION_KEY, useMotionPreferences } from "../motion/preferences";
 import { initPointerEffects, usePointerEffects } from "./pointerEffects";
 
 // The delegation sets CSS custom properties from one pointer listener; the glass in surfaces.css
@@ -34,6 +35,7 @@ beforeEach(() => {
   vi.stubGlobal("innerHeight", 500);
 });
 afterEach(() => {
+  localStorage.clear();
   vi.useRealTimers();
   vi.unstubAllGlobals();
   document.body.replaceChildren();
@@ -137,6 +139,45 @@ describe("usePointerEffects", () => {
     expect(el.style.getPropertyValue("--mx")).toBe("50px");
     view.unmount();
     move(el, 100, 70);
+    expect(el.style.getPropertyValue("--mx")).toBe("50px");
+  });
+
+  it("does not start with Cursor effects off, or with Reduced motion on", () => {
+    for (const [key, value] of [
+      [CURSOR_EFFECTS_KEY, "off"],
+      [REDUCE_MOTION_KEY, "on"],
+    ]) {
+      localStorage.setItem(key, value);
+      const view = render(<Probe />);
+      const el = target();
+      move(el, 60, 70);
+      expect(el.style.getPropertyValue("--mx")).toBe("");
+      view.unmount();
+      el.remove();
+      localStorage.clear();
+    }
+  });
+
+  it("starts and stops as the setting is switched, and marks the root", () => {
+    let set: ReturnType<typeof useMotionPreferences> | undefined;
+    function Switchable() {
+      set = useMotionPreferences();
+      usePointerEffects();
+      return null;
+    }
+    render(<Switchable />);
+    const el = target();
+    act(() => {
+      set?.setCursorEffects(false);
+    });
+    expect(root.getAttribute("data-cursor-effects")).toBe("off");
+    move(el, 60, 70);
+    expect(el.style.getPropertyValue("--mx")).toBe("");
+    act(() => {
+      set?.setCursorEffects(true);
+    });
+    expect(root.hasAttribute("data-cursor-effects")).toBe(false);
+    move(el, 60, 70);
     expect(el.style.getPropertyValue("--mx")).toBe("50px");
   });
 });

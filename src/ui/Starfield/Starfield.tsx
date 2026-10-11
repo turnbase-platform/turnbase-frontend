@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useReducedMotion } from "../motion/motion";
+import { useMotionPreferences } from "../motion/preferences";
 import { createStarfield, type Sky } from "./engine";
 import styles from "./Starfield.module.css";
 
@@ -13,8 +14,10 @@ export function Starfield({ dim = false }: { dim?: boolean }) {
   const sky = useRef<Sky | null>(null);
   const wantDim = useRef(dim);
   const reduced = useReducedMotion();
+  const { cursorEffects } = useMotionPreferences();
 
-  // `reduced` is a dependency so the sky is rebuilt, not patched, when the preference flips.
+  // `reduced` and `cursorEffects` are dependencies so the sky is rebuilt, not patched, when the
+  // preference flips: the engine reads how strongly it answers the cursor once, at creation.
   useEffect(() => {
     if (!canvas.current) return;
     sky.current = createStarfield(canvas.current, () => wantDim.current);
@@ -22,7 +25,7 @@ export function Starfield({ dim = false }: { dim?: boolean }) {
       sky.current?.destroy();
       sky.current = null;
     };
-  }, [reduced]);
+  }, [reduced, cursorEffects]);
 
   useEffect(() => {
     if (wantDim.current === dim) return;

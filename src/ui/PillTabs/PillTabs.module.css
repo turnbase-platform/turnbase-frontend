@@ -61,3 +61,8 @@
     transition: none;
   }
 }
+
+:root[data-reduce-motion="true"] .indicator,
+:root[data-reduce-motion="true"] .tab {
+  transition: none;
+}

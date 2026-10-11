@@ -1,5 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { prefersReducedMotion } from "../motion/motion";
+import {
+  applyMotionAttributes,
+  readMotionPreferences,
+  useMotionPreferences,
+} from "../motion/preferences";
 
 /** What the cursor spotlight lights: Astryx cards, the glass class, and anything that opts in. */
 const SPOTLIGHT = ".astryx-card,.astryx-clickable-card,.tb-glass,[data-fx]";
@@ -12,10 +17,11 @@ const SPOTLIGHT = ".astryx-card,.astryx-clickable-card,.tb-glass,[data-fx]";
  * - `--rx` / `--ry` and `data-active` on a `[data-tilt="<degrees>"]` element: the tilt;
  * - `--px` / `--py` (−1…1) and `--sy` on the root: the parallax the starfield and glows follow.
  *
- * Under `prefers-reduced-motion` nothing is registered at all. Returns the teardown.
+ * Under `prefers-reduced-motion`, the Reduced-motion setting, or with Cursor effects switched off,
+ * nothing is registered at all. Returns the teardown.
  */
 export function initPointerEffects(): () => void {
-  if (prefersReducedMotion()) return () => undefined;
+  if (prefersReducedMotion() || !readMotionPreferences().cursorEffects) return () => undefined;
 
   const root = document.documentElement;
   let frame = 0;
@@ -77,7 +83,15 @@ export function initPointerEffects(): () => void {
   };
 }
 
-/** Mount once, in the shell. */
+/**
+ * Mount once, in the shell. Also puts the motion settings on `<html>` for the stylesheets, and
+ * starts or stops the delegation when either setting changes.
+ */
 export function usePointerEffects(): void {
-  useEffect(() => initPointerEffects(), []);
+  const { cursorEffects, reduceMotion } = useMotionPreferences();
+  // A layout effect, so the root is marked before the starfield (a child) reads its tokens.
+  useLayoutEffect(() => {
+    applyMotionAttributes({ cursorEffects, reduceMotion });
+  }, [cursorEffects, reduceMotion]);
+  useEffect(() => initPointerEffects(), [cursorEffects, reduceMotion]);
 }

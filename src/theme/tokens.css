@@ -17,3 +17,10 @@
     --tb-bg-react: 0;
   }
 }
+
+/* The same switches, from Settings > Appearance (set on <html> by ui/motion/preferences.ts). */
+:root[data-reduce-motion="true"],
+:root[data-cursor-effects="off"] {
+  --tb-tilt: 0;
+  --tb-bg-react: 0;
+}

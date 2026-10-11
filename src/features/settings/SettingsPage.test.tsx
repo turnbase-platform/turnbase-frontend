@@ -27,6 +27,10 @@ const account = {
   },
 };
 
+async function openTab(name: string) {
+  await userEvent.click(await screen.findByRole("tab", { name }));
+}
+
 beforeEach(() => {
   FakeEventSource.reset();
   vi.stubGlobal("EventSource", FakeEventSource);
@@ -34,6 +38,9 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
+  document.documentElement.removeAttribute("data-cursor-effects");
+  document.documentElement.removeAttribute("data-reduce-motion");
   vi.unstubAllGlobals();
 });
 
@@ -80,6 +87,7 @@ describe("SettingsPage (VW-SET-001…007)", () => {
       await screen.findByRole("heading", { level: 3, name: "Add a password" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 3, name: "Change password" })).toBeNull();
+    await openTab("Sign-in");
     expect(screen.queryByRole("link", { name: "Link Google account" })).toBeNull();
   });
 
@@ -90,6 +98,7 @@ describe("SettingsPage (VW-SET-001…007)", () => {
       "GET /api/auth/providers": { body: { google: true } },
     });
     renderAt("/settings");
+    await openTab("Sign-in");
 
     expect(await screen.findByRole("link", { name: "Link Google account" })).toBeInTheDocument();
   });
@@ -101,6 +110,7 @@ describe("SettingsPage (VW-SET-001…007)", () => {
       "GET /api/auth/providers": { body: { google: false } },
     });
     renderAt("/settings");
+    await openTab("Sign-in");
 
     await screen.findByText("Password");
     await waitFor(() => {
@@ -112,6 +122,7 @@ describe("SettingsPage (VW-SET-001…007)", () => {
   it("VW-SET-006a: each section visibility control is named on screen", async () => {
     installFakeApi({ ...signedIn, "GET /api/users/me": { body: account } });
     renderAt("/settings");
+    await openTab("Privacy");
 
     for (const name of ["Game history", "Statistics", "Uploaded games", "Friends list"]) {
       expect(await screen.findByText(name)).toBeVisible();
@@ -125,6 +136,7 @@ describe("SettingsPage (VW-SET-001…007)", () => {
       "GET /api/users/me": { body: account },
     });
     renderAt("/settings");
+    await openTab("Sign-in");
 
     await screen.findByText("Password");
     expect(screen.queryByRole("button", { name: /^Remove/ })).toBeNull();
@@ -137,6 +149,7 @@ describe("SettingsPage (VW-SET-001…007)", () => {
       "DELETE /api/users/me/auth-methods/GOOGLE": { status: 204 },
     });
     renderAt("/settings");
+    await openTab("Sign-in");
 
     expect(await screen.findAllByRole("button", { name: /^Remove/ })).toHaveLength(2);
     await userEvent.click(screen.getByRole("button", { name: "Remove Google" }));
@@ -159,6 +172,7 @@ describe("SettingsPage (VW-SET-001…007)", () => {
       },
     });
     renderAt("/settings");
+    await openTab("Privacy");
 
     expect(await screen.findAllByRole("radio", { name: "Public" })).toHaveLength(4);
     await userEvent.click(screen.getByRole("switch", { name: "Make my profile private" }));
@@ -184,11 +198,9 @@ describe("SettingsPage (VW-SET-001…007)", () => {
       "POST /api/auth/logout": { status: 204 },
     });
     renderAt("/settings");
+    await openTab("Delete account");
 
-    await userEvent.type(
-      (await screen.findAllByLabelText(/^Confirm with your password/))[1],
-      "pw-123",
-    );
+    await userEvent.type(await screen.findByLabelText(/^Confirm with your password/), "pw-123");
     await userEvent.click(screen.getByRole("button", { name: "Delete my account" }));
     // The action is gated behind an AlertDialog — clicking the opener alone must not call the API.
     expect(
@@ -290,5 +302,38 @@ describe("SettingsPage (VW-SET-001…007)", () => {
     expect(
       api.calls.filter((call) => call.method === "PATCH" && call.path === "/api/users/me"),
     ).toHaveLength(2);
+  });
+
+  it("coming back from the Google link opens the Sign-in tab", async () => {
+    installFakeApi({
+      ...signedIn,
+      "GET /api/users/me": { body: account },
+      "POST /api/users/me/auth-methods/google": { body: { authMethods: ["PASSWORD", "GOOGLE"] } },
+    });
+    renderAt("/settings?linkGoogle=1");
+
+    expect(await screen.findByRole("tab", { name: "Sign-in" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(await screen.findByRole("heading", { name: "Sign-in methods" })).toBeInTheDocument();
+  });
+
+  it("FR-THM-001: Appearance is kept in the browser and never reaches the API", async () => {
+    const api = installFakeApi({ ...signedIn, "GET /api/users/me": { body: account } });
+    renderAt("/settings");
+    await openTab("Appearance");
+    const before = api.calls.length;
+
+    await userEvent.click(screen.getByRole("switch", { name: "Reduce motion" }));
+    await userEvent.click(screen.getByRole("switch", { name: "Cursor effects" }));
+    await userEvent.click(
+      within(screen.getByRole("tabpanel")).getByRole("radio", { name: "Dark" }),
+    );
+
+    expect(localStorage.getItem("turnbase.reduceMotion")).toBe("on");
+    expect(localStorage.getItem("turnbase.cursorEffects")).toBe("off");
+    expect(localStorage.getItem("turnbase.appearance")).toBe("dark");
+    expect(api.calls).toHaveLength(before);
   });
 });

@@ -1,0 +1,14 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-4);
+  max-width: 40rem;
+  margin-inline: auto;
+  padding: var(--spacing-6) var(--tb-gutter);
+}
+
+.panel {
+  align-self: stretch;
+  min-width: 0;
+}

@@ -88,11 +88,13 @@ test("Registered: every form loads, saves and confirms; delete ends the account"
   await expect(page.getByText("Password changed.").first()).toBeVisible();
 
   // VW-SET-004/005: the compose stack has no Google client, so no link is offered; and no Remove.
+  await page.getByRole("tab", { name: "Sign-in" }).click();
   await expect(page.getByRole("heading", { name: "Sign-in methods" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Link Google account" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Remove/ })).toHaveCount(0);
 
   // VW-SET-006/006a: private hides the section toggles, public brings them back; both persist.
+  await page.getByRole("tab", { name: "Privacy" }).click();
   await expect(page.getByRole("radio", { name: "Public" })).toHaveCount(4);
   for (const name of ["Game history", "Statistics", "Uploaded games", "Friends list"]) {
     await expect(page.getByText(name, { exact: true })).toBeVisible();
@@ -101,11 +103,22 @@ test("Registered: every form loads, saves and confirms; delete ends the account"
   await expect(page.getByText("Privacy settings saved.").first()).toBeVisible();
   await expect(page.getByRole("radio", { name: "Public" })).toHaveCount(0);
   await page.reload();
+  await page.getByRole("tab", { name: "Privacy" }).click();
   await expect(page.getByRole("switch", { name: "Make my profile private" })).toBeChecked();
   await page.getByRole("switch", { name: "Make my profile private" }).click();
   await expect(page.getByRole("radio", { name: "Public" })).toHaveCount(4);
 
+  // FR-THM-001: the appearance choices are the browser's own and survive a reload.
+  await page.getByRole("tab", { name: "Appearance" }).click();
+  await page.getByRole("switch", { name: "Reduce motion" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-reduce-motion", "true");
+  await page.reload();
+  await page.getByRole("tab", { name: "Appearance" }).click();
+  await expect(page.getByRole("switch", { name: "Reduce motion" })).toBeChecked();
+  await expect(page.locator("html")).toHaveAttribute("data-reduce-motion", "true");
+
   // VW-SET-007: cancelling keeps the account; confirming deletes it and ends the session.
+  await page.getByRole("tab", { name: "Delete account" }).click();
   await expect(page.getByRole("button", { name: "Delete my account" })).toBeDisabled();
   await page.locator('input[name="deleteAccountPassword"]').fill("Another-horse-9battery");
   await page.getByRole("button", { name: "Delete my account" }).click();

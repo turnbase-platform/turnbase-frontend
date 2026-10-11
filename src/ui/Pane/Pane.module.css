@@ -36,3 +36,7 @@
     animation: none;
   }
 }
+
+:root[data-reduce-motion="true"] .pane[data-direction] {
+  animation: none;
+}

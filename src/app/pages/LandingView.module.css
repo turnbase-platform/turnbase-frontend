@@ -81,6 +81,10 @@
   }
 }
 
+:root[data-reduce-motion="true"] .piece {
+  animation: none;
+}
+
 .features {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));

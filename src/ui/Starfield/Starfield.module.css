@@ -41,3 +41,7 @@
     transition: none;
   }
 }
+
+:root[data-reduce-motion="true"] .nebula {
+  transition: none;
+}

@@ -59,13 +59,25 @@ test("anonymous routes: desktop layout and axe", async ({ browser }) => {
   }
 });
 
+const SETTINGS_TABS = ["Account", "Sign-in", "Privacy", "Appearance", "Delete account"] as const;
+
+/** Settings shows one tab at a time, so each one is swept (IMP-M12-10). */
+async function sweepSettings(page: Page, label: string): Promise<void> {
+  await sweep(page, `${label} /settings`, "/settings");
+  for (const tab of SETTINGS_TABS.slice(1)) {
+    await page.getByRole("tab", { name: tab }).click();
+    await sweep(page, `${label} /settings, ${tab}`);
+  }
+}
+
 test("guest routes: desktop layout and axe", async ({ browser }) => {
   const guest = await newPlayer(browser, "guest");
   try {
     await playAsGuest(guest);
-    for (const route of ["/rooms", "/rooms/join/NOSUCHCODE", "/friends", "/settings", "/games"]) {
+    for (const route of ["/rooms", "/rooms/join/NOSUCHCODE", "/friends", "/games"]) {
       await sweep(guest.page, `guest ${route}`, route);
     }
+    await sweepSettings(guest.page, "guest");
   } finally {
     await guest.context.close();
   }
@@ -88,12 +100,12 @@ test.describe("registered", () => {
         "/rooms",
         "/rooms/join/NOSUCHCODE",
         "/friends",
-        "/settings",
         "/users/alice",
         "/games",
       ]) {
         await sweep(a.page, `alice ${route}`, route);
       }
+      await sweepSettings(a.page, "alice");
 
       roomId = await createRoom(a, { spectating: true });
       await sweep(a.page, "lobby, host alone");
