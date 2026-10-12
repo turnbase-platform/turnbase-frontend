@@ -1,0 +1,66 @@
+.screen {
+  display: grid;
+  align-items: center;
+  min-height: 100svh;
+  padding: calc(var(--spacing-12) * 2 - var(--spacing-2)) var(--tb-gutter) var(--spacing-10);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: center;
+  gap: clamp(var(--spacing-6), 5vw, calc(var(--spacing-12) + var(--spacing-4)));
+  width: min(1180px, 100%);
+  margin-inline: auto;
+}
+
+.split[data-flip] > :first-child {
+  order: 2;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-4);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+
+.actions[data-centre] {
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+
+  .split[data-flip] > :first-child {
+    order: 0;
+  }
+
+  .screen {
+    padding-top: calc(var(--spacing-10) + var(--spacing-8));
+    padding-bottom: calc(var(--spacing-12) * 2);
+  }
+}
+
+/* Section titles and the lead paragraph, sized as in the prototype. */
+.copy h2 {
+  font-size: clamp(30px, 4.6vw, 48px);
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.copy > p {
+  max-width: 52ch;
+  font-size: clamp(16px, 2vw, 19px);
+  line-height: 1.55;
+}

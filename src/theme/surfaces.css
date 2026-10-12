@@ -62,3 +62,21 @@
 .tb-glass:hover::after {
   opacity: 0.85;
 }
+
+/* A surface that leans toward the pointer: the effect code sets --rx / --ry (ui/fx), and is not
+   registered at all under reduced motion, so the angles then stay at rest. */
+[data-tilt] {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+}
+
+/* The landing snaps to its screens (the shell sets html.snap only while it is shown): firmly on a
+   desktop, gently on a phone or a short window where a screen can be taller than the viewport. */
+html.snap {
+  scroll-snap-type: y mandatory;
+}
+
+@media (max-width: 760px), (max-height: 620px) {
+  html.snap {
+    scroll-snap-type: y proximity;
+  }
+}

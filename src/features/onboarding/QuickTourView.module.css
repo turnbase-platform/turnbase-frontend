@@ -1,0 +1,19 @@
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-6);
+}
+
+.way {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+/* The step title and its lines sit as tight as in the prototype, so a step fits a laptop window. */
+.step h2 {
+  font-size: 28px;
+  line-height: 1.02;
+}

@@ -168,8 +168,11 @@ describe("landing page (VW-LAND-001…004)", () => {
 
     expect(within(main).getByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(within(main).getByRole("link", { name: "Log in" })).toBeInTheDocument();
-    expect(within(main).getByRole("link", { name: "Register" })).toBeInTheDocument();
-    expect(within(main).getByRole("button", { name: "Play as Guest" })).toBeInTheDocument();
+    expect(within(main).getAllByRole("link", { name: "Create account" })[0]).toHaveAttribute(
+      "href",
+      "/register",
+    );
+    expect(within(main).getAllByRole("button", { name: "Play as Guest" })[0]).toBeInTheDocument();
   });
 
   it("removes the calls to action for a signed-in visitor but keeps the description", async () => {
@@ -180,7 +183,7 @@ describe("landing page (VW-LAND-001…004)", () => {
     await waitFor(() => {
       expect(within(main).queryByRole("link", { name: "Log in" })).toBeNull();
     });
-    expect(within(main).queryByRole("link", { name: "Register" })).toBeNull();
+    expect(within(main).queryByRole("link", { name: "Create account" })).toBeNull();
     expect(within(main).queryByRole("button", { name: "Play as Guest" })).toBeNull();
     expect(within(main).getByRole("heading", { level: 1 })).toBeInTheDocument();
   });

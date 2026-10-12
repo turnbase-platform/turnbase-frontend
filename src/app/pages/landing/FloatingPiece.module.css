@@ -1,0 +1,28 @@
+.piece {
+  position: absolute;
+  width: var(--s, 48px);
+  pointer-events: none;
+  filter: drop-shadow(0 0 12px var(--tb-glow-a));
+  transform: perspective(520px) rotateY(calc(var(--px, 0) * var(--d) * 34deg * var(--tb-bg-react)))
+    rotateX(calc(var(--py, 0) * var(--d) * -26deg * var(--tb-bg-react)));
+  transition: transform 0.5s var(--tb-ease);
+  animation: bob 6s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes bob {
+  50% {
+    translate: 0 calc(-1 * var(--spacing-2));
+    rotate: 3deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piece {
+    animation: none;
+  }
+}
+
+:root[data-reduce-motion="true"] .piece {
+  animation: none;
+}

@@ -11,6 +11,10 @@
   box-shadow: inset 0 0 0 1px var(--tb-line);
 }
 
+.cover[data-wide] {
+  aspect-ratio: 16 / 7;
+}
+
 /* CRT scanlines. */
 .cover::before {
   content: "";

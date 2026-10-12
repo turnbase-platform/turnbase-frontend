@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Route, Routes, useLocation } from "react-router";
+import { QuickTour } from "../features/onboarding/QuickTour";
 import { Pane, useDirection } from "../ui";
 import { Backdrop } from "./Backdrop";
 import { frameFor, SECTIONS } from "./frame";
@@ -47,6 +48,7 @@ export function Shell() {
           </Pane>
         </main>
       </div>
+      <QuickTour />
     </>
   );
 }

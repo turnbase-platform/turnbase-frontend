@@ -53,10 +53,13 @@ test("Unauth: nav, landing and redirects", async ({ browser }) => {
   for (const name of ["Log in", "Create account", "Play as Guest"]) {
     await expect(nav(page).getByText(name, { exact: true })).toBeVisible();
   }
-  for (const name of ["Log in", "Register", "Play as Guest"]) {
-    await expect(page.getByRole("main").getByText(name, { exact: true })).toBeVisible();
+  for (const name of ["Log in", "Create account", "Play as Guest"]) {
+    await expect(page.getByRole("main").getByText(name, { exact: true }).first()).toBeVisible();
   }
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  // The landing's five screens and the rail that jumps between them.
+  await expect(page.getByRole("navigation", { name: "Landing sections" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(4);
 
   // VW-REDIR-002 and NFR-SEC-001
   await page.goto("/friends");

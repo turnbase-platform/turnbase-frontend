@@ -1,12 +1,17 @@
 import { useState, type SubmitEvent } from "react";
 import { useSearchParams } from "react-router";
 import type { TextInputStatus } from "@astryxdesign/core/TextInput";
+import { useTour } from "../onboarding/useTour";
 import { useAuth } from "./auth-context";
 import { useGoogleAvailable } from "./useGoogleAvailable";
 
-/** VW-REG-001…003. As with login, the route guard performs the post-success redirect. */
+/**
+ * VW-REG-001…003. As with login, the route guard performs the post-success redirect; a new
+ * account is also shown the quick tour.
+ */
 export function useRegisterForm() {
   const { register } = useAuth();
+  const tour = useTour();
   const google = useGoogleAvailable();
   const [params] = useSearchParams();
   const [username, setUsername] = useState("");
@@ -27,10 +32,12 @@ export function useRegisterForm() {
     if (mismatch) return;
     setIsBusy(true);
     setError(null);
-    register({ username, email, password, confirmPassword }).catch((failure: unknown) => {
-      setError(failure);
-      setIsBusy(false);
-    });
+    register({ username, email, password, confirmPassword })
+      .then(tour.open)
+      .catch((failure: unknown) => {
+        setError(failure);
+        setIsBusy(false);
+      });
   }
 
   return {

@@ -3,6 +3,8 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import type { SubmitEvent } from "react";
 import { installFakeApi } from "../../test/fakeApi";
 import { authWrapper, fakeAuth } from "../../test/authWrapper";
+import { TourProvider } from "../onboarding/TourProvider";
+import { useTour } from "../onboarding/useTour";
 import { useRegisterForm } from "./useRegisterForm";
 
 const submitEvent = { preventDefault: vi.fn() } as unknown as SubmitEvent<HTMLFormElement>;
@@ -38,6 +40,58 @@ describe("useRegisterForm (VW-REG-001…003)", () => {
       password: "Secret-pass-1",
       confirmPassword: "Secret-pass-1",
     });
+  });
+
+  it("opens the quick tour once the account exists, and not before", async () => {
+    const Auth = authWrapper(fakeAuth());
+    const { result } = renderHook(() => ({ form: useRegisterForm(), tour: useTour() }), {
+      wrapper: ({ children }) => (
+        <Auth>
+          <TourProvider>{children}</TourProvider>
+        </Auth>
+      ),
+    });
+    fill(
+      {
+        get current() {
+          return result.current.form;
+        },
+      },
+      "Secret-pass-1",
+    );
+    expect(result.current.tour.isOpen).toBe(false);
+    await act(async () => {
+      result.current.form.submit(submitEvent);
+      await Promise.resolve();
+    });
+    expect(result.current.tour.isOpen).toBe(true);
+  });
+
+  it("does not open the tour when registration fails", async () => {
+    const Auth = authWrapper(
+      fakeAuth(null, { register: vi.fn(() => Promise.reject(new Error("taken"))) }),
+    );
+    const { result } = renderHook(() => ({ form: useRegisterForm(), tour: useTour() }), {
+      wrapper: ({ children }) => (
+        <Auth>
+          <TourProvider>{children}</TourProvider>
+        </Auth>
+      ),
+    });
+    fill(
+      {
+        get current() {
+          return result.current.form;
+        },
+      },
+      "Secret-pass-1",
+    );
+    await act(async () => {
+      result.current.form.submit(submitEvent);
+      await Promise.resolve();
+    });
+    expect(result.current.tour.isOpen).toBe(false);
+    expect(result.current.form.error).toBeInstanceOf(Error);
   });
 
   it("a mismatch is reported on the field and blocks the request", () => {

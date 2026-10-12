@@ -15,4 +15,11 @@ describe("GameCover", () => {
     rerender(<GameCover gameId="a" tilt />);
     expect(container.firstElementChild).toHaveAttribute("data-tilt", "5");
   });
+
+  it("takes a named piece and the flatter shape when told", () => {
+    const { container } = render(<GameCover cover={{ piece: "dice", tone: "b" }} wide />);
+    const cover = container.firstElementChild as HTMLElement;
+    expect(cover).toHaveAttribute("data-wide", "true");
+    expect(cover.style.getPropertyValue("--cover-glow")).toBe("var(--tb-glow-b)");
+  });
 });
