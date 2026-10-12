@@ -1,11 +1,5 @@
-import {
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type ReactNode,
-} from "react";
+import { useId, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useIndicator } from "../motion/useIndicator";
 import styles from "./PillTabs.module.css";
 
 export interface PillTab {
@@ -36,23 +30,8 @@ export function PillTabs({
 }) {
   const base = useId();
   const box = useRef<HTMLDivElement>(null);
-  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
   const selected = items.findIndex((i) => i.value === value);
-  const labels = items.map((i) => i.label).join("\n");
-
-  useLayoutEffect(() => {
-    const measure = () => {
-      const tab = box.current?.querySelectorAll<HTMLElement>("[role=tab]")[selected];
-      setIndicator(tab ? { left: tab.offsetLeft, width: tab.offsetWidth } : null);
-    };
-    measure();
-    addEventListener("resize", measure);
-    // jsdom has no font loading API; a real browser re-measures once the pixel face has arrived.
-    void (document as { fonts?: FontFaceSet }).fonts?.ready.then(measure);
-    return () => {
-      removeEventListener("resize", measure);
-    };
-  }, [selected, labels]);
+  const indicator = useIndicator(box, "[role=tab]", selected, items.map((i) => i.label).join("\n"));
 
   const onKeyDown = (event: KeyboardEvent) => {
     const last = items.length - 1;

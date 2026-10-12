@@ -1,79 +1,109 @@
+import { useRef } from "react";
+import { Link } from "react-router";
 import { Button } from "@astryxdesign/core/Button";
-import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
-import { TopNav, TopNavHeading, TopNavItem } from "@astryxdesign/core/TopNav";
+import {
+  DropdownMenu,
+  DropdownMenuDivider,
+  DropdownMenuItem,
+} from "@astryxdesign/core/DropdownMenu";
 import { GuestButton } from "../features/auth/GuestButton";
 import { NotificationBell } from "../features/notifications/NotificationBell";
-import { IGames, IRooms, IUsers, Logo } from "../ui";
-import { AppearanceControl } from "./AppearanceControl";
+import { IGames, IRooms, IUsers, Logo, Person, useIndicator } from "../ui";
+import { AppearanceMenuGroup } from "./AppearanceMenuGroup";
 import styles from "./NavBar.module.css";
 import type { NavBarModel } from "./useNavBar";
 
 const ICONS = { games: IGames, rooms: IRooms, friends: IUsers };
 
 /**
- * The shell header. Renders a {@link NavBarModel}; every decision about who sees what is in
- * `useNavBar`. At phone width the links, bell and menu cannot share one row, so the links (and,
- * signed out, the three calls to action) take a second row that wraps instead of overlapping.
+ * The shell's navigation: a floating glass pill over the sky (a bar at the foot of the screen on a
+ * phone). Renders a {@link NavBarModel}; every decision about who sees what is in `useNavBar`.
+ * A highlight slides to the selected link.
  */
 export function NavBar({ model }: { model: NavBarModel }) {
-  const { isSignedIn, narrow, username, links, menu } = model;
-
-  const heading = <TopNavHeading logo={<Logo size={28} />} heading="TurnBase" headingHref="/" />;
-  const items = links.map(({ href, label, isSelected, icon }) => {
-    const Icon = ICONS[icon];
-    return (
-      <TopNavItem
-        key={href}
-        href={href}
-        label={label}
-        isSelected={isSelected}
-        icon={<Icon size={18} />}
-      />
-    );
-  });
-  const signedOut = (
-    <>
-      <Button label="Log in" variant="ghost" href="/login" />
-      <Button label="Register" variant="secondary" href="/register" />
-      <GuestButton variant="primary" />
-    </>
-  );
-  const account = (
-    <>
-      <NotificationBell />
-      <DropdownMenu
-        button={{ label: username, variant: "ghost" }}
-        items={menu.map(({ label, onSelect }) => ({ label, onClick: onSelect }))}
-        hasChevron
-      />
-    </>
+  const { isSignedIn, username, links, menu } = model;
+  const linkBox = useRef<HTMLDivElement>(null);
+  const indicator = useIndicator(
+    linkBox,
+    "a",
+    links.findIndex((l) => l.isSelected),
+    links.map((l) => l.href).join("|"),
   );
 
-  if (narrow) {
-    return (
-      <header className={styles.header}>
-        <TopNav heading={heading} endContent={isSignedIn ? account : undefined} />
-        <div className={styles.second}>
-          {items}
-          {!isSignedIn && signedOut}
-          <AppearanceControl />
-        </div>
-      </header>
-    );
-  }
-
+  const exit = menu.filter((m) => m.group === "exit");
   return (
-    <header className={styles.header}>
-      <TopNav
-        heading={heading}
-        startContent={items}
-        endContent={
+    <nav className={`${styles.nav} tb-glass`} aria-label="Main" data-signed-in={isSignedIn}>
+      <Link to={isSignedIn ? "/games" : "/"} className={styles.logo} aria-label="TurnBase home">
+        <Logo size={28} />
+        TurnBase
+      </Link>
+
+      <div className={styles.links} ref={linkBox}>
+        {indicator && (
+          <span
+            className={styles.indicator}
+            aria-hidden="true"
+            style={{ left: indicator.left, width: indicator.width }}
+          />
+        )}
+        {links.map(({ href, label, isSelected, icon }) => {
+          const Icon = ICONS[icon];
+          return (
+            <Link
+              key={href}
+              to={href}
+              className={styles.link}
+              aria-current={isSelected ? "page" : undefined}
+            >
+              <Icon size={18} />
+              {label}
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className={styles.end}>
+        {isSignedIn ? (
           <>
-            <AppearanceControl />
-            {isSignedIn ? account : signedOut}
+            <NotificationBell />
+            <div className={styles.profile}>
+              <DropdownMenu
+                button={{
+                  label: `${username} menu`,
+                  icon: <Person name={username} size="sm" />,
+                  isIconOnly: true,
+                  variant: "ghost",
+                }}
+                hasChevron={false}
+                placement="below"
+                alignment="end"
+              >
+                {menu
+                  .filter((m) => m.group === "main")
+                  .map((m) => (
+                    <DropdownMenuItem key={m.label} label={m.label} onClick={m.onSelect} />
+                  ))}
+                <DropdownMenuDivider />
+                <AppearanceMenuGroup />
+                <DropdownMenuDivider />
+                {exit.map((m) => (
+                  <DropdownMenuItem key={m.label} label={m.label} onClick={m.onSelect} />
+                ))}
+              </DropdownMenu>
+            </div>
           </>
-        }
-      />
-    </header>
+        ) : (
+          <>
+            <div className={styles.hideSmall}>
+              <Button label="Log in" variant="ghost" href="/login" />
+            </div>
+            <div className={styles.hideSmall}>
+              <GuestButton variant="ghost" />
+            </div>
+            <Button label="Create account" variant="primary" href="/register" />
+          </>
+        )}
+      </div>
+    </nav>
   );
 }

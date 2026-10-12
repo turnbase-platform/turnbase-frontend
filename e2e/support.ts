@@ -298,6 +298,7 @@ interface Stray {
  * checked, since the page scrolls.
  */
 export async function expectInteractiveInsideViewport(page: Page, label: string): Promise<void> {
+  await settled(page);
   const strays = await page.evaluate((): Stray[] => {
     const selector =
       'a[href], button, input, select, textarea, summary, [role="button"], [role="switch"], [role="radio"], [role="tab"], [role="menuitem"], [tabindex]:not([tabindex="-1"])';
@@ -329,12 +330,28 @@ export async function expectInteractiveInsideViewport(page: Page, label: string)
   expect(strays, `${label}: interactive elements outside the viewport`).toEqual([]);
 }
 
+/**
+ * Waits for the page's finite animations. A page sliding or fading in is displaced and
+ * semi-transparent, so a geometry or contrast measurement taken then describes the animation.
+ */
+export async function settled(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished),
+    ),
+  );
+}
+
 /** IMP-M9-09: an axe-core pass with zero violations. `axe.source` is evaluated, so the CSP is not in the way.
  * The sandboxed game frame is a separate origin: axe would wait on it for a minute and post to it, so
  * it is left out (`iframes: false`) and the game UI's own markup is the game's to keep clean. */
 export async function expectNoAxeViolations(page: Page, label: string): Promise<void> {
   const axe = (await import("axe-core")) as unknown as { default: { source: string } };
   const { source } = axe.default;
+  await settled(page);
   await page.evaluate(source);
   const violations = await page.evaluate(async () => {
     const axe = (

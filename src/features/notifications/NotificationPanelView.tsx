@@ -21,6 +21,7 @@ function Row({ item, panel }: { item: NotificationItem; panel: NotificationPanel
             <Button
               label={item.type === "ROOM_INVITATION" ? "Join" : "Accept"}
               size="sm"
+              variant="primary"
               onClick={() => {
                 panel.accept(item);
               }}
@@ -28,7 +29,7 @@ function Row({ item, panel }: { item: NotificationItem; panel: NotificationPanel
             <Button
               label="Decline"
               size="sm"
-              variant="secondary"
+              variant="ghost"
               onClick={() => {
                 panel.decline(item);
               }}
@@ -62,12 +63,13 @@ function Row({ item, panel }: { item: NotificationItem; panel: NotificationPanel
 export function NotificationPanelView({ panel }: { panel: NotificationPanelState }) {
   return (
     <div className={styles.panel}>
-      <div className={styles.actions}>
-        <Button label="Mark all read" size="sm" variant="secondary" onClick={panel.markAllRead} />
+      <div className={styles.head}>
+        <Text type="label">Notifications</Text>
+        <Button label="Mark all read" size="sm" variant="ghost" onClick={panel.markAllRead} />
       </div>
       {panel.failed && <LoadError message="Could not load notifications." onRetry={panel.retry} />}
       {panel.loaded && !panel.failed && panel.items.length === 0 && (
-        <Text>You have no notifications.</Text>
+        <Text color="secondary">All caught up. Nothing needs your turn.</Text>
       )}
       <ul className={styles.list} aria-label="Notifications">
         {panel.items.map((item) => (

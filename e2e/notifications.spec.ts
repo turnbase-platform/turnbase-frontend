@@ -27,7 +27,7 @@ async function expectNoHorizontalScroll(page: Page) {
 }
 
 const bell = (page: Page) =>
-  page.getByRole("banner").getByRole("button", { name: /Notifications/ });
+  page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: /Notifications/ });
 
 async function post(page: Page, path: string, body: unknown): Promise<number> {
   return page.evaluate(
@@ -82,7 +82,7 @@ test("Guest: a bell and a panel with no actions, at 400 px", async ({ browser })
 
   await expect(bell(guest.page)).toBeVisible();
   await bell(guest.page).click();
-  await expect(guest.page.getByText("You have no notifications.")).toBeVisible();
+  await expect(guest.page.getByText("All caught up. Nothing needs your turn.")).toBeVisible();
   await expect(guest.page.getByRole("button", { name: "Mark all read" })).toBeVisible();
   for (const name of ["Join", "Accept", "Decline"]) {
     await expect(guest.page.getByRole("button", { name, exact: true })).toHaveCount(0);
@@ -115,7 +115,7 @@ test("Registered: a friend request arrives live, is declined, and the answer is 
   await expectNoHorizontalScroll(dave.page);
   await dave.page.getByRole("button", { name: "Decline" }).click();
   await expect(dave.page.getByText("carol sent you a friend request.")).toHaveCount(0);
-  await expect(dave.page.getByText("You have no notifications.")).toBeVisible();
+  await expect(dave.page.getByText("All caught up. Nothing needs your turn.")).toBeVisible();
 
   await expect(bell(carol.page)).toHaveAccessibleName(/1 unread/);
   await bell(carol.page).click();
@@ -132,7 +132,7 @@ test("Registered: a friend request arrives live, is declined, and the answer is 
   await carol.page.getByRole("button", { name: "Dismiss" }).click();
   await carol.page.reload();
   await bell(carol.page).click();
-  await expect(carol.page.getByText("You have no notifications.")).toBeVisible();
+  await expect(carol.page.getByText("All caught up. Nothing needs your turn.")).toBeVisible();
 
   expect(errors).toEqual([]);
   await carol.context.close();

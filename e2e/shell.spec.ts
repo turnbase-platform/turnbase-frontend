@@ -6,7 +6,8 @@ import { login, newPlayer, playAsGuest } from "./support";
 // (VW-NAV-001…012, VW-LAND-001…004, VW-REDIR-001…007, NFR-SEC-001, NFR-USAB-001…002), as Unauth,
 // Guest and a seeded Registered user. One login only (the address limit is RR-10).
 
-const nav = (page: Page) => page.locator("header");
+const nav = (page: Page) => page.getByRole("navigation", { name: "Main" });
+const accountMenu = (page: Page) => nav(page).getByRole("button", { name: / menu$/ });
 
 /** No horizontal page scroll, and none of the nav's visible controls overlapping another. */
 async function expectHeaderFits(page: Page, { pageScroll = true } = {}) {
@@ -49,8 +50,10 @@ test("Unauth: nav, landing and redirects", async ({ browser }) => {
     await expect(nav(page).getByRole("link", { name })).toHaveCount(0);
   }
   await expect(nav(page).getByRole("button", { name: "Notifications" })).toHaveCount(0);
-  for (const name of ["Log in", "Register", "Play as Guest"]) {
+  for (const name of ["Log in", "Create account", "Play as Guest"]) {
     await expect(nav(page).getByText(name, { exact: true })).toBeVisible();
+  }
+  for (const name of ["Log in", "Register", "Play as Guest"]) {
     await expect(page.getByRole("main").getByText(name, { exact: true })).toBeVisible();
   }
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -103,17 +106,17 @@ test("Guest: nav, 403 explanation and the narrow header", async ({ browser }) =>
   await expect(nav(page).getByRole("link", { name: "Rooms" })).toBeVisible();
   await expect(nav(page).getByRole("button", { name: "Notifications" })).toBeVisible();
   await expect(nav(page).getByRole("link", { name: "Friends" })).toHaveCount(0);
-  for (const name of ["Log in", "Register", "Play as Guest"]) {
+  for (const name of ["Log in", "Create account", "Play as Guest"]) {
     await expect(nav(page).getByText(name, { exact: true })).toHaveCount(0);
   }
   // VW-REDIR-001
   await page.goto("/login");
   await expect(page).toHaveURL(/\/rooms$/);
   // VW-NAV-006/010/011/012
-  await nav(page).locator("button[aria-haspopup='menu']").click();
-  await expect(page.getByRole("menuitem", { name: "View my profile" })).toBeVisible();
-  await expect(page.getByRole("menuitem", { name: "Account settings" })).toHaveCount(0);
-  await expect(page.getByRole("menuitem", { name: "Log out" })).toBeVisible();
+  await accountMenu(page).click();
+  await expect(page.getByRole("menuitem", { name: "Profile" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Settings" })).toHaveCount(0);
+  await expect(page.getByRole("menuitem", { name: "Leave as guest" })).toBeVisible();
   await page.keyboard.press("Escape");
   // VW-REDIR-003 / NFR-USAB-002
   for (const path of ["/friends", "/settings"]) {
@@ -135,17 +138,18 @@ test("Registered: nav, user menu, redirect and logout", async ({ browser }) => {
   const { page } = player;
   await login(player, "alice");
   await expect(nav(page).getByRole("link", { name: "Friends" })).toBeVisible();
-  await nav(page).locator("button[aria-haspopup='menu']").click();
-  await expect(page.getByRole("menuitem", { name: "Account settings" })).toBeVisible();
-  await page.getByRole("menuitem", { name: "Account settings" }).click();
+  await accountMenu(page).click();
+  await expect(page.getByRole("menuitem", { name: "Settings" })).toBeVisible();
+  await page.getByRole("menuitem", { name: "Settings" }).click();
   await expect(page).toHaveURL(/\/settings$/);
   await page.setViewportSize({ width: 400, height: 800 });
   await page.goto("/friends");
   await expectHeaderFits(page, { pageScroll: false });
-  await nav(page).locator("button[aria-haspopup='menu']").click();
-  await page.getByRole("menuitem", { name: "Log out" }).click();
+  await accountMenu(page).click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(nav(page).getByText("Log in", { exact: true })).toBeVisible();
+  // At 400 px the bar keeps only the primary call to action.
+  await expect(nav(page).getByText("Create account", { exact: true })).toBeVisible();
 });
 
 // IMP-M10-17 (VW-404-001): the edge answers an unknown path with 404 — the shell still loads, so the

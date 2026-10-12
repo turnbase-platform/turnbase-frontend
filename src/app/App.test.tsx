@@ -50,45 +50,39 @@ describe("shell", () => {
 });
 
 describe("navigation bar (VW-NAV-001…012, NFR-USAB-001)", () => {
-  it("Unauth: catalog, Login, Register, Play as Guest — and nothing gated", async () => {
+  it("Unauth: catalog, Log in, Create account, Play as Guest — and nothing gated", async () => {
     installFakeApi(unauth);
     renderAt("/");
-    const nav = await screen.findByRole("navigation");
+    const nav = await screen.findByRole("navigation", { name: "Main" });
 
     expect(within(nav).getByRole("link", { name: "Games" })).toBeInTheDocument();
     expect(within(nav).getByRole("link", { name: "Log in" })).toBeInTheDocument();
-    expect(within(nav).getByRole("link", { name: "Register" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Create account" })).toBeInTheDocument();
     expect(within(nav).getByRole("button", { name: "Play as Guest" })).toBeInTheDocument();
     // Removed from the DOM, not disabled.
     for (const name of ["Rooms", "Friends"]) {
       expect(within(nav).queryByRole("link", { name })).toBeNull();
     }
-    expect(within(nav).queryByRole("button", { name: "Notifications" })).toBeNull();
+    expect(within(nav).queryByRole("button", { name: /Notifications/ })).toBeNull();
     expect(FakeEventSource.instances).toHaveLength(0);
   });
 
-  it("at phone width the same elements remain, in a second row (RR-07)", async () => {
-    vi.stubGlobal("matchMedia", (query: string) => ({
-      matches: true,
-      media: query,
-      addEventListener: () => undefined,
-      removeEventListener: () => undefined,
-    }));
-    installFakeApi(unauth);
-    renderAt("/");
-    const header = await screen.findByRole("banner");
+  it("marks the current section with aria-current and the sliding highlight", async () => {
+    installFakeApi(signedInAs(REGISTERED));
+    renderAt("/rooms");
+    const nav = await screen.findByRole("navigation", { name: "Main" });
 
-    for (const name of ["Games", "Log in", "Register"]) {
-      expect(within(header).getByRole("link", { name })).toBeInTheDocument();
-    }
-    expect(within(header).getByRole("button", { name: "Play as Guest" })).toBeInTheDocument();
-    expect(within(header).queryByRole("link", { name: "Rooms" })).toBeNull();
+    expect(await within(nav).findByRole("link", { name: "Rooms" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(within(nav).getByRole("link", { name: "Games" })).not.toHaveAttribute("aria-current");
   });
 
   it("Guest: rooms, bell and user menu; no Friends and no Settings", async () => {
     installFakeApi(signedInAs(GUEST));
     renderAt("/");
-    const nav = await screen.findByRole("navigation");
+    const nav = await screen.findByRole("navigation", { name: "Main" });
 
     expect(await within(nav).findByRole("link", { name: "Rooms" })).toBeInTheDocument();
     expect(within(nav).getByRole("button", { name: /Notifications/ })).toBeInTheDocument();
@@ -96,30 +90,36 @@ describe("navigation bar (VW-NAV-001…012, NFR-USAB-001)", () => {
     expect(within(nav).queryByRole("link", { name: "Log in" })).toBeNull();
     expect(within(nav).queryByRole("button", { name: "Play as Guest" })).toBeNull();
 
-    await userEvent.click(within(nav).getByRole("button", { name: GUEST.username }));
-    expect(await screen.findByRole("menuitem", { name: "View my profile" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Log out" })).toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Account settings" })).toBeNull();
+    await userEvent.click(within(nav).getByRole("button", { name: `${GUEST.username} menu` }));
+    expect(await screen.findByRole("menuitem", { name: "Profile" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Replay the tour" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Leave as guest" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Settings" })).toBeNull();
   });
 
-  it("Registered: Friends and Account settings as well", async () => {
+  it("Registered: Friends and Settings as well, with Light / Dark / Auto in the menu", async () => {
     installFakeApi(signedInAs(REGISTERED));
     renderAt("/");
-    const nav = await screen.findByRole("navigation");
+    const nav = await screen.findByRole("navigation", { name: "Main" });
 
     expect(await within(nav).findByRole("link", { name: "Friends" })).toBeInTheDocument();
-    await userEvent.click(within(nav).getByRole("button", { name: REGISTERED.username }));
-    expect(await screen.findByRole("menuitem", { name: "Account settings" })).toBeInTheDocument();
+    await userEvent.click(within(nav).getByRole("button", { name: `${REGISTERED.username} menu` }));
+    expect(await screen.findByRole("menuitem", { name: "Settings" })).toBeInTheDocument();
+    for (const name of ["Light", "Dark", "Auto"]) {
+      expect(screen.getByRole("menuitemradio", { name })).toBeInTheDocument();
+    }
   });
 
-  it("Log out ends the session and returns to the landing page as Unauth", async () => {
+  it("Sign out ends the session and returns to the landing page as Unauth", async () => {
     const { calls } = installFakeApi({
       ...signedInAs(REGISTERED),
       "POST /api/auth/logout": { status: 204 },
     });
     renderAt("/rooms");
-    await userEvent.click(await screen.findByRole("button", { name: REGISTERED.username }));
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Log out" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: `${REGISTERED.username} menu` }),
+    );
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Sign out" }));
 
     await waitFor(() => {
       expect(where()).toBe("/");
@@ -127,14 +127,14 @@ describe("navigation bar (VW-NAV-001…012, NFR-USAB-001)", () => {
     expect(calls.some((call) => call.method === "POST" && call.path === "/api/auth/logout")).toBe(
       true,
     );
-    const nav = await screen.findByRole("navigation");
+    const nav = await screen.findByRole("navigation", { name: "Main" });
     expect(await within(nav).findByRole("link", { name: "Log in" })).toBeInTheDocument();
   });
 
   it("Play as Guest mints a guest and lands on /rooms (VW-REDIR-004)", async () => {
     installFakeApi({ ...unauth, "POST /api/auth/guest": { status: 201, body: GUEST } });
     renderAt("/");
-    const nav = await screen.findByRole("navigation");
+    const nav = await screen.findByRole("navigation", { name: "Main" });
     await userEvent.click(within(nav).getByRole("button", { name: "Play as Guest" }));
 
     await waitFor(() => {
@@ -154,7 +154,7 @@ describe("Play as Guest rate limit", () => {
       },
     });
     renderAt("/");
-    const nav = await screen.findByRole("navigation");
+    const nav = await screen.findByRole("navigation", { name: "Main" });
     await userEvent.click(within(nav).getByRole("button", { name: "Play as Guest" }));
     expect((await screen.findAllByText(/try again in 50 minutes/)).length).toBeGreaterThan(0);
   });
@@ -622,8 +622,8 @@ describe("notifications (shell-architecture.md §7)", () => {
     expect(FakeEventSource.instances).toHaveLength(1);
     expect(FakeEventSource.instances[0]?.url).toBe("/api/notifications/stream");
 
-    await userEvent.click(screen.getByRole("button", { name: REGISTERED.username }));
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Log out" }));
+    await userEvent.click(screen.getByRole("button", { name: `${REGISTERED.username} menu` }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Sign out" }));
     await waitFor(() => {
       expect(FakeEventSource.instances[0]?.closed).toBe(true);
     });
@@ -636,14 +636,18 @@ describe("notifications (shell-architecture.md §7)", () => {
       "GET /api/notifications/unread-count": () => ({ body: { unreadCount: unread } }),
     });
     renderAt("/rooms");
-    expect(await screen.findByText("2")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Notifications, 2 unread" }),
+    ).toBeInTheDocument();
 
     unread = 3;
     FakeEventSource.instances[0]?.emit("notification", {
       type: "FRIEND_REQUEST",
       notificationId: "n-1",
     });
-    expect(await screen.findByText("3")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Notifications, 3 unread" }),
+    ).toBeInTheDocument();
   });
 
   it("shows an alert as a toast and does not add it to the badge", async () => {
@@ -654,7 +658,7 @@ describe("notifications (shell-architecture.md §7)", () => {
     FakeEventSource.instances[0]?.emit("alert", { type: "INVITATION_ACCEPTED", user: "bob" });
 
     expect(await screen.findByText("bob accepted your invitation.")).toBeInTheDocument();
-    expect(screen.queryByText("1")).toBeNull();
+    expect(screen.queryByRole("button", { name: /unread/ })).toBeNull();
   });
 
   it("SESSION_DISPLACED shows the alert, then goes to /login", async () => {

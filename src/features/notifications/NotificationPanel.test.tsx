@@ -76,7 +76,7 @@ describe("NotificationPanel (VW-NOTIF-001…004)", () => {
     installFakeApi({ ...base, "GET /api/notifications?page=1&size=25": envelope([]) });
     await openPanel();
 
-    expect(await screen.findByText("You have no notifications.")).toBeInTheDocument();
+    expect(await screen.findByText("All caught up. Nothing needs your turn.")).toBeInTheDocument();
   });
 
   it("VW-NOTIF-002: accepting a room invitation joins the room", async () => {

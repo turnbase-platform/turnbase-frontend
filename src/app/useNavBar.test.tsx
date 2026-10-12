@@ -18,7 +18,7 @@ describe("useNavBar (VW-NAV-001…012)", () => {
   it("a Guest gains Rooms but not Friends, and has no Account settings", () => {
     const { result } = renderHook(() => useNavBar(), { wrapper: authWrapper(fakeAuth(GUEST)) });
     expect(labels(result.current.links)).toEqual(["Games", "Rooms"]);
-    expect(labels(result.current.menu)).toEqual(["View my profile", "Log out"]);
+    expect(labels(result.current.menu)).toEqual(["Profile", "Replay the tour", "Leave as guest"]);
     expect(result.current.username).toBe(GUEST.username);
   });
 
@@ -27,7 +27,19 @@ describe("useNavBar (VW-NAV-001…012)", () => {
       wrapper: authWrapper(fakeAuth(REGISTERED)),
     });
     expect(labels(result.current.links)).toEqual(["Games", "Rooms", "Friends"]);
-    expect(labels(result.current.menu)).toEqual(["View my profile", "Account settings", "Log out"]);
+    expect(labels(result.current.menu)).toEqual([
+      "Profile",
+      "Settings",
+      "Replay the tour",
+      "Sign out",
+    ]);
+  });
+
+  it("keeps the exit item last and apart from the rest", () => {
+    const { result } = renderHook(() => useNavBar(), {
+      wrapper: authWrapper(fakeAuth(REGISTERED)),
+    });
+    expect(result.current.menu.map((m) => m.group)).toEqual(["main", "main", "main", "exit"]);
   });
 
   it("marks the link of the current section selected", () => {
@@ -37,11 +49,11 @@ describe("useNavBar (VW-NAV-001…012)", () => {
     expect(result.current.links.filter((l) => l.isSelected).map((l) => l.label)).toEqual(["Rooms"]);
   });
 
-  it("Log out leaves the page first, then ends the session", () => {
+  it("Sign out leaves the page first, then ends the session", () => {
     const auth = fakeAuth(REGISTERED);
     const { result } = renderHook(() => useNavBar(), { wrapper: authWrapper(auth, "/rooms") });
     act(() => {
-      result.current.menu.find((m) => m.label === "Log out")?.onSelect();
+      result.current.menu.find((m) => m.label === "Sign out")?.onSelect();
     });
     expect(auth.logout).toHaveBeenCalledOnce();
   });

@@ -1,19 +1,12 @@
 import type { ComponentType, ReactNode } from "react";
-import { BrowserRouter, Link, Route, Routes } from "react-router";
+import { BrowserRouter, Link } from "react-router";
 import { LinkProvider } from "@astryxdesign/core/Link";
 import { ToastViewport } from "@astryxdesign/core/Toast";
 import { turnbaseTheme } from "../theme/turnbase";
 import { AuthProvider } from "../features/auth/AuthProvider";
 import { AppearanceProvider, ThemedRoot } from "./AppearanceProvider";
-import { Backdrop } from "./Backdrop";
-import { NavBar } from "./NavBar";
-import { RouteGuard } from "./RouteGuard";
-import { appRoutes } from "./routes";
-import { useNavBar } from "./useNavBar";
-
-function Header() {
-  return <NavBar model={useNavBar()} />;
-}
+import { Shell } from "./Shell";
+import { TourProvider } from "../features/onboarding/TourProvider";
 
 // There are no route loaders/Suspense boundaries here, so wrapping navigations in a React
 // transition (react-router's default) buys nothing — it only lets an unrelated synchronous
@@ -39,19 +32,9 @@ export function App({
           <LinkProvider component={Link}>
             <ToastViewport>
               <AuthProvider>
-                <Backdrop />
-                <Header />
-                <main>
-                  <Routes>
-                    {appRoutes.map(({ path, access, element }) => (
-                      <Route
-                        key={path}
-                        path={path}
-                        element={<RouteGuard access={access}>{element}</RouteGuard>}
-                      />
-                    ))}
-                  </Routes>
-                </main>
+                <TourProvider>
+                  <Shell />
+                </TourProvider>
               </AuthProvider>
             </ToastViewport>
           </LinkProvider>

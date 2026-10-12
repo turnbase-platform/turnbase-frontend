@@ -1,13 +1,13 @@
-import { Badge } from "@astryxdesign/core/Badge";
-import { Button } from "@astryxdesign/core/Button";
 import { Popover } from "@astryxdesign/core/Popover";
 import { IBell } from "../../ui";
 import { NotificationPanel } from "./NotificationPanel";
+import styles from "./NotificationBellView.module.css";
 import type { NotificationBell } from "./useNotificationBell";
 
 /**
- * VW-NAV-005: the bell with its unread count, opening the panel. The bell is an icon, never the
- * word "Notifications": with the logo and the account menu that word does not fit a phone's header.
+ * VW-NAV-005: the bell, a round icon button with an amber dot while anything is unread, opening
+ * the panel. The bell is an icon, never the word "Notifications": with the logo and the account
+ * menu that word does not fit a phone. The dot is decoration; the count is in the accessible name.
  */
 export function NotificationBellView({ bell }: { bell: NotificationBell }) {
   const { unread } = bell;
@@ -18,7 +18,7 @@ export function NotificationBellView({ bell }: { bell: NotificationBell }) {
       onOpenChange={bell.setOpen}
       placement="below"
       alignment="end"
-      width={380}
+      width={360}
       content={
         <NotificationPanel
           reloadKey={bell.reloadKey}
@@ -29,14 +29,14 @@ export function NotificationBellView({ bell }: { bell: NotificationBell }) {
         />
       }
     >
-      <Button
-        label={unread > 0 ? `Notifications, ${String(unread)} unread` : "Notifications"}
-        variant="ghost"
-        icon={<IBell size={18} />}
-        isIconOnly={unread === 0}
+      <button
+        type="button"
+        className={styles.bell}
+        aria-label={unread > 0 ? `Notifications, ${String(unread)} unread` : "Notifications"}
       >
-        {unread > 0 ? <Badge variant="error" label={String(unread)} /> : undefined}
-      </Button>
+        <IBell size={20} />
+        {unread > 0 && <span className={styles.dot} aria-hidden="true" />}
+      </button>
     </Popover>
   );
 }

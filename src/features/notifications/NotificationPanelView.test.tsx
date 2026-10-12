@@ -79,15 +79,15 @@ describe("NotificationPanelView", () => {
     const { rerender } = render(
       <NotificationPanelView panel={panel({ items: [], loaded: false })} />,
     );
-    expect(screen.queryByText("You have no notifications.")).toBeNull();
+    expect(screen.queryByText("All caught up. Nothing needs your turn.")).toBeNull();
     rerender(<NotificationPanelView panel={panel({ items: [] })} />);
-    expect(screen.getByText("You have no notifications.")).toBeTruthy();
+    expect(screen.getByText("All caught up. Nothing needs your turn.")).toBeTruthy();
   });
 
   it("offers Retry on failure and Load more when there is another page", async () => {
     const state = panel({ failed: true, hasMore: true });
     render(<NotificationPanelView panel={state} />);
-    expect(screen.queryByText("You have no notifications.")).toBeNull();
+    expect(screen.queryByText("All caught up. Nothing needs your turn.")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     await userEvent.click(screen.getByRole("button", { name: "Load more" }));
     expect(state.retry).toHaveBeenCalled();

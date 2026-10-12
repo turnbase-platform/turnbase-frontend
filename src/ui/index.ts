@@ -3,6 +3,7 @@
 // does not ship (ADR-0017 §3): pointer effects, the starfield, the mark and pixel art, the icon
 // set, page tabs, the directional pane, and the list-query kit.
 export { prefersReducedMotion, useReducedMotion } from "./motion/motion";
+export { useIndicator, type Indicator } from "./motion/useIndicator";
 export { useMotionPreferences, type MotionPreferences } from "./motion/preferences";
 export { initPointerEffects, usePointerEffects } from "./fx/pointerEffects";
 export { Starfield } from "./Starfield/Starfield";
