@@ -1,21 +1,9 @@
-import { Fragment } from "react";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { Link } from "@astryxdesign/core/Link";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
-import { Stack } from "@astryxdesign/core/Stack";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
-} from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { formatDate } from "../../shared/format";
 import {
   FilterButton,
   FilterPanel,
@@ -27,8 +15,7 @@ import {
 } from "../../ui";
 import type { CatalogSortField } from "./catalog-types";
 import type { Catalog } from "./useCatalog";
-import { BadgeLabel } from "./BadgeLabel";
-import { CreateRoomButton } from "./CreateRoomButton";
+import { GameCard } from "./GameCard";
 import styles from "./CatalogView.module.css";
 
 const SORT_LABELS: Record<CatalogSortField, string> = {
@@ -152,76 +139,10 @@ function Rows({ catalog }: { catalog: Catalog }) {
     );
 
   return (
-    <div className={styles.table}>
-      <Table dividers="rows">
-        <TableHeader>
-          <TableRow isHeaderRow>
-            <TableHeaderCell>Game</TableHeaderCell>
-            <TableHeaderCell>Author</TableHeaderCell>
-            <TableHeaderCell>Players</TableHeaderCell>
-            <TableHeaderCell>AI</TableHeaderCell>
-            <TableHeaderCell>Spectators</TableHeaderCell>
-            <TableHeaderCell>Version</TableHeaderCell>
-            <TableHeaderCell>Created</TableHeaderCell>
-            <TableHeaderCell>Updated</TableHeaderCell>
-            <TableHeaderCell>Actions</TableHeaderCell>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {content.map((game) => (
-            <Fragment key={game.gameId}>
-              <TableRow>
-                <TableCell>
-                  <Stack direction="horizontal" gap={2} wrap="wrap">
-                    <Link href={`/games/${game.gameId}`} hasUnderline>
-                      {game.title}
-                    </Link>
-                    <BadgeLabel badge={game.badge} />
-                  </Stack>
-                </TableCell>
-                <TableCell>{game.authorUsername}</TableCell>
-                <TableCell>
-                  {game.minPlayers === game.maxPlayers
-                    ? String(game.minPlayers)
-                    : `${String(game.minPlayers)}–${String(game.maxPlayers)}`}
-                </TableCell>
-                <TableCell>{game.supportsAi ? "Yes" : "No"}</TableCell>
-                <TableCell>{game.supportsSpectators ? "Yes" : "No"}</TableCell>
-                <TableCell>{game.version}</TableCell>
-                <TableCell>{formatDate(game.createdAt)}</TableCell>
-                <TableCell>{formatDate(game.updatedAt)}</TableCell>
-                <TableCell>
-                  {/* Wraps rather than overflows: the cell clips what spills out of it (CA-04). */}
-                  <Stack direction="horizontal" gap={2} wrap="wrap">
-                    <Button
-                      label={
-                        catalog.expanded === game.gameId ? "Hide description" : "Show description"
-                      }
-                      variant="ghost"
-                      aria-expanded={catalog.expanded === game.gameId}
-                      onClick={() => {
-                        catalog.toggle(game.gameId);
-                      }}
-                    />
-                    <CreateRoomButton
-                      gameId={game.gameId}
-                      supportsSpectators={game.supportsSpectators}
-                    />
-                  </Stack>
-                </TableCell>
-              </TableRow>
-              {catalog.expanded === game.gameId && (
-                <TableRow>
-                  <TableCell colSpan={9}>
-                    {/* Plain text: the catalog row's short description is never markup. */}
-                    <Text>{game.shortDescription}</Text>
-                  </TableCell>
-                </TableRow>
-              )}
-            </Fragment>
-          ))}
-        </TableBody>
-      </Table>
+    <div className={styles.grid} key={content.map((game) => game.gameId).join()}>
+      {content.map((game, index) => (
+        <GameCard key={game.gameId} game={game} index={index} />
+      ))}
     </div>
   );
 }

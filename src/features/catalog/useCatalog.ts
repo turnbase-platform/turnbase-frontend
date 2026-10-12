@@ -23,14 +23,12 @@ const INITIAL: CatalogQuery = {
 };
 
 /**
- * VW-CAT-001…003 / FR-CAT-001…010. Owns the query and the one expanded row; every filter, sort
+ * VW-CAT-001…003 / FR-CAT-001…010. Owns the query; every filter, sort
  * and page is a server round trip, so nothing here slices or sorts a fetched page.
  */
 export function useCatalog() {
   const [query, setQuery] = useState<CatalogQuery>(INITIAL);
   const [state, setState] = useState<CatalogState>({ status: "loading" });
-  // FR-CAT-003: one row expanded at a time.
-  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +47,6 @@ export function useCatalog() {
   // A changed filter restarts at page 1: the old page number means nothing for a new result set.
   function refine(change: Partial<CatalogQuery>) {
     setQuery((previous) => ({ ...previous, ...change, page: 1 }));
-    setExpanded(null);
   }
 
   const filterCount = (query.minPlayers === null ? 0 : 1) + (query.maxPlayers === null ? 0 : 1);
@@ -62,7 +59,6 @@ export function useCatalog() {
     sort: formatSort(query.sort, query.direction),
     page: query.page,
     size: query.size,
-    expanded,
     /** Filters in the panel; the search box is not one of them. */
     filterCount,
     /** Everything that narrows the list, the search included. */
@@ -85,13 +81,9 @@ export function useCatalog() {
     },
     setPage: (page: number) => {
       setQuery((previous) => ({ ...previous, page }));
-      setExpanded(null);
     },
     clearFilters: () => {
       refine({ search: "", minPlayers: null, maxPlayers: null });
-    },
-    toggle: (gameId: string) => {
-      setExpanded((current) => (current === gameId ? null : gameId));
     },
   };
 }

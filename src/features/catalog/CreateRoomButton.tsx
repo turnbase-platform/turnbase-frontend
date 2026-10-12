@@ -6,6 +6,7 @@ import { RadioList, RadioListItem } from "@astryxdesign/core/RadioList";
 import { Stack } from "@astryxdesign/core/Stack";
 import { Switch } from "@astryxdesign/core/Switch";
 import { useToast } from "@astryxdesign/core/Toast";
+import { IPlus } from "../../ui";
 import { useAuth } from "../auth/auth-context";
 import { createRoom } from "../rooms/roomsApi";
 
@@ -20,9 +21,13 @@ type Visibility = "PUBLIC" | "FRIENDS_ONLY" | "INVITE_ONLY";
 export function CreateRoomButton({
   gameId,
   supportsSpectators,
+  variant = "primary",
+  size,
 }: {
   gameId: string;
   supportsSpectators: boolean;
+  variant?: "primary" | "secondary";
+  size?: "lg";
 }) {
   const { tier } = useAuth();
   const navigate = useNavigate();
@@ -48,7 +53,9 @@ export function CreateRoomButton({
     <>
       <Button
         label="Create room"
-        variant="primary"
+        variant={variant}
+        icon={<IPlus />}
+        {...(size ? { size } : {})}
         onClick={() => {
           setIsOpen(true);
         }}

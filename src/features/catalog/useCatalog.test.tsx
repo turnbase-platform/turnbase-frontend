@@ -144,31 +144,6 @@ describe("useCatalog", () => {
     expect(result.current.appliedCount).toBe(0);
   });
 
-  it("FR-CAT-003: one row is expanded at a time, and a new query collapses it", async () => {
-    const { result } = renderHook(() => useCatalog());
-    await waitFor(() => {
-      expect(result.current.state.status).toBe("loaded");
-    });
-    act(() => {
-      result.current.toggle("g-1");
-    });
-    expect(result.current.expanded).toBe("g-1");
-    act(() => {
-      result.current.toggle("g-2");
-    });
-    expect(result.current.expanded).toBe("g-2");
-    act(() => {
-      result.current.toggle("g-2");
-    });
-    expect(result.current.expanded).toBeNull();
-
-    act(() => {
-      result.current.toggle("g-1");
-      result.current.setSearch("y");
-    });
-    expect(result.current.expanded).toBeNull();
-  });
-
   it("reports a failed load as an error", async () => {
     vi.mocked(listGames).mockRejectedValue(new Error("down"));
     const { result } = renderHook(() => useCatalog());

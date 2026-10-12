@@ -36,7 +36,6 @@ function model(over: Partial<Catalog> = {}): Catalog {
     sort: "createdAt,desc",
     page: 1,
     size: 25,
-    expanded: null,
     filterCount: 0,
     appliedCount: 0,
     setSearch: vi.fn(),
@@ -46,7 +45,6 @@ function model(over: Partial<Catalog> = {}): Catalog {
     setSize: vi.fn(),
     setPage: vi.fn(),
     clearFilters: vi.fn(),
-    toggle: vi.fn(),
     ...over,
   };
 }
@@ -59,15 +57,15 @@ function view(catalog: Catalog, filtersOpen = false, onToggleFilters = vi.fn()) 
 }
 
 describe("CatalogView", () => {
-  it("FR-CAT-002: a row shows the game, author, players, flags, version and dates", () => {
+  it("FR-CAT-002: a card shows the game, author, players, flags, version, dates and badge", () => {
     view(model());
     expect(screen.getByRole("heading", { level: 1, name: "Games" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Tic-Tac-Toe" })).toHaveAttribute("href", "/games/g-1");
     expect(screen.getByText("Official")).toBeInTheDocument();
-    expect(screen.getByText("TurnBase")).toBeInTheDocument();
-    expect(screen.getByText("1.2.0")).toBeInTheDocument();
-    expect(screen.getAllByText("Yes")).toHaveLength(1);
-    expect(screen.getAllByText("No")).toHaveLength(1);
+    expect(screen.getByText(/By TurnBase · version 1\.2\.0/)).toBeInTheDocument();
+    expect(screen.getByText("AI")).toBeInTheDocument();
+    expect(screen.getByText("No spectators")).toBeInTheDocument();
+    expect(screen.getByText(/Created .*2026 · Updated .*2026/)).toBeInTheDocument();
   });
 
   it("shows a player range when the minimum and maximum differ", () => {
@@ -85,12 +83,10 @@ describe("CatalogView", () => {
     expect(screen.getByText("2–4")).toBeInTheDocument();
   });
 
-  it("FR-CAT-003: the expanded row shows its description and offers to hide it", async () => {
-    const catalog = model({ expanded: "g-1" });
-    view(catalog);
+  it("FR-CAT-003: the short description is on the card, with no row to expand", () => {
+    view(model());
     expect(screen.getByText("Three in a row.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Hide description" }));
-    expect(catalog.toggle).toHaveBeenCalledWith("g-1");
+    expect(screen.queryByRole("button", { name: /description/ })).toBeNull();
   });
 
   it("FR-CAT-005: typing in the search box reports the text", async () => {

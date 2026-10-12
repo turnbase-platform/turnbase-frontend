@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 1280px;
+  max-width: calc(1148px + 2 * var(--tb-gutter));
   height: calc(100svh - 88px);
   min-height: 520px;
   margin-inline: auto;

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, screen, within } from "@testing-library/react";
 import { FakeEventSource, ANONYMOUS, installFakeApi } from "../../test/fakeApi";
 import { renderAt } from "../../test/renderApp";
 
@@ -51,7 +51,8 @@ describe("GameDetailPage (VW-GDET-001…003, FR-GDET-001…009)", () => {
   it("FR-GDET-003: with no info document, the short description is shown", async () => {
     installFakeApi({ ...anon, "GET /api/games/g-1": { body: detail() } });
     renderAt("/games/g-1");
-    expect(await screen.findByText("The classic game.")).toBeInTheDocument();
+    const about = within(await screen.findByRole("region", { name: "About" }));
+    expect(about.getByText("The classic game.")).toBeInTheDocument();
   });
 
   it("FR-GDET-003/004: an info document renders as Markdown, with raw HTML inert", async () => {
@@ -66,10 +67,11 @@ describe("GameDetailPage (VW-GDET-001…003, FR-GDET-001…009)", () => {
     });
     renderAt("/games/g-1");
 
-    expect(await screen.findByRole("heading", { name: "How to play" })).toBeInTheDocument();
+    const about = within(await screen.findByRole("region", { name: "About" }));
+    expect(about.getByRole("heading", { name: "How to play" })).toBeInTheDocument();
     expect(screen.getByText("move")).toBeInTheDocument();
     expect(document.querySelector("script")).toBeNull();
-    expect(screen.queryByText("The classic game.")).toBeNull();
+    expect(about.queryByText("The classic game.")).toBeNull();
     expect(document.querySelector('a[href^="javascript"]')).toBeNull();
   });
 

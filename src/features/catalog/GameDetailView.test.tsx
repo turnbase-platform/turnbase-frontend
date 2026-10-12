@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { GameDetail } from "./catalog-types";
 import { authWrapper, fakeAuth } from "../../test/authWrapper";
 import { GameDetailView } from "./GameDetailView";
@@ -51,7 +51,9 @@ describe("GameDetailView", () => {
 
   it("FR-GDET-003: no info document means the short description", () => {
     render(<GameDetailView state={{ status: "loaded", game: GAME }} />, { wrapper: wrapper() });
-    expect(screen.getByText("The classic game.")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("region", { name: "About" })).getByText("The classic game."),
+    ).toBeInTheDocument();
   });
 
   it("VW-GDET-003: Create room is for signed-in players only", () => {

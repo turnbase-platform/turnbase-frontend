@@ -22,4 +22,11 @@ describe("GameCover", () => {
     expect(cover).toHaveAttribute("data-wide", "true");
     expect(cover.style.getPropertyValue("--cover-glow")).toBe("var(--tb-glow-b)");
   });
+
+  it("is the 4:3 hero tile only when tall", () => {
+    const { container, rerender } = render(<GameCover gameId="a" />);
+    expect(container.firstElementChild).not.toHaveAttribute("data-tall");
+    rerender(<GameCover gameId="a" tall />);
+    expect(container.firstElementChild).toHaveAttribute("data-tall", "true");
+  });
 });

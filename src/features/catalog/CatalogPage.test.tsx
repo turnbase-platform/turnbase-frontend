@@ -133,23 +133,14 @@ describe("CatalogPage (VW-CAT-001…003, FR-CAT-001…010)", () => {
     expect(screen.queryByRole("radio", { name: "Friends Only" })).toBeNull();
   });
 
-  it("FR-CAT-003: a row expands to its short description; only one at a time", async () => {
+  it("FR-CAT-003: every card carries its short description", async () => {
     installFakeApi({
       "GET /api/auth/session": ANONYMOUS,
       [defaultUrl]: page([game(1), game(2)]),
     });
     renderAt("/games");
-    const [first, second] = await screen.findAllByRole("button", { name: "Show description" });
-
-    await userEvent.click(first);
-    expect(screen.getByText("About game 1")).toBeInTheDocument();
-
-    await userEvent.click(second);
+    expect(await screen.findByText("About game 1")).toBeInTheDocument();
     expect(screen.getByText("About game 2")).toBeInTheDocument();
-    expect(screen.queryByText("About game 1")).toBeNull();
-
-    await userEvent.click(screen.getByRole("button", { name: "Hide description" }));
-    expect(screen.queryByText("About game 2")).toBeNull();
   });
 
   it("FR-CAT-005: search is a server-side query parameter, and restarts at page 1", async () => {
