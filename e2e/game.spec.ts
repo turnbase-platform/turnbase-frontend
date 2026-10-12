@@ -86,7 +86,8 @@ test("create, join, ready, start and play Tic-Tac-Toe to a win", async ({ browse
 
   // History and statistics for the registered player, whichever mark A drew.
   await a.page.goto(`/users/${usernameA}`);
-  await expect(a.page.getByRole("heading", { level: 2, name: "Game history" })).toBeVisible();
+  await a.page.getByRole("tab", { name: "History" }).click();
+  await expect(a.page.getByRole("list", { name: "Finished games" })).toBeVisible();
   await expect(a.page.getByText("Tic-Tac-Toe").first()).toBeVisible();
   await expect(a.page.getByText(/Victory|Defeat/).first()).toBeVisible();
   await expect.poll(played).toBe(playedBefore + 1);

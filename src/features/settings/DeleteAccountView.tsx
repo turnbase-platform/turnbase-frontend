@@ -3,6 +3,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Stack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
+import { Row } from "../../ui";
 import { autofill } from "../../shared/autofill";
 import type { DeleteAccount } from "./useDeleteAccount";
 
@@ -21,14 +22,16 @@ export function DeleteAccountView({ account }: { account: DeleteAccount }) {
           {...autofill("current-password")}
         />
       )}
-      <Button
-        label="Delete my account"
-        variant="destructive"
-        isDisabled={needsPassword && password === ""}
-        onClick={() => {
-          account.setIsOpen(true);
-        }}
-      />
+      <Row>
+        <Button
+          label="Delete my account"
+          variant="destructive"
+          isDisabled={needsPassword && password === ""}
+          onClick={() => {
+            account.setIsOpen(true);
+          }}
+        />
+      </Row>
       <AlertDialog
         isOpen={account.isOpen}
         onOpenChange={account.setIsOpen}

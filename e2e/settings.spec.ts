@@ -45,7 +45,7 @@ test("Registered: every form loads, saves and confirms; delete ends the account"
   await page.setViewportSize({ width: 400, height: 800 });
   await page.goto("/settings");
 
-  await expect(page.getByRole("heading", { level: 1, name: "Account settings" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
   await expect(page.getByLabel(/^Username/)).toHaveValue(username);
   await expect(page.getByLabel(/^Email/)).toHaveValue(`${username}@example.test`);
   const overflow = await page.evaluate(
@@ -123,7 +123,7 @@ test("Registered: every form loads, saves and confirms; delete ends the account"
   await page.locator('input[name="deleteAccountPassword"]').fill("Another-horse-9battery");
   await page.getByRole("button", { name: "Delete my account" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Cancel" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Account settings" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
   await page.getByRole("button", { name: "Delete my account" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete account" }).click();
   await expect(page).toHaveURL(/\/$/);

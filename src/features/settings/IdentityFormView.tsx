@@ -2,6 +2,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Stack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { autofill } from "../../shared/autofill";
+import { Row } from "../../ui";
 import { fieldStatus } from "../auth/fieldStatus";
 import { FormError } from "../auth/forms";
 import type { IdentityForm } from "./useIdentityForm";
@@ -40,7 +41,14 @@ export function IdentityFormView({ form }: { form: IdentityForm }) {
         )}
         <FormError error={form.error} />
         {!isLocked && (
-          <Button type="submit" label={`Save ${field}`} variant="primary" isLoading={form.isBusy} />
+          <Row>
+            <Button
+              type="submit"
+              label={`Save ${field}`}
+              variant="primary"
+              isLoading={form.isBusy}
+            />
+          </Row>
         )}
       </Stack>
     </form>

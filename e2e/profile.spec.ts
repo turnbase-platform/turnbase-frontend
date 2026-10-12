@@ -38,14 +38,17 @@ async function setProfilePrivate(page: Page, profilePrivate: boolean) {
   expect(status).toBe(200);
 }
 
-/** Every public-profile section, with a retry-less, resolved state (View standard 3). */
+/** Every public-profile section, one tab each, with a retry-less, resolved state (View standard 3). */
 async function expectPublicSections(page: Page) {
-  await expect(page.getByRole("heading", { level: 2, name: "Statistics" })).toBeVisible();
+  const tabs = page.getByRole("tablist", { name: "Profile sections" });
+  await expect(tabs.getByRole("tab")).toHaveText(["Stats", "History", "Friends", "Uploaded games"]);
   await expect(page.getByText("Total games played")).toBeVisible();
   await expect(page.getByText("Most played game")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: "Game history" })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: "Friends" })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: "Uploaded games" })).toBeVisible();
+  await tabs.getByRole("tab", { name: "History" }).click();
+  await expect(page.getByLabel("Search history")).toBeVisible();
+  await tabs.getByRole("tab", { name: "Friends" }).click();
+  await expect(page.getByRole("tabpanel", { name: "Friends" })).toBeVisible();
+  await tabs.getByRole("tab", { name: "Uploaded games" }).click();
   // A seeded user uploaded nothing; the whole catalog must not leak in (IMP-M9-02).
   await expect(page.getByText("No uploaded games yet")).toBeVisible();
   await expect(page.getByText("Loading…")).toHaveCount(0);

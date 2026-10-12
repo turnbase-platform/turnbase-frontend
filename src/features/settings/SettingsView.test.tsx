@@ -31,7 +31,7 @@ describe("SettingsView", () => {
   it("opens on the account tab, with one panel on screen", () => {
     view();
     expect(screen.getByRole("tab", { name: "Account" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("heading", { level: 1, name: "Account settings" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Save username" })).toBeVisible();
     expect(screen.queryByRole("switch", { name: "Make my profile private" })).toBeNull();
   });

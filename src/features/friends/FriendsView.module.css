@@ -1,17 +1,65 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-6);
-  max-width: 48rem;
+  gap: var(--spacing-4);
+  width: 100%;
+  max-width: calc(1148px + 2 * var(--tb-gutter));
   margin-inline: auto;
   padding: var(--spacing-6) var(--tb-gutter);
+}
+
+/* PageHead's own bottom margin would double the page gap. */
+.page > header {
+  margin-bottom: 0;
+}
+
+.page > [role="tablist"] {
+  align-self: flex-start;
 }
 
 .group {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
+  gap: var(--spacing-3);
   min-width: 0;
+}
+
+.cards,
+.rows {
+  display: grid;
+  gap: var(--spacing-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cards {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 17.5rem));
+}
+
+.rows {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cards > li,
+.rows > li {
+  animation: rise 0.34s var(--tb-ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.friend,
+.request {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+
+.friend > :nth-child(2),
+.request > :nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .actions {
@@ -19,4 +67,18 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-2);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--spacing-3));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cards > li,
+  .rows > li {
+    animation: none;
+  }
 }

@@ -98,12 +98,22 @@ describe("ProfilePage (VW-PROF-001…008)", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "alice" })).toBeInTheDocument();
     expect(screen.queryByText("This profile is private.")).toBeNull();
-    expect(await screen.findByRole("heading", { level: 2, name: "Friends" })).toBeInTheDocument();
-    expect(await screen.findByText("bob")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Edit profile" })).toBeInTheDocument();
+    // VW-PROF-003: one tab per visible section, the first showing; the private flag hides none.
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      "Stats",
+      "History",
+      "Friends",
+      "Uploaded games",
+    ]);
     // FR-STATS-020…022: the totals the API returns, the most played game linked.
     expect(await screen.findByText("17")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Chess" })).toHaveAttribute("href", "/games/g-1");
+
+    await userEvent.click(screen.getByRole("tab", { name: "Friends" }));
+    expect(await screen.findByRole("link", { name: "bob" })).toHaveAttribute("href", "/users/bob");
+    expect(screen.queryByText("17")).toBeNull();
   });
 
   it("FR-STATS-023: a user with no games shows 0 and a placeholder, no link", async () => {
@@ -265,7 +275,7 @@ describe("ProfilePage (VW-PROF-001…008)", () => {
     });
     renderAt("/users/alice");
 
-    expect(await screen.findByRole("heading", { level: 2, name: "Uploaded games" })).toBeVisible();
+    expect(await screen.findByRole("tab", { name: "Uploaded games" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Add friend" })).toBeNull();
   });
 

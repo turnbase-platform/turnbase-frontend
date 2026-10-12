@@ -41,34 +41,43 @@ const view = (state: Friends) =>
     </MemoryRouter>,
   );
 
+const openRequests = () => userEvent.click(screen.getByRole("tab", { name: /^Requests/ }));
+
 describe("FriendsView", () => {
   it("hands each row's action the row it belongs to", async () => {
     const state = friends();
     view(state);
+    await userEvent.click(screen.getByRole("button", { name: "Remove bob" }));
+    expect(state.remove).toHaveBeenCalledWith({ userId: "u-2", username: "bob" });
+
+    await openRequests();
     await userEvent.click(screen.getByRole("button", { name: "Accept carol" }));
     await userEvent.click(screen.getByRole("button", { name: "Decline carol" }));
     await userEvent.click(screen.getByRole("button", { name: "Cancel request to dan" }));
-    await userEvent.click(screen.getByRole("button", { name: "Remove bob" }));
     expect(state.accept).toHaveBeenCalledWith(incomingRequest);
     expect(state.decline).toHaveBeenCalledWith(incomingRequest);
     expect(state.cancel).toHaveBeenCalledWith(sentRequest);
-    expect(state.remove).toHaveBeenCalledWith({ userId: "u-2", username: "bob" });
   });
 
-  it("titles the sent requests with a heading", () => {
+  it("counts the friends and the incoming requests on the tabs", () => {
     view(friends());
+    expect(screen.getByRole("tab", { name: "All friends (1)" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Requests 1" })).toBeTruthy();
+  });
+
+  it("titles the sent requests with a heading", async () => {
+    view(friends());
+    await openRequests();
     expect(screen.getByRole("heading", { name: "Sent requests" })).toBeTruthy();
   });
 
   it("links each friend to their profile and shows no presence group", () => {
     view(friends());
-    expect(screen.getByRole("link", { name: "View profile" }).getAttribute("href")).toBe(
-      "/users/bob",
-    );
+    expect(screen.getByRole("link", { name: "bob" }).getAttribute("href")).toBe("/users/bob");
     expect(screen.queryByText(/online|offline|in a game/i)).toBeNull();
   });
 
-  it("says when there is nothing to show", () => {
+  it("says when there is nothing to show", async () => {
     view(
       friends({
         friends: { status: "ready", items: [] },
@@ -76,8 +85,9 @@ describe("FriendsView", () => {
         outgoing: [],
       }),
     );
-    expect(screen.getByText("No pending requests")).toBeTruthy();
     expect(screen.getByText("No friends yet")).toBeTruthy();
+    await openRequests();
+    expect(screen.getByText("No pending requests")).toBeTruthy();
     expect(screen.queryByText("Sent requests")).toBeNull();
   });
 
@@ -87,17 +97,21 @@ describe("FriendsView", () => {
     expect(screen.getByText("Could not load your friends.")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(state.reloadFriends).toHaveBeenCalled();
+    await openRequests();
     expect(screen.getByRole("button", { name: "Accept carol" })).toBeTruthy();
   });
 
-  it("shows loading for both lists", () => {
+  it("shows loading for both lists", async () => {
     view(friends({ friends: { status: "loading" }, requests: { status: "loading" } }));
-    expect(screen.getAllByText("Loading…")).toHaveLength(2);
+    expect(screen.getByText("Loading…")).toBeTruthy();
+    await openRequests();
+    expect(screen.getByText("Loading…")).toBeTruthy();
   });
 
   it("offers Retry for the requests list", async () => {
     const state = friends({ requests: { status: "error" } });
     view(state);
+    await openRequests();
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(state.reloadRequests).toHaveBeenCalled();
   });

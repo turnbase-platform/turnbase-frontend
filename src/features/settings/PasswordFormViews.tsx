@@ -4,6 +4,7 @@ import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { autofill } from "../../shared/autofill";
+import { Row } from "../../ui";
 import { fieldStatus } from "../auth/fieldStatus";
 import { FormError } from "../auth/forms";
 import type { AddPasswordForm, ChangePasswordForm } from "./usePasswordForms";
@@ -45,7 +46,14 @@ export function ChangePasswordView({ form }: { form: ChangePasswordForm }) {
             isRequired
           />
           <FormError error={form.error} unauthorizedMessage="Your current password is incorrect." />
-          <Button type="submit" label="Change password" variant="primary" isLoading={form.isBusy} />
+          <Row>
+            <Button
+              type="submit"
+              label="Change password"
+              variant="primary"
+              isLoading={form.isBusy}
+            />
+          </Row>
         </Stack>
       </form>
     </Stack>
@@ -80,7 +88,9 @@ export function AddPasswordView({ form }: { form: AddPasswordForm }) {
             isRequired
           />
           <FormError error={form.error} />
-          <Button type="submit" label="Add password" variant="primary" isLoading={form.isBusy} />
+          <Row>
+            <Button type="submit" label="Add password" variant="primary" isLoading={form.isBusy} />
+          </Row>
         </Stack>
       </form>
     </Stack>

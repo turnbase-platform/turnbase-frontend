@@ -63,7 +63,8 @@ test.describe("mid-game departures", () => {
       await expect.poll(() => played(a, "alice")).toBe(before.alice + 1);
 
       await b.page.goto("/users/bob");
-      await expect(b.page.getByRole("heading", { level: 2, name: "Game history" })).toBeVisible();
+      await b.page.getByRole("tab", { name: "History" }).click();
+      await expect(b.page.getByRole("list", { name: "Finished games" })).toBeVisible();
       await expect(b.page.getByText("Victory").first()).toBeVisible();
     } finally {
       await leaveQuietly([a, b], roomId);

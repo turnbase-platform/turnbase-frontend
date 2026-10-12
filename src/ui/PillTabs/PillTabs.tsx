@@ -20,6 +20,7 @@ export function PillTabs({
   items,
   onChange,
   panelId,
+  block = false,
 }: {
   label: string;
   value: string;
@@ -27,6 +28,8 @@ export function PillTabs({
   onChange: (value: string) => void;
   /** The `id` of the element these tabs switch, when it is a `role="tabpanel"`. */
   panelId?: string;
+  /** Spans the width of its container instead of hugging the pills (a profile's tab strip). */
+  block?: boolean;
 }) {
   const base = useId();
   const box = useRef<HTMLDivElement>(null);
@@ -58,7 +61,14 @@ export function PillTabs({
   };
 
   return (
-    <div className={styles.tabs} role="tablist" aria-label={label} ref={box} onKeyDown={onKeyDown}>
+    <div
+      className={styles.tabs}
+      role="tablist"
+      aria-label={label}
+      data-block={block || undefined}
+      ref={box}
+      onKeyDown={onKeyDown}
+    >
       {indicator && (
         <span
           className={styles.indicator}
@@ -83,6 +93,8 @@ export function PillTabs({
             }}
           >
             {item.label}
+            {/* The space keeps the accessible name "Requests 2", not "Requests2"; it collapses visually. */}
+            {item.end && " "}
             {item.end}
           </button>
         );

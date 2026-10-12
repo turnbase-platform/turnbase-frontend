@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Heading } from "@astryxdesign/core/Heading";
-import { PillTabs } from "../../ui";
+import { PageHead, Pane, PillTabs } from "../../ui";
 import type { AccountResponse, PrivacySettings } from "./settings-types";
 import {
   AccountSection,
@@ -41,9 +40,10 @@ export function SettingsView({
   const label = SETTINGS_TABS.find((t) => t.value === tab)?.label;
   return (
     <div className={styles.page}>
-      <Heading level={1} type="display-2">
-        Account settings
-      </Heading>
+      <PageHead
+        title="Settings"
+        subtitle="Your account and how TurnBase looks and behaves for you."
+      />
       <PillTabs
         label="Settings sections"
         value={tab}
@@ -54,17 +54,19 @@ export function SettingsView({
         }}
       />
       <div id={PANEL} role="tabpanel" aria-label={label} className={styles.panel}>
-        {tab === "account" && (
-          <AccountSection account={account} onUpdated={onAccountChanged} onReload={onReload} />
-        )}
-        {tab === "sign-in" && <SignInSection account={account} onReload={onReload} />}
-        {tab === "privacy" && (
-          <PrivacySection privacy={account.privacy} onUpdated={onPrivacyChanged} />
-        )}
-        {tab === "appearance" && <AppearanceSection />}
-        {tab === "delete" && (
-          <DeleteAccountSection needsPassword={account.authMethods.includes("PASSWORD")} />
-        )}
+        <Pane id={tab}>
+          {tab === "account" && (
+            <AccountSection account={account} onUpdated={onAccountChanged} onReload={onReload} />
+          )}
+          {tab === "sign-in" && <SignInSection account={account} onReload={onReload} />}
+          {tab === "privacy" && (
+            <PrivacySection privacy={account.privacy} onUpdated={onPrivacyChanged} />
+          )}
+          {tab === "appearance" && <AppearanceSection />}
+          {tab === "delete" && (
+            <DeleteAccountSection needsPassword={account.authMethods.includes("PASSWORD")} />
+          )}
+        </Pane>
       </div>
     </div>
   );

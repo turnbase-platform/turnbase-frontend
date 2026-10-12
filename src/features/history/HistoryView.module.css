@@ -1,4 +1,29 @@
-.list,
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
+.search {
+  width: 100%;
+  max-width: 22.5rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cell {
+  animation: rise 0.34s var(--tb-ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
 .card,
 .stats {
   display: flex;
@@ -9,15 +34,34 @@
 
 .summary {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-2) var(--spacing-3);
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
+}
+
+.thumb {
+  flex: none;
+  width: 3.5rem;
+  aspect-ratio: 4 / 3;
 }
 
 .game {
-  flex: 1 1 8rem;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.open {
+  transform: rotate(180deg);
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: 0 var(--spacing-4) var(--spacing-4) calc(var(--spacing-12) + var(--spacing-8));
 }
 
 .dl {
@@ -36,4 +80,23 @@
 .stat dd {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--spacing-3));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell {
+    animation: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .details {
+    padding-inline-start: var(--spacing-4);
+  }
 }

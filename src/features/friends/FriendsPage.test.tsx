@@ -26,6 +26,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Requests sit on their own tab (VW-FREN-004); the friends are on the first. */
+const openRequests = () => userEvent.click(screen.getByRole("tab", { name: /^Requests/ }));
+
 describe("FriendsPage (VW-FREN-001…005)", () => {
   it("VW-FREN-001/002: lists friends with a link to their profile", async () => {
     installFakeApi({
@@ -35,11 +38,8 @@ describe("FriendsPage (VW-FREN-001…005)", () => {
     });
     renderAt("/friends");
 
-    expect(await screen.findByText("bob")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View profile" })).toHaveAttribute(
-      "href",
-      "/users/bob",
-    );
+    expect(await screen.findByRole("link", { name: "bob" })).toHaveAttribute("href", "/users/bob");
+    expect(screen.getByRole("tab", { name: "All friends (1)" })).toBeInTheDocument();
   });
 
   it("IMP-M10-11: re-reads on a pushed FRIEND_* notification and on reconnect, not on others", async () => {
@@ -50,6 +50,8 @@ describe("FriendsPage (VW-FREN-001…005)", () => {
       "GET /api/friend-requests": () => envelope(requests),
     });
     renderAt("/friends");
+    await screen.findByText("No friends yet");
+    await openRequests();
     expect(await screen.findByText("No pending requests")).toBeInTheDocument();
 
     requests = [{ requestId: "r-1", direction: "INCOMING", counterpartUsername: "carol" }];
@@ -105,8 +107,9 @@ describe("FriendsPage (VW-FREN-001…005)", () => {
     });
     renderAt("/friends");
 
-    expect(await screen.findByText("carol")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Accept carol" }));
+    expect(await screen.findByRole("tab", { name: "Requests 1" })).toBeInTheDocument();
+    await openRequests();
+    await userEvent.click(await screen.findByRole("button", { name: "Accept carol" }));
 
     await waitFor(() => {
       expect(
@@ -134,6 +137,8 @@ describe("FriendsPage (VW-FREN-001…005)", () => {
     });
     renderAt("/friends");
 
+    await screen.findByRole("tab", { name: "Requests 1" });
+    await openRequests();
     await userEvent.click(await screen.findByRole("button", { name: "Decline carol" }));
 
     await waitFor(() => {
@@ -153,8 +158,9 @@ describe("FriendsPage (VW-FREN-001…005)", () => {
     });
     renderAt("/friends");
 
-    expect(await screen.findByText("No pending requests")).toBeInTheDocument();
     expect(await screen.findByText("No friends yet")).toBeInTheDocument();
+    await openRequests();
+    expect(await screen.findByText("No pending requests")).toBeInTheDocument();
   });
 
   it("a failed load says which list failed, offers Retry, and raises no toast", async () => {
@@ -166,9 +172,10 @@ describe("FriendsPage (VW-FREN-001…005)", () => {
     renderAt("/friends");
 
     expect(await screen.findByText("Could not load your friends.")).toBeInTheDocument();
-    expect(screen.getByText("No pending requests")).toBeInTheDocument();
+    await openRequests();
+    expect(await screen.findByText("No pending requests")).toBeInTheDocument();
     expect(screen.queryByText(/Could not complete that action/)).toBeNull();
-    expect(screen.getAllByRole("button", { name: "Retry" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
     expect(api.calls.filter((c) => c.path === "/api/users/alice/friends")).toHaveLength(1);
   });
 

@@ -1,15 +1,42 @@
-import { Avatar } from "@astryxdesign/core/Avatar";
+import { useState } from "react";
+import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Link } from "@astryxdesign/core/Link";
-import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
-import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { LoadError } from "../../shared/LoadError";
-import { SectionCard } from "../../ui";
+import { PageHead, Pane, PillTabs, Person } from "../../ui";
+import type { PendingRequest } from "./friends-types";
 import type { Friends } from "./useFriends";
 import styles from "./FriendsView.module.css";
+
+type Tab = "all" | "requests";
+
+function RequestRow({
+  request,
+  index,
+  children,
+}: {
+  request: PendingRequest;
+  index: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <li style={{ "--i": index } as React.CSSProperties}>
+      <Card padding={3}>
+        <div className={styles.request}>
+          <Person name={request.counterpartUsername} />
+          <Link href={`/users/${request.counterpartUsername}`} color="inherit">
+            <Text weight="semibold">{request.counterpartUsername}</Text>
+          </Link>
+          <div className={styles.actions}>{children}</div>
+        </div>
+      </Card>
+    </li>
+  );
+}
 
 function Requests({ friends }: { friends: Friends }) {
   const { requests, incoming, outgoing, accept, decline, cancel, reloadRequests } = friends;
@@ -18,67 +45,53 @@ function Requests({ friends }: { friends: Friends }) {
     return <LoadError message="Could not load your friend requests." onRetry={reloadRequests} />;
   }
   return (
-    <>
+    <div className={styles.group}>
       {incoming.length === 0 ? (
         <EmptyState title="No pending requests" isCompact />
       ) : (
-        <List header={<VisuallyHidden>Incoming requests</VisuallyHidden>} hasDividers>
-          {incoming.map((request) => (
-            <ListItem
-              key={request.requestId}
-              label={request.counterpartUsername}
-              startContent={<Avatar name={request.counterpartUsername} size="sm" tooltip={false} />}
-              endContent={
-                <div className={styles.actions}>
-                  <Button
-                    label="Accept"
-                    aria-label={`Accept ${request.counterpartUsername}`}
-                    variant="primary"
-                    onClick={() => {
-                      accept(request);
-                    }}
-                  />
-                  <Button
-                    label="Decline"
-                    aria-label={`Decline ${request.counterpartUsername}`}
-                    variant="secondary"
-                    onClick={() => {
-                      decline(request);
-                    }}
-                  />
-                </div>
-              }
-            />
+        <ul className={styles.rows} aria-label="Incoming requests">
+          {incoming.map((request, index) => (
+            <RequestRow key={request.requestId} request={request} index={index}>
+              <Button
+                label="Accept"
+                aria-label={`Accept ${request.counterpartUsername}`}
+                variant="secondary"
+                onClick={() => {
+                  accept(request);
+                }}
+              />
+              <Button
+                label="Decline"
+                aria-label={`Decline ${request.counterpartUsername}`}
+                variant="ghost"
+                onClick={() => {
+                  decline(request);
+                }}
+              />
+            </RequestRow>
           ))}
-        </List>
+        </ul>
       )}
       {outgoing.length > 0 && (
-        <div className={styles.group}>
+        <>
           <Heading level={3}>Sent requests</Heading>
-          <List header={<VisuallyHidden>Requests you sent</VisuallyHidden>} hasDividers>
-            {outgoing.map((request) => (
-              <ListItem
-                key={request.requestId}
-                label={request.counterpartUsername}
-                startContent={
-                  <Avatar name={request.counterpartUsername} size="sm" tooltip={false} />
-                }
-                endContent={
-                  <Button
-                    label="Cancel"
-                    aria-label={`Cancel request to ${request.counterpartUsername}`}
-                    variant="ghost"
-                    onClick={() => {
-                      cancel(request);
-                    }}
-                  />
-                }
-              />
+          <ul className={styles.rows} aria-label="Requests you sent">
+            {outgoing.map((request, index) => (
+              <RequestRow key={request.requestId} request={request} index={index}>
+                <Button
+                  label="Cancel"
+                  aria-label={`Cancel request to ${request.counterpartUsername}`}
+                  variant="ghost"
+                  onClick={() => {
+                    cancel(request);
+                  }}
+                />
+              </RequestRow>
             ))}
-          </List>
-        </div>
+          </ul>
+        </>
       )}
-    </>
+    </div>
   );
 }
 
@@ -98,15 +111,15 @@ function YourFriends({ friends }: { friends: Friends }) {
     );
   }
   return (
-    <List header={<VisuallyHidden>Your friends</VisuallyHidden>} hasDividers>
-      {list.items.map((friend) => (
-        <ListItem
-          key={friend.userId}
-          label={friend.username}
-          startContent={<Avatar name={friend.username} size="sm" tooltip={false} />}
-          endContent={
-            <div className={styles.actions}>
-              <Link href={`/users/${friend.username}`}>View profile</Link>
+    <ul className={styles.cards} aria-label="Your friends">
+      {list.items.map((friend, index) => (
+        <li key={friend.userId} style={{ "--i": index } as React.CSSProperties}>
+          <Card padding={3}>
+            <div className={styles.friend}>
+              <Person name={friend.username} />
+              <Link href={`/users/${friend.username}`} color="inherit">
+                <Text weight="semibold">{friend.username}</Text>
+              </Link>
               <Button
                 label="Remove"
                 aria-label={`Remove ${friend.username}`}
@@ -116,26 +129,52 @@ function YourFriends({ friends }: { friends: Friends }) {
                 }}
               />
             </div>
-          }
-        />
+          </Card>
+        </li>
       ))}
-    </List>
+    </ul>
   );
 }
 
-/** VW-FREN-001…005: pending requests above one list of friends — no presence groups (ADR-0017 §4). */
+/**
+ * VW-FREN-001…005: the friends in one tab, the pending requests in the other, with the incoming
+ * count on the tab. There are no presence groups (ADR-0017 §4).
+ */
 export function FriendsView({ friends }: { friends: Friends }) {
+  const [tab, setTab] = useState<Tab>("all");
+  const count =
+    friends.friends.status === "ready" ? ` (${String(friends.friends.items.length)})` : "";
   return (
     <div className={styles.page}>
-      <Heading level={1} type="display-2">
-        Friends
-      </Heading>
-      <SectionCard title="Requests">
-        <Requests friends={friends} />
-      </SectionCard>
-      <SectionCard title="Your friends">
-        <YourFriends friends={friends} />
-      </SectionCard>
+      <PageHead title="Friends" subtitle="Your friends and the requests waiting for you." />
+      <PillTabs
+        label="Friends sections"
+        value={tab}
+        panelId="friends-panel"
+        items={[
+          { value: "all", label: `All friends${count}` },
+          {
+            value: "requests",
+            label: "Requests",
+            end:
+              friends.incoming.length > 0 ? (
+                <Badge variant="warning" label={String(friends.incoming.length)} />
+              ) : undefined,
+          },
+        ]}
+        onChange={(value) => {
+          setTab(value as Tab);
+        }}
+      />
+      <div
+        id="friends-panel"
+        role="tabpanel"
+        aria-label={tab === "all" ? "All friends" : "Requests"}
+      >
+        <Pane id={tab}>
+          {tab === "all" ? <YourFriends friends={friends} /> : <Requests friends={friends} />}
+        </Pane>
+      </div>
     </div>
   );
 }

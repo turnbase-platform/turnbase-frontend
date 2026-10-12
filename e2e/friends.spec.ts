@@ -75,8 +75,7 @@ test("Registered: the friend list, at 400 px, with a link to the profile", async
   await alice.page.goto("/friends");
 
   await expect(alice.page.getByRole("heading", { level: 1, name: "Friends" })).toBeVisible();
-  await expect(alice.page.getByText("bob", { exact: true })).toBeVisible();
-  await expect(alice.page.getByRole("link", { name: "View profile" }).first()).toHaveAttribute(
+  await expect(alice.page.getByRole("link", { name: "bob", exact: true })).toHaveAttribute(
     "href",
     "/users/bob",
   );
@@ -101,11 +100,13 @@ test("Registered: a request is received, declined, and the sender sees it go", a
   expect(await post(carol.page, "/api/friend-requests", { recipientUsername: "dave" })).toBe(201);
 
   await carol.page.goto("/friends");
+  await carol.page.getByRole("tab", { name: /^Requests/ }).click();
   await expect(carol.page.getByRole("heading", { name: "Sent requests" })).toBeVisible();
   await expect(carol.page.getByRole("button", { name: "Cancel request to dave" })).toBeVisible();
 
   await dave.page.setViewportSize({ width: 400, height: 800 });
   await dave.page.goto("/friends");
+  await dave.page.getByRole("tab", { name: /^Requests/ }).click();
   await expect(dave.page.getByRole("button", { name: "Accept carol" })).toBeVisible();
   await expectNoHorizontalScroll(dave.page);
   await dave.page.getByRole("button", { name: "Decline carol" }).click();
@@ -113,6 +114,7 @@ test("Registered: a request is received, declined, and the sender sees it go", a
   await expect(dave.page.getByText(/Could not/)).toHaveCount(0);
 
   await carol.page.reload();
+  await carol.page.getByRole("tab", { name: /^Requests/ }).click();
   await expect(carol.page.getByRole("heading", { name: "Sent requests" })).toHaveCount(0);
 
   expect(errors).toEqual([]);
@@ -131,6 +133,7 @@ test("A friend request appears in the recipient's open Friends view without a re
   await clearRequests(carol.page);
 
   await dave.page.goto("/friends");
+  await dave.page.getByRole("tab", { name: /^Requests/ }).click();
   await expect(dave.page.getByText("No pending requests")).toBeVisible();
 
   expect(await post(carol.page, "/api/friend-requests", { recipientUsername: "dave" })).toBe(201);
@@ -151,9 +154,11 @@ test("Registered: accept makes friends, remove ends it", async ({ browser }) => 
 
   expect(await post(dave.page, "/api/friend-requests", { recipientUsername: "carol" })).toBe(201);
   await carol.page.goto("/friends");
+  await carol.page.getByRole("tab", { name: /^Requests/ }).click();
   await carol.page.getByRole("button", { name: "Accept dave" }).click();
-  await expect(carol.page.getByRole("button", { name: "Remove dave" })).toBeVisible();
   await expect(carol.page.getByText("No pending requests")).toBeVisible();
+  await carol.page.getByRole("tab", { name: /^All friends/ }).click();
+  await expect(carol.page.getByRole("button", { name: "Remove dave" })).toBeVisible();
 
   await carol.page.getByRole("button", { name: "Remove dave" }).click();
   await expect(carol.page.getByText("No friends yet")).toBeVisible();

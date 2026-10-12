@@ -36,7 +36,20 @@ describe("PillTabs", () => {
 
   it("names a tab by its label and renders its end adornment", () => {
     render(<Harness />);
-    expect(screen.getByRole("tab", { name: /Requests/ })).toHaveTextContent("Requests2");
+    expect(screen.getByRole("tab", { name: "Requests 2" })).toBeInTheDocument();
+  });
+
+  it("spans its container when asked", () => {
+    render(
+      <PillTabs
+        block
+        label="Sections"
+        value="a"
+        items={[{ value: "a", label: "A" }]}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("tablist")).toHaveAttribute("data-block", "true");
   });
 
   it("selects on click", async () => {
