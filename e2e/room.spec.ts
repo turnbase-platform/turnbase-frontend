@@ -68,8 +68,8 @@ test("lobby → game → results for host, player, spectator and an outsider", a
     );
     // No team channel in a one-seat-per-team game; players chat, the spectator does not.
     await expect(a.page.getByRole("radio", { name: "Team" })).toHaveCount(0);
-    await expect(a.page.getByRole("heading", { name: "Chat" })).toBeVisible();
-    await expect(c.page.getByRole("heading", { name: "Chat" })).toHaveCount(0);
+    await expect(a.page.getByRole("heading", { name: "Room chat" })).toBeVisible();
+    await expect(c.page.getByRole("heading", { name: "Room chat" })).toHaveCount(0);
     await expect(c.page.getByRole("button", { name: "Switch to player" })).toHaveCount(0); // full
     await expect(c.page.getByRole("list", { name: "Players" })).toBeVisible();
 
@@ -78,13 +78,13 @@ test("lobby → game → results for host, player, spectator and an outsider", a
     await expectNoHorizontalScroll(a.page);
     await a.page.setViewportSize({ width: 1280, height: 800 });
 
-    await b.page.getByRole("button", { name: "Ready", exact: true }).click();
+    await b.page.getByRole("switch", { name: "I am ready" }).click();
     await expect(start).toBeEnabled();
     await start.click();
     for (const p of [a, b, c]) {
       await expect(gameFrame(p.page).locator("[data-cell]")).toHaveCount(9);
     }
-    await expect(c.page.getByRole("heading", { name: "Chat" })).toHaveCount(0);
+    await expect(c.page.getByRole("heading", { name: "Room chat" })).toHaveCount(0);
 
     // A refresh mid-game rejoins from a snapshot — the game, not the lobby.
     await playCell([a, b], 0);

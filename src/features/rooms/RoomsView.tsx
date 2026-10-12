@@ -2,20 +2,13 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Selector } from "@astryxdesign/core/Selector";
-import { Stack } from "@astryxdesign/core/Stack";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
-} from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   FilterButton,
   FilterPanel,
+  IPlus,
+  IRefresh,
   ISearch,
   ListPage,
   PageBar,
@@ -23,6 +16,8 @@ import {
   SortControl,
 } from "../../ui";
 import { NEWEST, type RoomStatusFilter, type Rooms } from "./useRooms";
+import { JoinCodePanel } from "./JoinCodePanel";
+import { RoomRow } from "./RoomRow";
 import styles from "./RoomsView.module.css";
 
 // `room-rest-api.md` §3: the server's whitelist, plus the client-only default that sends none.
@@ -57,8 +52,8 @@ export function RoomsView({
   const total = state.status === "loaded" ? state.result.pagination.totalElements : 0;
   return (
     <ListPage
-      title="Active rooms"
-      subtitle="Join a lobby, or watch a game in progress."
+      title="Rooms"
+      subtitle="Join a room that is waiting for players, or watch one in progress."
       toolbar={
         <>
           <div className={styles.search}>
@@ -84,7 +79,6 @@ export function RoomsView({
             sort={rooms.sort}
             onChange={rooms.setSort}
           />
-          <Button label="Refresh" variant="secondary" onClick={rooms.refresh} />
           <PageBar
             page={rooms.page}
             size={rooms.size}
@@ -96,6 +90,19 @@ export function RoomsView({
           />
         </>
       }
+      actions={
+        <>
+          <Button label="Refresh" variant="secondary" icon={<IRefresh />} onClick={rooms.refresh} />
+          <Button
+            label="Create room"
+            variant="primary"
+            icon={<IPlus />}
+            href="/games"
+            width="100%"
+          />
+        </>
+      }
+      aside={<JoinCodePanel onSubmit={rooms.joinByCode} />}
     >
       {filtersOpen && (
         <FilterPanel id="rooms-filters" count={rooms.appliedCount} onClear={rooms.clearFilters}>
@@ -168,56 +175,16 @@ function Rows({ rooms }: { rooms: Rooms }) {
     );
 
   return (
-    <div className={styles.table}>
-      <Table dividers="rows">
-        <TableHeader>
-          <TableRow isHeaderRow>
-            <TableHeaderCell>Game</TableHeaderCell>
-            <TableHeaderCell>Host</TableHeaderCell>
-            <TableHeaderCell>Status</TableHeaderCell>
-            <TableHeaderCell>Players</TableHeaderCell>
-            <TableHeaderCell>Spectators</TableHeaderCell>
-            <TableHeaderCell>Actions</TableHeaderCell>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {content.map((row) => (
-            <TableRow key={row.roomId}>
-              <TableCell>{row.gameName}</TableCell>
-              <TableCell>{row.hostUsername}</TableCell>
-              <TableCell>{row.state === "LOBBY" ? "Lobby" : "In progress"}</TableCell>
-              <TableCell>{`${String(row.playerCount)} / ${String(row.playerCapacity)}`}</TableCell>
-              <TableCell>{row.spectatingSupported ? String(row.spectatorCount) : "—"}</TableCell>
-              <TableCell>
-                <Stack direction="horizontal" gap={2}>
-                  {row.canJoin && (
-                    <Button
-                      label="Join"
-                      variant="primary"
-                      aria-label={`Join ${row.gameName} hosted by ${row.hostUsername}`}
-                      isLoading={rooms.joining === row.roomId}
-                      onClick={() => {
-                        rooms.join(row, "PLAYER");
-                      }}
-                    />
-                  )}
-                  {row.canSpectate && (
-                    <Button
-                      label="Spectate"
-                      variant="secondary"
-                      aria-label={`Spectate ${row.gameName} hosted by ${row.hostUsername}`}
-                      isLoading={rooms.joining === row.roomId}
-                      onClick={() => {
-                        rooms.join(row, "SPECTATOR");
-                      }}
-                    />
-                  )}
-                </Stack>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <ul className={styles.list} key={`${String(state.result.pagination.page)}|${rooms.sort}`}>
+      {content.map((row, index) => (
+        <RoomRow
+          key={row.roomId}
+          row={row}
+          index={index}
+          joining={rooms.joining === row.roomId}
+          onJoin={rooms.join}
+        />
+      ))}
+    </ul>
   );
 }

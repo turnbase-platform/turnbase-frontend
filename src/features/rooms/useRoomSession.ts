@@ -42,6 +42,8 @@ export function useRoomSession(roomId: string, room: RoomResource, instanceHint:
     userId,
     game,
     inviteCode: room.inviteCode,
+    visibility: room.visibility,
+    gameId: room.gameId,
     minPlayers: room.minPlayers,
     maxPlayers: room.maxPlayers,
     leave: () => {

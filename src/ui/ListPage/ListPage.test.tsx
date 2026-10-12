@@ -23,4 +23,23 @@ describe("ListPage", () => {
     );
     expect(screen.getByRole("heading", { level: 1, name: "Rooms" })).toBeInTheDocument();
   });
+
+  it("places the actions and the aside beside the list when there is an aside", () => {
+    render(
+      <ListPage title="Rooms" actions={<button>Create</button>} aside={<p>code panel</p>}>
+        <p>rows</p>
+      </ListPage>,
+    );
+    expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
+    expect(screen.getByText("code panel").closest("aside")).not.toBeNull();
+  });
+
+  it("leaves the actions out without an aside to sit over", () => {
+    render(
+      <ListPage title="Rooms" actions={<button>Create</button>}>
+        <p>rows</p>
+      </ListPage>,
+    );
+    expect(screen.queryByRole("button", { name: "Create" })).toBeNull();
+  });
 });

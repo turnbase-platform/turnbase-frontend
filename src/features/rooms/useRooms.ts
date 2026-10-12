@@ -122,6 +122,9 @@ export function useRooms() {
           setReload((n) => n + 1);
         });
     },
+    joinByCode: (code: string) => {
+      void navigate(`/rooms/join/${encodeURIComponent(code)}`);
+    },
     rejoin: (roomId: string) => {
       void navigate(`/rooms/${roomId}`);
     },

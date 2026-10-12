@@ -1,0 +1,32 @@
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.code {
+  font-family: var(--tb-pixel);
+  font-size: 1.875rem;
+  letter-spacing: 0.08em;
+  color: var(--tb-cyan-text);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.unmet {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

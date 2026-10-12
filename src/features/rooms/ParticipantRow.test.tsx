@@ -9,18 +9,19 @@ describe("ParticipantRow", () => {
         <ParticipantRow name="alice" badges={<span>Host</span>} actions={<button>Kick</button>} />
       </ul>,
     );
-    expect(screen.getByText("alice")).toBeTruthy();
+    expect(screen.getByRole("listitem")).toHaveTextContent("alice");
     expect(screen.getByText("Host")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Kick" })).toBeTruthy();
     expect(container.querySelector("[data-status]")).toBeNull();
   });
 
-  it("omits the action area when there are no actions", () => {
+  it("marks the viewer's own seat, and offers no controls when there are none", () => {
     render(
       <ul>
-        <ParticipantRow name="sam" />
+        <ParticipantRow name="sam" you />
       </ul>,
     );
-    expect(screen.getByRole("listitem").children).toHaveLength(1);
+    expect(screen.getByRole("listitem")).toHaveTextContent("(you)");
+    expect(screen.queryByRole("button")).toBeNull();
   });
 });

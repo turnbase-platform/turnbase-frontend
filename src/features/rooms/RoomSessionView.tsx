@@ -2,6 +2,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { RoomGame } from "./RoomGame";
+import { RoomHeader } from "./RoomHeader";
 import { RoomLobby } from "./RoomLobby";
 import type { RoomSession } from "./useRoomSession";
 import styles from "./RoomSessionView.module.css";
@@ -32,6 +33,14 @@ export function RoomSessionView({ session }: { session: RoomSession }) {
           title="Connection lost — reconnecting. The room will refresh when it is back."
         />
       )}
+      {snapshot && (
+        <RoomHeader
+          gameId={session.gameId}
+          gameName={snapshot.gameName}
+          visibility={session.visibility}
+          watching={snapshot.spectators.length}
+        />
+      )}
       {snapshot && connection && game ? (
         <RoomGame
           snapshot={snapshot}
@@ -49,6 +58,7 @@ export function RoomSessionView({ session }: { session: RoomSession }) {
           userId={userId}
           connection={connection}
           inviteCode={session.inviteCode}
+          visibility={session.visibility}
           minPlayers={session.minPlayers}
           maxPlayers={session.maxPlayers}
           chatMessages={session.chatMessages}

@@ -32,7 +32,9 @@ export function useChat(
     teamAvailable,
     channel,
     text,
-    log: [...messages].sort((a, b) => a.serverTimestamp.localeCompare(b.serverTimestamp)),
+    log: [...messages]
+      .sort((a, b) => a.serverTimestamp.localeCompare(b.serverTimestamp))
+      .map((message) => ({ ...message, mine: message.authorId === userId })),
     setChannel: setChosen,
     setText,
     submit: (event: SyntheticEvent) => {

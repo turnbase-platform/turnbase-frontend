@@ -78,7 +78,7 @@ describe("RoomsPage (VW-ROOMS-001…004)", () => {
     renderAt("/rooms");
 
     expect(await screen.findByRole("button", { name: /^Spectate/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Join/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Join Tic/ })).toBeNull();
   });
 
   it("filters server-side and refreshes", async () => {
@@ -88,7 +88,7 @@ describe("RoomsPage (VW-ROOMS-001…004)", () => {
       "GET /api/rooms?search=chess&page=1&size=25": envelope([]),
     });
     renderAt("/rooms");
-    await screen.findByText("bob");
+    await screen.findByText("Host bob");
 
     await userEvent.type(screen.getByLabelText("Search rooms"), "chess");
     expect(await screen.findByText("No rooms to join right now")).toBeInTheDocument();

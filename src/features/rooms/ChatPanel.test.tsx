@@ -82,7 +82,12 @@ describe("ChatPanel", () => {
       message("m1", "ROOM", "2026-10-01T10:00:01Z", "first"),
     ]);
     const items = screen.getAllByRole("listitem").map((item) => item.textContent);
-    expect(items).toEqual(["[Room] bob: first", "[Team] bob: second"]);
+    expect(items).toEqual(["[Room] bobfirst", "[Team] bobsecond"]);
+  });
+
+  it("says so while the log is empty", () => {
+    setup(snapshot(), "u-1");
+    expect(screen.getByText("No messages yet.")).toBeInTheDocument();
   });
 
   it("offers no switcher when the game declares no teams, and sends to ROOM", async () => {

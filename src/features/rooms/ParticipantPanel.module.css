@@ -1,0 +1,7 @@
+.seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: var(--spacing-3);
+  margin: 0;
+  padding: 0;
+}

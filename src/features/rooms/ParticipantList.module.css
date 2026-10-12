@@ -1,4 +1,7 @@
 .list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
   margin: 0;
   padding: 0;
 }

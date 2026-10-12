@@ -43,10 +43,45 @@
   min-height: 0;
 }
 
+/* With an aside the body is two columns: toolbar and actions over the list and the aside. */
+.body[data-aside] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: var(--spacing-5);
+  row-gap: var(--spacing-3);
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.actions > :first-child {
+  flex: none;
+}
+
+.actions > :last-child {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-height: 0;
+}
+
 @media (max-width: 900px) {
   .page {
     height: auto;
     padding-inline: var(--tb-gutter);
+  }
+
+  .body[data-aside] {
+    display: flex;
+    flex-direction: column;
   }
 
   .tools {

@@ -235,17 +235,20 @@ describe("Lobby as a non-host player (VW-RLOBBY-001…004)", () => {
 
   it("lists players with readiness and shows the parameters read-only", async () => {
     await open();
-    expect(screen.getByText("bob")).toBeInTheDocument();
-    expect(screen.getByText("Host")).toBeInTheDocument();
-    expect(screen.getByText("Ready")).toBeInTheDocument();
-    expect(screen.getByText("boardSize")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
-    expect(within(screen.getByLabelText("Game parameters")).queryByRole("textbox")).toBeNull();
+    const players = within(screen.getByRole("list", { name: "Players" }));
+    expect(players.getByText("Host")).toBeInTheDocument();
+    expect(players.getByText("Ready")).toBeInTheDocument();
+    expect(players.getByText("bob")).toBeInTheDocument();
+    const settings = within(screen.getByLabelText("Room settings"));
+    expect(settings.getByText("boardSize")).toBeInTheDocument();
+    expect(settings.getByText("3")).toBeInTheDocument();
+    expect(settings.queryByRole("textbox")).toBeNull();
+    expect(settings.queryByRole("switch")).toBeNull();
   });
 
   it("toggles readiness and offers no host controls", async () => {
     const conn = await open();
-    await userEvent.click(screen.getByRole("button", { name: "Not ready" }));
+    await userEvent.click(screen.getByRole("switch", { name: "I am ready" }));
     expect(conn.sendMemberCommand).toHaveBeenCalledWith("TOGGLE_READY", { ready: false });
     expect(screen.queryByRole("button", { name: "Start game" })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Kick/ })).toBeNull();
@@ -352,7 +355,7 @@ describe("Lobby as the host (VW-RLOBBY-006, 009, 011, 014)", () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     await openAsHost();
-    await userEvent.click(screen.getByRole("button", { name: "Share invite link" }));
+    await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/rooms/join/K7`);
   });
 });

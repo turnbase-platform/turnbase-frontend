@@ -1,0 +1,71 @@
+/* The rise-in is the prototype's staggered entrance; --i is the row's place in the page. */
+.cell {
+  list-style: none;
+  animation: rise 0.34s var(--tb-ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-4) var(--spacing-2) var(--spacing-2);
+}
+
+.thumb {
+  flex: none;
+  width: 4rem;
+  aspect-ratio: 4 / 3;
+}
+
+.text {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.titleRow h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  gap: var(--spacing-2);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--spacing-3));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell {
+    animation: none;
+  }
+}
+
+:root[data-reduce-motion="true"] .cell {
+  animation: none;
+}

@@ -174,7 +174,8 @@ export async function enterFromList(
   await page.goto("/rooms");
   // An emptied Lobby lingers in the list for a moment; the live room is the one with its host in it.
   const button = page
-    .getByRole("row", { name: new RegExp(`${hostName}.* [1-9] / \\d`) })
+    .getByRole("listitem")
+    .filter({ hasText: new RegExp(`Host ${hostName}.*[1-9] / \\d`) })
     .getByRole("button", { name: `${action} ${TTT_TITLE} hosted by ${hostName}` });
   await expect(async () => {
     await page.getByRole("button", { name: "Refresh" }).click();
@@ -188,7 +189,7 @@ export const gameFrame = (page: Page) => page.frameLocator('iframe[title="Game"]
 
 /** Lobby → game: the guest readies up, the host starts. Both pages end on the game frame. */
 export async function readyAndStart(host: Player, guest: Player): Promise<void> {
-  await guest.page.getByRole("button", { name: "Ready", exact: true }).click();
+  await guest.page.getByRole("switch", { name: "I am ready" }).click();
   const start = host.page.getByRole("button", { name: "Start game" });
   await expect(start).toBeEnabled();
   await start.click();

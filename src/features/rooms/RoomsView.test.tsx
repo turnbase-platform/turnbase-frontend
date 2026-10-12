@@ -48,6 +48,7 @@ function model(over: Partial<Rooms> = {}): Rooms {
     clearFilters: vi.fn(),
     refresh: vi.fn(),
     join: vi.fn(),
+    joinByCode: vi.fn(),
     rejoin: vi.fn(),
     ...over,
   };
@@ -74,22 +75,42 @@ const withContent = (content: RoomListRow[], reservedSlot: ReservedSlot | null =
 describe("RoomsView", () => {
   it("VW-ROOMS-001: a row shows game, host, status, players and spectators", () => {
     view(model());
-    expect(screen.getByRole("heading", { level: 1, name: "Active rooms" })).toBeInTheDocument();
-    expect(screen.getByText("Tic-Tac-Toe")).toBeInTheDocument();
-    expect(screen.getByText("bob")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Rooms" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Tic-Tac-Toe" })).toBeInTheDocument();
+    expect(screen.getByText("Host bob")).toBeInTheDocument();
     expect(screen.getByText("Lobby")).toBeInTheDocument();
     expect(screen.getByText("1 / 2")).toBeInTheDocument();
     expect(screen.getByText("7")).toBeInTheDocument();
   });
 
-  it("shows a dash where the game cannot be spectated, and 'In progress' for a running room", () => {
+  it("shows no spectator count where the game cannot be spectated, and 'In progress' for a running room", () => {
     view(
       model({
         state: withContent([{ ...ROW, state: "IN_PROGRESS", spectatingSupported: false }]),
       }),
     );
     expect(screen.getByText("In progress")).toBeInTheDocument();
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.queryByText("7")).toBeNull();
+  });
+
+  it("shows no spectator chip for an empty gallery", () => {
+    view(model({ state: withContent([{ ...ROW, spectatorCount: 0 }]) }));
+    expect(screen.queryByText("0")).toBeNull();
+  });
+
+  it("Create room goes to the catalog, where a game is picked", () => {
+    view(model());
+    expect(screen.getByRole("link", { name: "Create room" })).toHaveAttribute("href", "/games");
+  });
+
+  it("Got a code? sends a trimmed code on, and waits for one worth sending", async () => {
+    const rooms = model();
+    view(rooms);
+    const join = screen.getByRole("button", { name: "Join with code" });
+    expect(join).toBeDisabled();
+    await userEvent.type(screen.getByLabelText("Room code"), "  AB-12 ");
+    await userEvent.click(join);
+    expect(rooms.joinByCode).toHaveBeenCalledWith("AB-12");
   });
 
   it("offers only the actions the server flags allow", () => {
@@ -97,7 +118,7 @@ describe("RoomsView", () => {
     expect(
       screen.getByRole("button", { name: "Spectate Tic-Tac-Toe hosted by bob" }),
     ).toBeEnabled();
-    expect(screen.queryByRole("button", { name: /^Join/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Join Tic/ })).toBeNull();
   });
 
   it("reports the row and role when Join or Spectate is pressed", async () => {

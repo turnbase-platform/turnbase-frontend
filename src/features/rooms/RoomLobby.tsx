@@ -1,17 +1,26 @@
-import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
-import { Heading } from "@astryxdesign/core/Heading";
+import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
+import { Chip, IEye, IRefresh, IUsers, Person } from "../../ui";
+import { ChatPanel } from "./ChatPanel";
+import { HostControls } from "./HostControls";
+import { LobbyControls } from "./LobbyControls";
+import { ParticipantRow } from "./ParticipantRow";
+import { RoomLayout } from "./RoomLayout";
+import { RoomSection } from "./RoomSection";
+import { RoomSettings } from "./RoomSettings";
+import { SeatBadges } from "./SeatBadges";
 import { unmetStartConditions } from "./roomRules";
 import type { RoomConnection } from "./roomSocket";
-import { ChatPanel } from "./ChatPanel";
-import { InviteFriendsButton } from "./InviteFriendsButton";
-import { ParticipantRow } from "./ParticipantRow";
-import { RoomSection } from "./RoomSection";
 import listStyles from "./ParticipantList.module.css";
 import styles from "./RoomLobby.module.css";
-import type { ChatMessageEnvelope, RoomErrorEnvelope, RoomStateSnapshot } from "./rooms-types";
+import type {
+  ChatMessageEnvelope,
+  RoomErrorEnvelope,
+  RoomResource,
+  RoomStateSnapshot,
+} from "./rooms-types";
 
 export interface RoomLobbyProps {
   snapshot: RoomStateSnapshot;
@@ -19,6 +28,7 @@ export interface RoomLobbyProps {
   connection: RoomConnection | null;
   /** Present only for the host (`room-rest-api.md` §4) — the invite link is built from it. */
   inviteCode?: string;
+  visibility?: RoomResource["visibility"];
   /** From the room resource (`room-rest-api.md` §4) — the snapshot carries neither. */
   minPlayers: number;
   maxPlayers: number;
@@ -28,6 +38,9 @@ export interface RoomLobbyProps {
   onShareInvite: () => void;
 }
 
+/** Open seats beyond this are not drawn — a game that takes sixty players needs no sixty rows. */
+const MAX_OPEN_SEATS = 6;
+
 function describeError(error: RoomErrorEnvelope["payload"]): string {
   if (error.code === "START_CONDITIONS_NOT_MET") {
     return "The game cannot start yet — not every start condition is met.";
@@ -36,6 +49,15 @@ function describeError(error: RoomErrorEnvelope["payload"]): string {
     return "The game could not be started. Please try again.";
   }
   return error.message;
+}
+
+function OpenSeat() {
+  return (
+    <div className={styles.open}>
+      <Person name="?" size="sm" />
+      <Text color="secondary">Open seat. Waiting for a player…</Text>
+    </div>
+  );
 }
 
 /**
@@ -49,6 +71,7 @@ export function RoomLobby({
   userId,
   connection,
   inviteCode,
+  visibility,
   minPlayers,
   maxPlayers,
   chatMessages,
@@ -59,82 +82,54 @@ export function RoomLobby({
   const isHost = userId === snapshot.hostId;
   const me = snapshot.players.find((player) => player.playerId === userId);
   const isSpectator = snapshot.spectators.some((spectator) => spectator.playerId === userId);
-  const parameters = Object.entries(snapshot.parameters);
-  const unmet = isHost ? unmetStartConditions(snapshot, minPlayers) : [];
-  const playerSlotFree = snapshot.players.length + snapshot.aiPlayers.length < maxPlayers;
+  const unmet = isHost ? unmetStartConditions(snapshot, minPlayers) : null;
+  const seated = snapshot.players.length + snapshot.aiPlayers.length;
+  const playerSlotFree = seated < maxPlayers;
   const spectatorSlotFree = snapshot.spectators.length < snapshot.spectatorCapacity;
+  const openSeats = Math.min(Math.max(maxPlayers - seated, 0), MAX_OPEN_SEATS);
+  const kick = (playerId: string) => {
+    connection?.sendHostCommand("KICK_PLAYER", { playerId });
+  };
 
   return (
-    <div className={styles.lobby}>
-      <Heading level={1} type="display-2">
-        {snapshot.gameName}
-      </Heading>
-      {lastError && <Banner status="error" title={describeError(lastError)} />}
+    <RoomLayout
+      main={
+        <>
+          {lastError && <Banner status="error" title={describeError(lastError)} />}
+          <LobbyControls
+            roomId={snapshot.roomId}
+            inviteCode={inviteCode}
+            unmet={unmet}
+            onShareInvite={onShareInvite}
+            onStart={() => {
+              connection?.sendHostCommand("START_GAME");
+            }}
+          />
 
-      <div className={styles.grid}>
-        <RoomSection title="Players">
-          <ul aria-label="Players" className={listStyles.list}>
-            {snapshot.players.map((entry) => (
-              <ParticipantRow
-                key={entry.playerId}
-                name={entry.username}
-                badges={
-                  <>
-                    {entry.playerId === snapshot.hostId ? (
-                      <Badge label="Host" variant="info" />
-                    ) : (
-                      <Badge
-                        label={entry.ready ? "Ready" : "Not ready"}
-                        variant={entry.ready ? "success" : "neutral"}
-                      />
-                    )}
-                    {!entry.connected && <Badge label="Disconnected" variant="warning" />}
-                  </>
-                }
-                actions={
-                  isHost && entry.playerId !== userId ? (
-                    <>
-                      <Button
-                        label="Transfer host"
-                        variant="secondary"
-                        aria-label={`Transfer host to ${entry.username}`}
-                        onClick={() => {
+          <RoomSection
+            title="Players"
+            aside={
+              <Chip icon={<IUsers size={14} />}>{`${String(seated)}/${String(maxPlayers)}`}</Chip>
+            }
+          >
+            <ul aria-label="Players" className={listStyles.list}>
+              {snapshot.players.map((entry) => (
+                <ParticipantRow
+                  key={entry.playerId}
+                  name={entry.username}
+                  you={entry.playerId === userId}
+                  badges={<SeatBadges player={entry} isHost={entry.playerId === snapshot.hostId} />}
+                  actions={
+                    isHost && entry.playerId !== userId ? (
+                      <HostControls
+                        name={entry.username}
+                        onTransfer={() => {
                           connection?.sendHostCommand("TRANSFER_HOST", {
                             newHostId: entry.playerId,
                           });
                         }}
-                      />
-                      <Button
-                        label="Kick"
-                        variant="secondary"
-                        aria-label={`Kick ${entry.username}`}
-                        onClick={() => {
-                          connection?.sendHostCommand("KICK_PLAYER", { playerId: entry.playerId });
-                        }}
-                      />
-                    </>
-                  ) : undefined
-                }
-              />
-            ))}
-          </ul>
-        </RoomSection>
-
-        {snapshot.spectators.length > 0 && (
-          <RoomSection title="Spectators">
-            <ul aria-label="Spectators" className={listStyles.list}>
-              {snapshot.spectators.map((entry) => (
-                <ParticipantRow
-                  key={entry.playerId}
-                  name={entry.username}
-                  actions={
-                    isHost ? (
-                      <Button
-                        label="Kick"
-                        variant="secondary"
-                        aria-label={`Kick ${entry.username}`}
-                        onClick={() => {
-                          connection?.sendHostCommand("KICK_PLAYER", { playerId: entry.playerId });
+                        onKick={() => {
+                          kick(entry.playerId);
                         }}
                       />
                     ) : undefined
@@ -142,90 +137,92 @@ export function RoomLobby({
                 />
               ))}
             </ul>
+            {openSeats > 0 && (
+              <div className={listStyles.list}>
+                {Array.from({ length: openSeats }, (_, index) => (
+                  <OpenSeat key={index} />
+                ))}
+              </div>
+            )}
+            {(me && !isHost) || isSpectator ? (
+              <div className={styles.footer}>
+                {me && !isHost && (
+                  <Switch
+                    label="I am ready"
+                    value={me.ready}
+                    onChange={(ready) => {
+                      connection?.sendMemberCommand("TOGGLE_READY", { ready });
+                    }}
+                  />
+                )}
+                {me && !isHost && snapshot.spectatingEnabled && spectatorSlotFree && (
+                  <Button
+                    label="Switch to spectator"
+                    size="sm"
+                    variant="ghost"
+                    icon={<IEye size={14} />}
+                    onClick={() => {
+                      connection?.sendMemberCommand("SWITCH_TO_SPECTATOR");
+                    }}
+                  />
+                )}
+                {isSpectator && playerSlotFree && (
+                  <Button
+                    label="Switch to player"
+                    size="sm"
+                    variant="ghost"
+                    icon={<IRefresh size={14} />}
+                    onClick={() => {
+                      connection?.sendMemberCommand("SWITCH_TO_PLAYER");
+                    }}
+                  />
+                )}
+              </div>
+            ) : null}
           </RoomSection>
-        )}
 
-        <RoomSection title="Game parameters">
-          {parameters.length === 0 ? (
-            <Text>This game has no parameters.</Text>
-          ) : (
-            <dl aria-label="Game parameters" className={styles.parameters}>
-              {parameters.map(([key, value]) => (
-                <div key={key} className={styles.parameter}>
-                  <dt>
-                    <Text color="secondary">{key}</Text>
-                  </dt>
-                  <dd>
-                    <Text>{typeof value === "string" ? value : JSON.stringify(value)}</Text>
-                  </dd>
-                </div>
-              ))}
-            </dl>
+          {snapshot.spectators.length > 0 && (
+            <RoomSection
+              title="Spectators"
+              aside={<Chip icon={<IEye size={14} />}>{String(snapshot.spectators.length)}</Chip>}
+            >
+              <ul aria-label="Spectators" className={listStyles.list}>
+                {snapshot.spectators.map((entry) => (
+                  <ParticipantRow
+                    key={entry.playerId}
+                    name={entry.username}
+                    you={entry.playerId === userId}
+                    actions={
+                      isHost ? (
+                        <HostControls
+                          name={entry.username}
+                          onKick={() => {
+                            kick(entry.playerId);
+                          }}
+                        />
+                      ) : undefined
+                    }
+                  />
+                ))}
+              </ul>
+            </RoomSection>
           )}
-        </RoomSection>
-      </div>
 
-      <ChatPanel
-        snapshot={snapshot}
-        userId={userId}
-        messages={chatMessages}
-        connection={connection}
-      />
+          <RoomSettings snapshot={snapshot} visibility={visibility} />
 
-      {unmet.length > 0 && (
-        <ul aria-label="Why the game cannot start yet" className={styles.unmet}>
-          {unmet.map((reason) => (
-            <li key={reason}>
-              <Text color="secondary">{reason}</Text>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className={styles.actions}>
-        {me && !isHost && (
-          <Button
-            label={me.ready ? "Not ready" : "Ready"}
-            variant="primary"
-            onClick={() => {
-              connection?.sendMemberCommand("TOGGLE_READY", { ready: !me.ready });
-            }}
-          />
-        )}
-        {isHost && (
-          <Button
-            label="Start game"
-            variant="primary"
-            isDisabled={unmet.length > 0}
-            onClick={() => {
-              connection?.sendHostCommand("START_GAME");
-            }}
-          />
-        )}
-        {isHost && <InviteFriendsButton roomId={snapshot.roomId} />}
-        {isHost && inviteCode && (
-          <Button label="Share invite link" variant="secondary" onClick={onShareInvite} />
-        )}
-        {me && !isHost && snapshot.spectatingEnabled && spectatorSlotFree && (
-          <Button
-            label="Switch to spectator"
-            variant="secondary"
-            onClick={() => {
-              connection?.sendMemberCommand("SWITCH_TO_SPECTATOR");
-            }}
-          />
-        )}
-        {isSpectator && playerSlotFree && (
-          <Button
-            label="Switch to player"
-            variant="secondary"
-            onClick={() => {
-              connection?.sendMemberCommand("SWITCH_TO_PLAYER");
-            }}
-          />
-        )}
-        <Button label="Leave room" variant="secondary" onClick={onLeave} />
-      </div>
-    </div>
+          <div className={styles.actions}>
+            <Button label="Leave room" variant="secondary" onClick={onLeave} />
+          </div>
+        </>
+      }
+      aside={
+        <ChatPanel
+          snapshot={snapshot}
+          userId={userId}
+          messages={chatMessages}
+          connection={connection}
+        />
+      }
+    />
   );
 }

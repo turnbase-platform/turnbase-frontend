@@ -91,9 +91,12 @@ test("Guest at 400 px: no Friends Only room, Join and Spectate by flag, table st
   await page.setViewportSize({ width: 400, height: 800 });
   try {
     await page.goto("/rooms");
-    await expect(page.getByRole("heading", { level: 1, name: "Active rooms" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Rooms" })).toBeVisible();
     await expect(page.getByLabel("Search rooms")).toBeVisible();
-    const row = page.getByRole("row", { name: /alice/ }).first();
+    const row = page
+      .getByRole("listitem")
+      .filter({ hasText: /Host alice/ })
+      .first();
     await expect(async () => {
       await page.getByRole("button", { name: "Refresh" }).click();
       await expect(row).toBeVisible({ timeout: 2_000 });
@@ -207,7 +210,7 @@ test.describe("reconnection card", () => {
       // VW-ROOMS-005: the card goes when the slot is released. Nothing pushes to this view
       // (FR-LIST-005), so the page refreshes itself once the 60 s grace period has run out.
       await expect(card).toBeHidden({ timeout: 75_000 });
-      await expect(b.page.getByRole("heading", { level: 1, name: "Active rooms" })).toBeVisible();
+      await expect(b.page.getByRole("heading", { level: 1, name: "Rooms" })).toBeVisible();
     } finally {
       await leaveQuietly([a, b], roomId);
     }
@@ -257,7 +260,7 @@ test.describe("Invite friends (VW-RLOBBY-005)", () => {
 
       await playAsGuest(guest);
       guestRoom = await createRoom(guest);
-      await expect(guest.page.getByRole("button", { name: "Share invite link" })).toBeVisible();
+      await expect(guest.page.getByRole("button", { name: "Copy link" })).toBeVisible();
       await expect(guest.page.getByRole("button", { name: "Invite friends" })).toHaveCount(0);
     } finally {
       await leaveQuietly([carol], carolRoom);

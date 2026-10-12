@@ -1,6 +1,11 @@
+/* The room is wider than a list page: 1288px of content, then the page gutter on each side. */
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: var(--spacing-5);
+  width: 100%;
+  max-width: calc(1288px + 2 * var(--tb-gutter));
   min-width: 0;
+  margin-inline: auto;
+  padding: var(--spacing-4) var(--tb-gutter) var(--spacing-8);
 }
