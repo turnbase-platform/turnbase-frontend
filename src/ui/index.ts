@@ -26,6 +26,7 @@ export { ListPage } from "./ListPage/ListPage";
 export { CardPage, FormFields } from "./CardPage/CardPage";
 export { SectionCard } from "./SectionCard/SectionCard";
 export { PIECES } from "./PixelArt/pieces";
+export { FloatingPiece } from "./FloatingPiece/FloatingPiece";
 export { GameCover } from "./GameCover/GameCover";
 export { coverFor, type Cover } from "./GameCover/cover";
 export { Person } from "./Person/Person";

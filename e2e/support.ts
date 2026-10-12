@@ -86,8 +86,11 @@ export async function register(player: Player): Promise<string> {
   await page.locator('input[name="email"]').fill(`${username}@example.test`);
   await page.locator('input[name="password"]').fill("Correct-horse-9battery");
   await page.locator('input[name="confirmPassword"]').fill("Correct-horse-9battery");
-  await page.getByRole("button", { name: "Register" }).click();
+  await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/rooms$/);
+  // A new account is shown the quick tour; skipping it hands the page back.
+  await page.getByRole("button", { name: "Skip tour" }).click();
+  await expect(page.getByRole("dialog", { name: "Quick tour" })).toHaveCount(0);
   return username;
 }
 

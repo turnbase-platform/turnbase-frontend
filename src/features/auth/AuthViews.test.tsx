@@ -43,12 +43,16 @@ const login = (over: Partial<LoginForm> = {}): LoginForm => ({
 describe("LoginView", () => {
   it("has the two credential fields, the submit and a link to registration", () => {
     inShell(<LoginView form={login()} />);
-    expect(screen.getByRole("heading", { level: 1, name: "Log in" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Welcome back" })).toBeInTheDocument();
     expect(screen.getByLabelText(/Username or email/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Password/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Log in" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Register" })).toHaveAttribute("href", "/register");
+    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute(
+      "href",
+      "/register",
+    );
     expect(screen.queryByRole("link", { name: /Google/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Play as Guest" })).toBeInTheDocument();
   });
 
   it("offers Google only when the deployment does, and carries the redirect on", () => {
@@ -57,7 +61,7 @@ describe("LoginView", () => {
       "href",
       "/auth/google?redirect=%2Frooms%2Fx",
     );
-    expect(screen.getByRole("link", { name: "Register" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute(
       "href",
       "/register?redirect=%2Frooms%2Fx",
     );

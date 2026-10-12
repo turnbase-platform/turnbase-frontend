@@ -15,4 +15,23 @@ describe("CardPage", () => {
     expect(screen.getByText("One more step.")).toBeInTheDocument();
     expect(screen.getByText("Body")).toBeInTheDocument();
   });
+
+  it("shows the piece above the card and what leads the card", () => {
+    const { container } = render(
+      <CardPage title="Welcome back" art="dice" lead={<p>NOVA-7Q</p>}>
+        <p>Body</p>
+      </CardPage>,
+    );
+    expect(container.querySelector("svg")).toBeInTheDocument();
+    expect(screen.getByText("NOVA-7Q")).toBeInTheDocument();
+  });
+
+  it("has no piece unless asked for one", () => {
+    const { container } = render(
+      <CardPage title="Join a room">
+        <p>Body</p>
+      </CardPage>,
+    );
+    expect(container.querySelector("svg")).toBeNull();
+  });
 });

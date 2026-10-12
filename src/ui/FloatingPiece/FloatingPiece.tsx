@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import { PIECES, PixelArt } from "../../../ui";
+import { PixelArt } from "../PixelArt/PixelArt";
+import { PIECES } from "../PixelArt/pieces";
 import styles from "./FloatingPiece.module.css";
 
 /** A pixel piece that bobs and drifts with the cursor (strength is the theme's --tb-bg-react). */

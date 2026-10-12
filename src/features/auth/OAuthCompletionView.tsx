@@ -10,7 +10,11 @@ import type { OAuthCompletion } from "./useOAuthCompletion";
 /** The username step after Google sign-in, rendered from an {@link OAuthCompletion}. */
 export function OAuthCompletionView({ form }: { form: OAuthCompletion }) {
   return (
-    <CardPage title="Choose a username" subtitle="One last step to finish your account.">
+    <CardPage
+      title="Choose a username"
+      subtitle="One last step to finish your account."
+      art="meeple"
+    >
       {form.collision && (
         <Banner
           status="warning"

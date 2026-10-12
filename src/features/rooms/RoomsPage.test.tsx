@@ -164,7 +164,7 @@ describe("JoinByCodePage (VW-JOIN-001…003)", () => {
     });
     renderAt("/rooms/join/K7");
 
-    await userEvent.click(await screen.findByRole("button", { name: "Spectator" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Join as spectator" }));
     await waitFor(() => {
       expect(where()).toBe("/rooms/r-1");
     });

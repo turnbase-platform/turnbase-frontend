@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "@astryxdesign/core/Button";
 import { useToast } from "@astryxdesign/core/Toast";
@@ -11,9 +11,13 @@ import { useAuth } from "./auth-context";
 export function GuestButton({
   variant = "secondary",
   size,
+  icon,
+  width,
 }: {
   variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";
+  icon?: ReactNode;
+  width?: string;
 }) {
   const { startGuest } = useAuth();
   const navigate = useNavigate();
@@ -40,6 +44,14 @@ export function GuestButton({
   }
 
   return (
-    <Button label="Play as Guest" variant={variant} size={size} isLoading={isBusy} onClick={play} />
+    <Button
+      label="Play as Guest"
+      variant={variant}
+      size={size}
+      icon={icon}
+      width={width}
+      isLoading={isBusy}
+      onClick={play}
+    />
   );
 }

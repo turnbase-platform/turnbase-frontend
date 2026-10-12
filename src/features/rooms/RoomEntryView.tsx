@@ -1,8 +1,8 @@
 import { Banner } from "@astryxdesign/core/Banner";
-import { Button } from "@astryxdesign/core/Button";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { CardPage } from "../../ui";
+import { InviteCard } from "./InviteCard";
 import type { RoomEntry } from "./useRoomEntry";
 import styles from "./RoomEntryView.module.css";
 
@@ -29,35 +29,7 @@ export function RoomEntryView({ entry }: { entry: RoomEntry }) {
     );
   }
   if (state.status === "prompt") {
-    return (
-      <CardPage
-        title="Join a room"
-        subtitle={`Join ${state.room.gameName}, hosted by ${state.room.hostUsername}, as:`}
-      >
-        {failure && <Banner status="error" title={failure} />}
-        <div className={styles.actions}>
-          {state.room.canJoin && (
-            <Button
-              label="Join as player"
-              variant="primary"
-              onClick={() => {
-                enrol("PLAYER");
-              }}
-            />
-          )}
-          {state.room.canSpectate && (
-            <Button
-              label="Join as spectator"
-              variant="secondary"
-              onClick={() => {
-                enrol("SPECTATOR");
-              }}
-            />
-          )}
-        </div>
-        <Link href="/rooms">Browse active rooms</Link>
-      </CardPage>
-    );
+    return <InviteCard room={state.room} failure={failure} onEnter={enrol} />;
   }
   return null;
 }

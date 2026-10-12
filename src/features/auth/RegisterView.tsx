@@ -4,20 +4,26 @@ import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { autofill } from "../../shared/autofill";
-import { ILock, IMail, IUser, CardPage, FormFields } from "../../ui";
+import { ILock, IMail, IPlay, IUser, CardPage, FormFields } from "../../ui";
 import { fieldStatus } from "./fieldStatus";
 import { FormError, GoogleButton } from "./forms";
+import { GuestButton } from "./GuestButton";
 import type { RegisterForm } from "./useRegisterForm";
 
 /** The registration screen, rendered from a {@link RegisterForm}. */
 export function RegisterView({ form }: { form: RegisterForm }) {
   const { error, redirect } = form;
   return (
-    <CardPage title="Create an account" subtitle="It takes a minute. Then pick a game.">
+    <CardPage
+      title="Create your account"
+      subtitle="It takes a minute. Then pick a game."
+      art="meeple"
+    >
       <form onSubmit={form.submit} noValidate>
         <FormFields>
           <TextInput
             label="Username"
+            description="Letters, numbers and underscores. Friends find you by this."
             value={form.username}
             onChange={form.setUsername}
             startIcon={IUser}
@@ -37,6 +43,7 @@ export function RegisterView({ form }: { form: RegisterForm }) {
           />
           <TextInput
             label="Password"
+            description="At least 8 characters."
             type="password"
             value={form.password}
             onChange={form.setPassword}
@@ -59,7 +66,7 @@ export function RegisterView({ form }: { form: RegisterForm }) {
           <FormError error={error} />
           <Button
             type="submit"
-            label="Register"
+            label="Create account"
             variant="primary"
             size="lg"
             isLoading={form.isBusy}
@@ -73,8 +80,9 @@ export function RegisterView({ form }: { form: RegisterForm }) {
           <GoogleButton redirect={redirect} />
         </>
       )}
-      <Text type="supporting" color="secondary">
-        Already registered?{" "}
+      <GuestButton variant="ghost" icon={<IPlay />} width="100%" />
+      <Text type="supporting" color="secondary" justify="center">
+        Already have an account?{" "}
         <Link href={redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login"}>
           Log in
         </Link>

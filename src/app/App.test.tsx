@@ -306,7 +306,7 @@ describe("VW-REDIR-007: a mid-session 401", () => {
     await waitFor(() => {
       expect(where()).toBe("/login?redirect=%2Ffriends");
     });
-    expect(await screen.findByRole("heading", { name: "Log in" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeInTheDocument();
   });
 });
 
@@ -393,7 +393,7 @@ describe("login (VW-LOGIN-001…004)", () => {
     installFakeApi(unauth);
     renderAt("/login");
     const main = await screen.findByRole("main");
-    expect(within(main).getByRole("link", { name: "Register" })).toHaveAttribute(
+    expect(within(main).getByRole("link", { name: "Create an account" })).toHaveAttribute(
       "href",
       "/register",
     );
@@ -472,7 +472,7 @@ describe("registration (VW-REG-001…003)", () => {
     await userEvent.type(screen.getByLabelText(/^Email/), "alice@example.com");
     await userEvent.type(screen.getByLabelText(/^Password/), "hunter2!hunter2!");
     await userEvent.type(screen.getByLabelText(/^Confirm password/), "hunter2!hunter2!");
-    await userEvent.click(screen.getByRole("button", { name: "Register" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
 
     await waitFor(() => {
       expect(where()).toBe("/rooms");
@@ -490,7 +490,7 @@ describe("registration (VW-REG-001…003)", () => {
     renderAt("/register");
     await userEvent.type(await screen.findByLabelText(/^Password/), "one");
     await userEvent.type(screen.getByLabelText(/^Confirm password/), "two");
-    await userEvent.click(screen.getByRole("button", { name: "Register" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
 
     expect((await screen.findAllByText("Passwords do not match.")).length).toBeGreaterThan(0);
     expect(calls.some((call) => call.path === "/api/auth/register")).toBe(false);
@@ -506,7 +506,7 @@ describe("registration (VW-REG-001…003)", () => {
     });
     renderAt("/register");
     await userEvent.type(await screen.findByLabelText(/^Username/), "alice");
-    await userEvent.click(screen.getByRole("button", { name: "Register" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
     expect(await screen.findByText("That username is taken.")).toBeInTheDocument();
   });
 
@@ -521,7 +521,7 @@ describe("registration (VW-REG-001…003)", () => {
     });
     renderAt("/register");
     await userEvent.type(await screen.findByLabelText(/^Username/), "alice");
-    await userEvent.click(screen.getByRole("button", { name: "Register" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
     expect(
       await screen.findByText("Too many attempts. Please try again in 14 minutes."),
     ).toBeInTheDocument();

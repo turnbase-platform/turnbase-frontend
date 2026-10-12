@@ -6,5 +6,5 @@ import { useJoinByCode } from "./useJoinByCode";
 export function JoinByCodePage() {
   const { code = "" } = useParams();
   const { state, enter } = useJoinByCode(code);
-  return <JoinByCodeView state={state} onEnter={enter} />;
+  return <JoinByCodeView code={code} state={state} onEnter={enter} />;
 }

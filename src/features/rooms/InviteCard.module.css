@@ -1,0 +1,16 @@
+.code {
+  font-family: var(--tb-pixel);
+  font-size: 30px;
+  letter-spacing: 0.08em;
+  color: var(--tb-cyan-text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.actions > * {
+  flex: 1 1 auto;
+}

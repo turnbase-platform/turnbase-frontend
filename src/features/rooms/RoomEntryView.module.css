@@ -3,9 +3,3 @@
   justify-content: center;
   padding-block: var(--spacing-8);
 }
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-2);
-}

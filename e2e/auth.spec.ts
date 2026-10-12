@@ -35,10 +35,10 @@ test("Unauth: login — rows, redirect, wrong password, 429 wait", async ({ brow
   const { page } = await newPlayer(browser, "unauth");
   const errors = watchConsole(page);
   await page.goto("/login?redirect=%2Fgames");
-  await expect(page.getByRole("heading", { level: 1, name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
   await expect(page.getByLabel(/Username or email/)).toBeVisible();
   await expect(page.getByLabel(/^Password/)).toBeVisible();
-  await expect(page.getByRole("link", { name: "Register" }).last()).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "Create an account" })).toHaveAttribute(
     "href",
     "/register?redirect=%2Fgames",
   );
@@ -80,7 +80,7 @@ test("Unauth: register — rows, server field error beside its field, mismatch",
   const { page } = await newPlayer(browser, "unauth");
   const errors = watchConsole(page);
   await page.goto("/register");
-  await expect(page.getByRole("heading", { level: 1, name: "Create an account" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Create your account" })).toBeVisible();
   for (const label of [/^Username/, /^Email/, /^Password/, /^Confirm password/]) {
     await expect(page.getByLabel(label)).toBeVisible();
   }
@@ -108,7 +108,7 @@ test("Unauth: register — rows, server field error beside its field, mismatch",
       }),
     }),
   );
-  await page.getByRole("button", { name: "Register" }).click();
+  await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByLabel(/^Email/)).toHaveAttribute("aria-invalid", "true");
   await expect(page.getByText("Enter a valid email address.").first()).toBeVisible();
   await page.unroute("**/api/auth/register");
@@ -129,7 +129,7 @@ test("Unauth: register — rows, server field error beside its field, mismatch",
       }),
     }),
   );
-  await page.getByRole("button", { name: "Register" }).click();
+  await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText("Username already taken.").first()).toBeVisible();
   await page.unroute("**/api/auth/register");
 

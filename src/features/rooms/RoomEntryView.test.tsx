@@ -41,7 +41,8 @@ describe("RoomEntryView", () => {
 
   it("VW-JOIN-002: offers both roles and enrols with the one pressed", async () => {
     const enrol = view({ status: "prompt", room: room(), instanceHint: null });
-    expect(screen.getByText("Join Tic-Tac-Toe, hosted by bob, as:")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Tic-Tac-Toe" })).toBeTruthy();
+    expect(screen.getByText(/Host bob/)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Join as spectator" }));
     await userEvent.click(screen.getByRole("button", { name: "Join as player" }));
     expect(enrol.mock.calls).toEqual([["SPECTATOR"], ["PLAYER"]]);

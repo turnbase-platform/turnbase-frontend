@@ -5,16 +5,17 @@ import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { autofill } from "../../shared/autofill";
-import { ILock, IUser, CardPage, FormFields } from "../../ui";
+import { ILock, IPlay, IUser, CardPage, FormFields } from "../../ui";
 import { fieldStatus } from "./fieldStatus";
 import { FormError, GoogleButton } from "./forms";
+import { GuestButton } from "./GuestButton";
 import type { LoginForm } from "./useLoginForm";
 
 /** The login screen, rendered from a {@link LoginForm}. */
 export function LoginView({ form }: { form: LoginForm }) {
   const { error, redirect } = form;
   return (
-    <CardPage title="Log in" subtitle="Pick up where you left off.">
+    <CardPage title="Welcome back" subtitle="Log in to pick up where you left off." art="dice">
       {form.oauthFailed && (
         <Banner status="error" title="Google sign-in did not complete. Please try again." />
       )}
@@ -58,10 +59,11 @@ export function LoginView({ form }: { form: LoginForm }) {
           <GoogleButton redirect={redirect} />
         </>
       )}
-      <Text type="supporting" color="secondary">
-        No account yet?{" "}
+      <GuestButton variant="ghost" icon={<IPlay />} width="100%" />
+      <Text type="supporting" color="secondary" justify="center">
+        New here?{" "}
         <Link href={redirect ? `/register?redirect=${encodeURIComponent(redirect)}` : "/register"}>
-          Register
+          Create an account
         </Link>
       </Text>
     </CardPage>
