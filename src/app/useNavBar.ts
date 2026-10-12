@@ -35,9 +35,18 @@ export function useNavBar(): NavBarModel {
   const { pathname } = useLocation();
   const tour = useTour();
 
-  const links: NavLinkItem[] = [
-    { href: "/games", label: "Games", isSelected: pathname.startsWith("/games"), icon: "games" },
-  ];
+  // The landing page already leads with "Browse all games"; the bar does not repeat it there.
+  const links: NavLinkItem[] =
+    pathname === "/"
+      ? []
+      : [
+          {
+            href: "/games",
+            label: "Games",
+            isSelected: pathname.startsWith("/games"),
+            icon: "games",
+          },
+        ];
   if (tier !== "unauth") {
     links.push({
       href: "/rooms",

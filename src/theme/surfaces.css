@@ -80,3 +80,12 @@ html.snap {
     scroll-snap-type: y proximity;
   }
 }
+
+/* No scrollbars anywhere: every scroller still scrolls (wheel, touch, keys), none draws a track. */
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}

@@ -22,42 +22,6 @@
   outline-offset: -2px;
 }
 
-/* Firefox only: Chromium and Safari take the ::-webkit-scrollbar rules, which also drop the arrows. */
-@supports not selector(::-webkit-scrollbar) {
-  .scroll {
-    scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--tb-cyan) 45%, transparent) transparent;
-  }
-}
-
-.scroll::-webkit-scrollbar {
-  display: block;
-  width: 8px;
-  height: 8px;
-}
-
-.scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scroll::-webkit-scrollbar-thumb {
-  border-radius: 8px;
-  border: 2px solid transparent;
-  background: color-mix(in srgb, var(--tb-cyan) 45%, transparent);
-  background-clip: padding-box;
-}
-
-.scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--tb-cyan);
-  background-clip: padding-box;
-}
-
-.scroll::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
-}
-
 /* Below 900px the page scrolls (ListPage), so the panel takes its content's height; a wide table
    still scrolls sideways inside it. */
 @media (max-width: 900px) {

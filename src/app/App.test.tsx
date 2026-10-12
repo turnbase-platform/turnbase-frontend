@@ -41,7 +41,7 @@ describe("shell", () => {
     const marker = document.createElement("meta");
     document.head.append(marker);
 
-    await userEvent.click(await screen.findByRole("link", { name: "Games" }));
+    await userEvent.click((await screen.findAllByRole("link", { name: "Browse all games" }))[0]);
 
     expect(where()).toBe("/games");
     expect(marker.isConnected).toBe(true);
@@ -52,7 +52,7 @@ describe("shell", () => {
 describe("navigation bar (VW-NAV-001…012, NFR-USAB-001)", () => {
   it("Unauth: catalog, Log in, Create account, Play as Guest — and nothing gated", async () => {
     installFakeApi(unauth);
-    renderAt("/");
+    renderAt("/games");
     const nav = await screen.findByRole("navigation", { name: "Main" });
 
     expect(within(nav).getByRole("link", { name: "Games" })).toBeInTheDocument();
@@ -65,6 +65,15 @@ describe("navigation bar (VW-NAV-001…012, NFR-USAB-001)", () => {
     }
     expect(within(nav).queryByRole("button", { name: /Notifications/ })).toBeNull();
     expect(FakeEventSource.instances).toHaveLength(0);
+  });
+
+  it("the landing page's bar has no Games link; its own button leads to the catalog", async () => {
+    installFakeApi(unauth);
+    renderAt("/");
+    const nav = await screen.findByRole("navigation", { name: "Main" });
+
+    expect(within(nav).queryByRole("link", { name: "Games" })).toBeNull();
+    expect(screen.getAllByRole("link", { name: "Browse all games" }).length).toBeGreaterThan(0);
   });
 
   it("marks the current section with aria-current and the sliding highlight", async () => {

@@ -10,13 +10,22 @@ const labels = (items: { label: string }[]) => items.map((i) => i.label);
 
 describe("useNavBar (VW-NAV-001…012)", () => {
   it("Unauth sees the catalog only, and is not signed in", () => {
-    const { result } = renderHook(() => useNavBar(), { wrapper: authWrapper(fakeAuth()) });
+    const { result } = renderHook(() => useNavBar(), {
+      wrapper: authWrapper(fakeAuth(), "/games"),
+    });
     expect(labels(result.current.links)).toEqual(["Games"]);
     expect(result.current.isSignedIn).toBe(false);
   });
 
+  it("the landing page's bar leaves out Games, which the page itself leads with", () => {
+    const { result } = renderHook(() => useNavBar(), { wrapper: authWrapper(fakeAuth(), "/") });
+    expect(result.current.links).toEqual([]);
+  });
+
   it("a Guest gains Rooms but not Friends, and has no Account settings", () => {
-    const { result } = renderHook(() => useNavBar(), { wrapper: authWrapper(fakeAuth(GUEST)) });
+    const { result } = renderHook(() => useNavBar(), {
+      wrapper: authWrapper(fakeAuth(GUEST), "/games"),
+    });
     expect(labels(result.current.links)).toEqual(["Games", "Rooms"]);
     expect(labels(result.current.menu)).toEqual(["Profile", "Replay the tour", "Leave as guest"]);
     expect(result.current.username).toBe(GUEST.username);
@@ -24,7 +33,7 @@ describe("useNavBar (VW-NAV-001…012)", () => {
 
   it("a Registered user sees everything", () => {
     const { result } = renderHook(() => useNavBar(), {
-      wrapper: authWrapper(fakeAuth(REGISTERED)),
+      wrapper: authWrapper(fakeAuth(REGISTERED), "/games"),
     });
     expect(labels(result.current.links)).toEqual(["Games", "Rooms", "Friends"]);
     expect(labels(result.current.menu)).toEqual([
@@ -37,7 +46,7 @@ describe("useNavBar (VW-NAV-001…012)", () => {
 
   it("keeps the exit item last and apart from the rest", () => {
     const { result } = renderHook(() => useNavBar(), {
-      wrapper: authWrapper(fakeAuth(REGISTERED)),
+      wrapper: authWrapper(fakeAuth(REGISTERED), "/games"),
     });
     expect(result.current.menu.map((m) => m.group)).toEqual(["main", "main", "main", "exit"]);
   });

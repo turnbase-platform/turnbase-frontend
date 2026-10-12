@@ -45,7 +45,8 @@ test("Unauth: nav, landing and redirects", async ({ browser }) => {
   });
   await page.goto("/");
   await expect(nav(page).getByRole("link", { name: "TurnBase" })).toBeVisible();
-  await expect(nav(page).getByRole("link", { name: "Games" })).toBeVisible();
+  // The landing leads with its own "Browse all games"; the bar does not repeat it there.
+  await expect(nav(page).getByRole("link", { name: "Games" })).toHaveCount(0);
   for (const name of ["Rooms", "Friends"]) {
     await expect(nav(page).getByRole("link", { name })).toHaveCount(0);
   }
