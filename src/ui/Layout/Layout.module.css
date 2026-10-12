@@ -1,0 +1,50 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.stack[data-gap="1"],
+.row[data-gap="1"] {
+  gap: var(--spacing-1);
+}
+.stack[data-gap="2"],
+.row[data-gap="2"] {
+  gap: var(--spacing-2);
+}
+.stack[data-gap="3"],
+.row[data-gap="3"] {
+  gap: var(--spacing-3);
+}
+.stack[data-gap="4"],
+.row[data-gap="4"] {
+  gap: var(--spacing-4);
+}
+.stack[data-gap="5"],
+.row[data-gap="5"] {
+  gap: var(--spacing-5);
+}
+.stack[data-gap="6"],
+.row[data-gap="6"] {
+  gap: var(--spacing-6);
+}
+.stack[data-gap="8"],
+.row[data-gap="8"] {
+  gap: var(--spacing-8);
+}
+.stack[data-gap="10"],
+.row[data-gap="10"] {
+  gap: var(--spacing-10);
+}
+.row[data-between] {
+  justify-content: space-between;
+}
+.row[data-end] {
+  justify-content: flex-end;
+}
+.row[data-nowrap] {
+  flex-wrap: nowrap;
+}

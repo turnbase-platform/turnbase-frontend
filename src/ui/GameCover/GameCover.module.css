@@ -1,0 +1,39 @@
+.cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-element);
+  background:
+    radial-gradient(70% 90% at 50% 40%, var(--cover-glow, var(--tb-glow-a)), transparent 75%),
+    linear-gradient(180deg, var(--color-background-muted), transparent);
+  box-shadow: inset 0 0 0 1px var(--tb-line);
+}
+
+/* CRT scanlines. */
+.cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, var(--tb-scanline) 0 1px, transparent 1px 3px);
+}
+
+.art {
+  width: 44%;
+  max-width: 120px;
+  filter: drop-shadow(0 0 10px var(--cover-glow, var(--tb-glow-a)));
+  transition: transform 0.35s var(--tb-ease);
+}
+
+:global(.astryx-clickable-card:hover) .art,
+:global(.astryx-card:hover) .art {
+  transform: scale(1.08) rotate(-2deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .art {
+    transition: none;
+  }
+}

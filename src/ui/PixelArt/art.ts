@@ -1,11 +1,14 @@
+import { PIECES } from "./pieces";
+
 /**
  * Pixel-art grids: one character per cell, drawn from the `--px-*` palette in the theme —
  * a cyan · b magenta · c amber · d ink · e dim — and `.` for empty.
  *
- * Only the platform's own marks live here. A game's cover art is the game's, served by the
- * catalogue, not drawn by the shell.
+ * The platform's own marks live here, plus the generic pieces of `pieces.ts`. A game's cover art
+ * is the game's, served by the catalogue, not drawn by the shell.
  */
 export const ART: Record<string, readonly string[]> = {
+  ...PIECES,
   // 2x2 board: a player (cyan), the die whose roll is your turn (amber), the dev prompt (ink), a friend (magenta)
   logo: [
     "..a...ccccc",
