@@ -10,10 +10,6 @@
   position: relative;
 }
 
-.picture {
-  display: contents;
-}
-
 .last {
   display: grid;
   align-items: center;

@@ -1,6 +1,6 @@
 import { expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
-import { newPlayer, playAsGuest, uniqueName } from "./support";
+import { googleControls, newPlayer, playAsGuest, uniqueName } from "./support";
 
 // IMP-M8-07: /login, /register, /auth/complete-registration and Play as Guest
 // (VW-LOGIN-001…004, VW-REG-001…003, VW-OAUTHCOMP-001…002, RR-10). At most one real registration
@@ -42,8 +42,10 @@ test("Unauth: login — rows, redirect, wrong password, 429 wait", async ({ brow
     "href",
     "/register?redirect=%2Fgames",
   );
-  // VW-LOGIN-002: this stack has no Google client secret, so the button is absent — not disabled.
-  await expect(page.getByRole("link", { name: "Continue with Google" })).toHaveCount(0);
+  // VW-LOGIN-002: shown when the deployment has a Google client, absent — not disabled — when not.
+  await expect(page.getByRole("link", { name: "Continue with Google" })).toHaveCount(
+    await googleControls(page),
+  );
   await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
 
   await page.getByLabel(/Username or email/).fill("alice");
@@ -85,7 +87,9 @@ test("Unauth: register — rows, server field error beside its field, mismatch",
     await expect(page.getByLabel(label)).toBeVisible();
   }
   await expect(page.getByRole("link", { name: "Log in" }).last()).toHaveAttribute("href", "/login");
-  await expect(page.getByRole("link", { name: "Continue with Google" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Continue with Google" })).toHaveCount(
+    await googleControls(page),
+  );
 
   // Client-side mismatch costs no request.
   await page.getByLabel(/^Password/).fill("Correct-horse-9battery");

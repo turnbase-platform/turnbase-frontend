@@ -24,6 +24,9 @@ export interface NavBarModel {
   menu: NavMenuItem[];
 }
 
+/** Pages whose bar carries no Games link (the signed-in tiers cannot reach the sign-in pages). */
+const BARE_PAGES: ReadonlySet<string> = new Set(["/", "/login", "/register"]);
+
 /**
  * VW-NAV-001…012 (menu copy as the prototype shows it, ADR-0017 §5). Which elements the current tier may see is decided here, so the component only
  * renders what it is given — an element a tier may not see is absent, never disabled
@@ -35,18 +38,18 @@ export function useNavBar(): NavBarModel {
   const { pathname } = useLocation();
   const tour = useTour();
 
-  // The landing page already leads with "Browse all games"; the bar does not repeat it there.
-  const links: NavLinkItem[] =
-    pathname === "/"
-      ? []
-      : [
-          {
-            href: "/games",
-            label: "Games",
-            isSelected: pathname.startsWith("/games"),
-            icon: "games",
-          },
-        ];
+  // The landing page already leads with "Browse all games", and the sign-in pages are a card of
+  // their own; the bar does not offer the catalog on any of them.
+  const links: NavLinkItem[] = BARE_PAGES.has(pathname)
+    ? []
+    : [
+        {
+          href: "/games",
+          label: "Games",
+          isSelected: pathname.startsWith("/games"),
+          icon: "games",
+        },
+      ];
   if (tier !== "unauth") {
     links.push({
       href: "/rooms",

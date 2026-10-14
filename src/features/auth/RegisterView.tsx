@@ -29,7 +29,6 @@ export function RegisterView({ form }: { form: RegisterForm }) {
             startIcon={IUser}
             status={fieldStatus(error, "username")}
             htmlName="username"
-            isRequired
           />
           <TextInput
             label="Email"
@@ -39,7 +38,6 @@ export function RegisterView({ form }: { form: RegisterForm }) {
             startIcon={IMail}
             status={fieldStatus(error, "email")}
             htmlName="email"
-            isRequired
           />
           <TextInput
             label="Password"
@@ -51,7 +49,6 @@ export function RegisterView({ form }: { form: RegisterForm }) {
             status={fieldStatus(error, "password")}
             htmlName="password"
             {...autofill("new-password")}
-            isRequired
           />
           <TextInput
             label="Confirm password"
@@ -61,7 +58,6 @@ export function RegisterView({ form }: { form: RegisterForm }) {
             status={form.mismatch ?? fieldStatus(error, "confirmPassword")}
             htmlName="confirmPassword"
             {...autofill("new-password")}
-            isRequired
           />
           <FormError error={error} />
           <Button

@@ -8,7 +8,7 @@ import {
 } from "@astryxdesign/core/DropdownMenu";
 import { GuestButton } from "../features/auth/GuestButton";
 import { NotificationBell } from "../features/notifications/NotificationBell";
-import { IGames, IRooms, IUsers, Logo, Person, useIndicator } from "../ui";
+import { IGames, IRooms, IUsers, Logo, Person, useDockedBar, useIndicator } from "../ui";
 import { AppearanceMenuGroup } from "./AppearanceMenuGroup";
 import styles from "./NavBar.module.css";
 import type { NavBarModel } from "./useNavBar";
@@ -22,6 +22,7 @@ const ICONS = { games: IGames, rooms: IRooms, friends: IUsers };
  */
 export function NavBar({ model }: { model: NavBarModel }) {
   const { isSignedIn, username, links, menu } = model;
+  const docked = useDockedBar();
   const linkBox = useRef<HTMLDivElement>(null);
   const indicator = useIndicator(
     linkBox,
@@ -75,7 +76,7 @@ export function NavBar({ model }: { model: NavBarModel }) {
                   variant: "ghost",
                 }}
                 hasChevron={false}
-                placement="below"
+                placement={docked ? "above" : "below"}
                 alignment="end"
               >
                 {menu

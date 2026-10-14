@@ -1,0 +1,24 @@
+/* Text fields, as the prototype draws them (ADR-0017): taller than Astryx's default, borderless
+   until focused, and the focus state is a tint of the accent rather than a ring. Astryx keeps the
+   border colour and outline on focus-within and on the inner input, so both are cleared here.
+   Selectors name Astryx's stable component classes; this sheet is unlayered, so it outranks the
+   `astryx-base` layer without `!important`. */
+.astryx-text-input.md,
+.astryx-selector.md {
+  min-height: var(--tb-field-height);
+}
+
+.astryx-text-input {
+  border-color: transparent;
+}
+
+.astryx-text-input:focus-within {
+  background-color: var(--color-accent-muted);
+  border-color: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
+.astryx-text-input :focus-visible {
+  outline: none;
+}

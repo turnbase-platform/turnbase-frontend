@@ -1,6 +1,6 @@
 import { expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
-import { newPlayer, playAsGuest, register, uniqueName } from "./support";
+import { googleControls, newPlayer, playAsGuest, register, uniqueName } from "./support";
 
 // IMP-M8-13: /settings (VW-SET-001…007) as Unauth, Guest and one freshly registered user (the single
 // registration this spec spends). The account is deleted at the end, so the spec leaves nothing behind.
@@ -87,10 +87,12 @@ test("Registered: every form loads, saves and confirms; delete ends the account"
   await page.getByRole("button", { name: "Change password" }).click();
   await expect(page.getByText("Password changed.").first()).toBeVisible();
 
-  // VW-SET-004/005: the compose stack has no Google client, so no link is offered; and no Remove.
+  // VW-SET-004/005: the link is offered only when the stack has a Google client; and no Remove.
   await page.getByRole("tab", { name: "Sign-in" }).click();
   await expect(page.getByRole("heading", { name: "Sign-in methods" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Link Google account" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Link Google account" })).toHaveCount(
+    await googleControls(page),
+  );
   await expect(page.getByRole("button", { name: /^Remove/ })).toHaveCount(0);
 
   // VW-SET-006/006a: private hides the section toggles, public brings them back; both persist.

@@ -3,6 +3,7 @@
    turnbase.theme.ts and ride the built stylesheet, so a colour value is written in one place. */
 :root {
   --tb-gutter: var(--spacing-4);
+  --tb-field-height: 2.75rem; /* text inputs and selectors; fields.css */
 
   /* How strongly the UI answers the cursor: 0 switches the effect off, 1 is full strength. The
      pointer-effect code reads these; the Cursor-effects setting and prefers-reduced-motion

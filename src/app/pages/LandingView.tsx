@@ -2,22 +2,13 @@ import type { ReactNode } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Text } from "@astryxdesign/core/Text";
-import { CheckList, FloatingPiece, IArrow, IPlay, ISparkle } from "../../ui";
+import { CheckList, FloatingPiece, Glass, IArrow, IPlay, ISparkle, Specimen } from "../../ui";
 import { CodeWindow, FriendsCard, Shelf, TableCard } from "./landing/Illustrations";
 import { JumpMap } from "./landing/JumpMap";
 import { Actions, Copy, Screen } from "./landing/Screen";
 import styles from "./LandingView.module.css";
 
 const SDK_URL = "https://github.com/turnbase-platform/turnbase-sdk";
-
-/** A picture that illustrates the copy beside it: sample content, so inert and hidden from AT. */
-function Picture({ children }: { children: ReactNode }) {
-  return (
-    <div className={styles.picture} aria-hidden="true" inert>
-      {children}
-    </div>
-  );
-}
 
 /**
  * VW-LAND-001…004 over five snap screens. `guest` is the Guest button — it owns a session request,
@@ -97,9 +88,9 @@ export function LandingView({
             delay={-1}
             position={{ right: "-5%", bottom: "22%" }}
           />
-          <Picture>
+          <Specimen>
             <TableCard />
-          </Picture>
+          </Specimen>
         </div>
       </Screen>
 
@@ -121,9 +112,9 @@ export function LandingView({
           />
           {showActions && <Button label="Create account" variant="secondary" href="/register" />}
         </Copy>
-        <Picture>
+        <Specimen>
           <FriendsCard />
-        </Picture>
+        </Specimen>
       </Screen>
 
       <Screen id="library">
@@ -137,9 +128,9 @@ export function LandingView({
           </Text>
           <Button label="Browse all games" variant="primary" icon={<IArrow />} href="/games" />
         </Copy>
-        <Picture>
+        <Specimen>
           <Shelf />
-        </Picture>
+        </Specimen>
       </Screen>
 
       <Screen id="build" flip>
@@ -172,7 +163,7 @@ export function LandingView({
 
       <section id="join" className={styles.last}>
         <div className={styles.lastIn}>
-          <div className={`tb-glass ${styles.final}`} data-tilt="2">
+          <Glass className={styles.final}>
             <Heading level={2} type="display-2">
               Your seat is open
             </Heading>
@@ -196,7 +187,7 @@ export function LandingView({
                 />
               </Actions>
             )}
-          </div>
+          </Glass>
           <footer className={styles.foot}>
             <Text type="supporting" color="secondary">
               TurnBase · games that wait for you

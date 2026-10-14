@@ -1,5 +1,5 @@
 import { Popover } from "@astryxdesign/core/Popover";
-import { IBell } from "../../ui";
+import { IBell, useDockedBar } from "../../ui";
 import { NotificationPanel } from "./NotificationPanel";
 import styles from "./NotificationBellView.module.css";
 import type { NotificationBell } from "./useNotificationBell";
@@ -11,12 +11,13 @@ import type { NotificationBell } from "./useNotificationBell";
  */
 export function NotificationBellView({ bell }: { bell: NotificationBell }) {
   const { unread } = bell;
+  const docked = useDockedBar();
   return (
     <Popover
       label="Notifications"
       isOpen={bell.isOpen}
       onOpenChange={bell.setOpen}
-      placement="below"
+      placement={docked ? "above" : "below"}
       alignment="end"
       width={360}
       content={

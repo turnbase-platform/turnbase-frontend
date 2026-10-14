@@ -28,7 +28,7 @@ export function CardPage({
     <div className={styles.page}>
       {art && (
         <div className={styles.art}>
-          <FloatingPiece piece={art} depth={1} size={64} position={{ position: "static" }} />
+          <FloatingPiece piece={art} depth={1} size={72} position={{ position: "static" }} />
         </div>
       )}
       <Card padding={6} elevation="med">

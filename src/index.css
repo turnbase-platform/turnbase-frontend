@@ -7,6 +7,7 @@
 @import "./theme/turnbase.css"; /* @layer astryx-theme — the TurnBase theme, built and committed */
 @import "./theme/tokens.css"; /* our own non-colour --tb-* tokens */
 @import "./theme/surfaces.css"; /* fake glass */
+@import "./theme/fields.css"; /* text-field look */
 
 /* The theme names its fonts but does not load them (design-system.md §2). Self-hosted —
    shell-architecture.md §6's CSP sets font-src 'self', so a Google Fonts <link> would need

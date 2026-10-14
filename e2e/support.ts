@@ -74,6 +74,16 @@ export async function newPlayer(browser: Browser, name: string): Promise<Player>
   return { name, context, page: await context.newPage() };
 }
 
+/**
+ * How many Google controls the stack should render: the deployment answers for itself
+ * (`/api/auth/providers`, VW-LOGIN-002), so the specs hold whether or not a client is configured.
+ */
+export async function googleControls(page: Page): Promise<0 | 1> {
+  const response = await page.request.get("/api/auth/providers");
+  const { google } = (await response.json()) as { google: boolean };
+  return google ? 1 : 0;
+}
+
 export function uniqueName(prefix: string): string {
   return `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 }

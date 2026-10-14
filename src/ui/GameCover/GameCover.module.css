@@ -19,6 +19,15 @@
   aspect-ratio: 4 / 3;
 }
 
+.cover[data-square] {
+  aspect-ratio: 1;
+}
+
+.cover[data-square] .art {
+  width: 66%;
+  filter: drop-shadow(0 0 4px var(--cover-glow, var(--tb-glow-a)));
+}
+
 /* CRT scanlines. */
 .cover::before {
   content: "";

@@ -2,12 +2,12 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
 import { Text } from "@astryxdesign/core/Text";
-import { Chip, GameCover, ICopy, Person, type Cover } from "../../../ui";
+import { Chip, GameCover, Glass, ICheck, ICopy, IEye, Person, type Cover } from "../../../ui";
 import styles from "./Illustrations.module.css";
 
 /*
  * The landing's pictures. They show what the product does with sample people; none of it is read
- * from the platform, so each is inert and hidden from assistive technology.
+ * from the platform, so each is wrapped in a Specimen by the page.
  */
 
 function Seat({
@@ -34,7 +34,7 @@ function Seat({
 /** A lobby with three seats and a line of chat: the hero's table. */
 export function TableCard() {
   return (
-    <div className={`tb-glass ${styles.card}`} data-tilt="7">
+    <Glass tilt={7} className={styles.card}>
       <div className={styles.between}>
         <div>
           <Text type="supporting" color="secondary">
@@ -56,26 +56,67 @@ export function TableCard() {
       <div className={styles.bubble}>
         <b>Rin</b> <span className={styles.muted}>I rewrote the fog rules. Break them.</span>
       </div>
-    </div>
+    </Glass>
   );
 }
 
-const FRIENDS = ["Juno", "Kestrel", "Mara", "Pixel"] as const;
+/** What each friend is doing and what the card offers for it. */
+const FRIENDS: readonly {
+  name: string;
+  note: string;
+  cover: Cover;
+  action: "invited" | "watch" | "invite";
+}[] = [
+  { name: "Juno", note: "Invite sent", cover: { piece: "meeple", tone: "a" }, action: "invited" },
+  {
+    name: "Kestrel",
+    note: "Playing Hexcrawl",
+    cover: { piece: "knight", tone: "b" },
+    action: "watch",
+  },
+  { name: "Mara", note: "Not in a room", cover: { piece: "crown", tone: "c" }, action: "invite" },
+  { name: "Pixel", note: "Not in a room", cover: { piece: "dice", tone: "a" }, action: "invite" },
+];
 
-/** A friends list with an Invite button on every row. */
+function FriendAction({ action }: { action: (typeof FRIENDS)[number]["action"] }) {
+  if (action === "invited") return <Chip icon={<ICheck />}>Invited</Chip>;
+  if (action === "watch") {
+    return <Button size="sm" variant="secondary" label="Watch" icon={<IEye />} />;
+  }
+  return <Button size="sm" variant="secondary" label="Invite" />;
+}
+
+/**
+ * A friends list in three states (invited, in a game you can watch, free to invite) above the room
+ * code to hand to anyone else, cut as a ticket stub.
+ */
 export function FriendsCard() {
   return (
-    <div className={`tb-glass ${styles.card}`} data-tilt="4">
+    <Glass className={styles.card}>
       <div className={styles.between}>
         <Text type="label">Friends</Text>
-        <Button size="sm" variant="secondary" label="Copy room link" icon={<ICopy />} />
+        <Chip>4</Chip>
       </div>
-      {FRIENDS.map((name, index) => (
-        <Seat key={name} name={name}>
-          <Button size="sm" variant={index === 0 ? "primary" : "ghost"} label="Invite" />
-        </Seat>
+      {FRIENDS.map(({ name, note, cover, action }) => (
+        <div key={name} className={styles.seat}>
+          <GameCover square cover={cover} className={styles.pawn} />
+          <span className={styles.friend}>
+            <b>{name}</b>
+            <span className={styles.muted}>{note}</span>
+          </span>
+          <FriendAction action={action} />
+        </div>
       ))}
-    </div>
+      <div className={styles.stub}>
+        <span className={styles.stubCode}>
+          <Text type="supporting" color="secondary">
+            Room code, for anyone
+          </Text>
+          <span className={styles.code}>NOVA-7Q</span>
+        </span>
+        <Button size="sm" variant="ghost" label="Copy" icon={<ICopy />} />
+      </div>
+    </Glass>
   );
 }
 
@@ -129,7 +170,7 @@ export function Shelf() {
     <div className={styles.shelf}>
       {SHELF.map((tile) => (
         <Card key={tile.title} padding={0} elevation="low">
-          <div className={styles.tile} data-fx>
+          <div className={styles.tile}>
             <GameCover cover={tile.cover} />
             <h3 className={styles.tileTitle}>{tile.title}</h3>
             <Badge variant={tile.variant} label={tile.badge} />

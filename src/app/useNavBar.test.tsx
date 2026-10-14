@@ -22,6 +22,11 @@ describe("useNavBar (VW-NAV-001…012)", () => {
     expect(result.current.links).toEqual([]);
   });
 
+  it.each(["/login", "/register"])("the sign-in page %s has no Games link either", (path) => {
+    const { result } = renderHook(() => useNavBar(), { wrapper: authWrapper(fakeAuth(), path) });
+    expect(result.current.links).toEqual([]);
+  });
+
   it("a Guest gains Rooms but not Friends, and has no Account settings", () => {
     const { result } = renderHook(() => useNavBar(), {
       wrapper: authWrapper(fakeAuth(GUEST), "/games"),

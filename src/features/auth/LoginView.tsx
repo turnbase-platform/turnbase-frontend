@@ -29,7 +29,6 @@ export function LoginView({ form }: { form: LoginForm }) {
             status={fieldStatus(error, "usernameOrEmail")}
             htmlName="usernameOrEmail"
             {...autofill("username")}
-            isRequired
           />
           <TextInput
             label="Password"
@@ -40,7 +39,6 @@ export function LoginView({ form }: { form: LoginForm }) {
             status={fieldStatus(error, "password")}
             htmlName="password"
             {...autofill("current-password")}
-            isRequired
           />
           <FormError error={error} unauthorizedMessage="Incorrect username, email or password." />
           <Button

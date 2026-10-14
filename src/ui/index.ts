@@ -34,3 +34,6 @@ export { Chip, type ChipTone } from "./Chip/Chip";
 export { Row, Stack } from "./Layout/Layout";
 export { PageHead } from "./PageHead/PageHead";
 export { CheckList } from "./CheckList/CheckList";
+export { Glass } from "./Glass/Glass";
+export { Specimen } from "./Specimen/Specimen";
+export { useDockedBar } from "./Responsive/useDockedBar";

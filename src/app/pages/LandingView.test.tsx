@@ -83,8 +83,8 @@ describe("LandingView (VW-LAND-001…004)", () => {
 
   it("hides the sample pictures from assistive technology and keeps them out of the tab order", () => {
     show(true);
-    const pictures = document.querySelectorAll('[aria-hidden="true"][inert]');
-    expect(pictures.length).toBe(3);
+    expect(document.querySelectorAll("[data-specimen]").length).toBe(3);
+    expect(document.querySelector("[data-specimen] button[tabindex='-1']")).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Invite" })).toBeNull();
   });
 
