@@ -5,6 +5,8 @@ import type {
   RoomEventEnvelope,
   RoomStateEnvelope,
   RoomStateSnapshot,
+  GameStartStatus,
+  GameStartStatusEnvelope,
 } from "./rooms-types";
 
 const BASE_DELAY_MS = 1_000;
@@ -51,6 +53,8 @@ export interface RoomConnectionHandlers {
   onEvent: (envelope: RoomEventEnvelope) => void;
   onChat: (envelope: ChatMessageEnvelope) => void;
   onError: (error: RoomErrorEnvelope["payload"]) => void;
+  /** Progress of a `START_GAME`, for everyone in the room (`GAME_START_STATUS`). */
+  onStartStatus?: (status: GameStartStatus) => void;
   onConnectionChange?: (connected: boolean) => void;
   /**
    * `true` once an attach dropped by `RATE_LIMIT_EXCEEDED` has used up its retries; `false` again
@@ -356,6 +360,10 @@ export function openRoomConnection(
       }),
       current.subscribe("/user/queue/errors", (message) => {
         handleError(message.body);
+      }),
+      current.subscribe(`/topic/room.${roomId}.start`, (message) => {
+        const envelope = parseOrDrop(message.body) as GameStartStatusEnvelope | undefined;
+        if (envelope?.type === "GAME_START_STATUS") handlers.onStartStatus?.(envelope.payload);
       }),
     ];
     syncChatSubscriptions(current);

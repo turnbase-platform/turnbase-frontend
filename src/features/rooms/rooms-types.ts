@@ -211,6 +211,27 @@ export interface ChatMessageEnvelope {
   };
 }
 
+/**
+ * `room-websocket.md` § `GAME_START_STATUS` — what `START_GAME` is doing, on
+ * `/topic/room.{roomId}.start`. Ephemeral: unversioned and not part of the snapshot.
+ */
+export type GameStartPhase =
+  "STARTING" | "WAITING_FOR_HOST" | "LOADING_GAME" | "RETRYING" | "FAILED";
+
+export type GameStartFailureReason =
+  "NO_HOST_AVAILABLE" | "HOST_UNRESPONSIVE" | "SESSION_CREATION_FAILED";
+
+export interface GameStartStatus {
+  phase: GameStartPhase;
+  /** Present only with `FAILED`. */
+  reason?: GameStartFailureReason;
+}
+
+export interface GameStartStatusEnvelope {
+  type: "GAME_START_STATUS";
+  payload: GameStartStatus;
+}
+
 /** `room-websocket.md` § Error Handling — the `/user/queue/errors` envelope. */
 export interface RoomErrorEnvelope {
   type: "ERROR";

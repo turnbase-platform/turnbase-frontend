@@ -204,7 +204,9 @@ export async function readyAndStart(host: Player, guest: Player): Promise<void> 
   await expect(start).toBeEnabled();
   await start.click();
   for (const p of [host, guest]) {
-    await expect(gameFrame(p.page).locator("[data-cell]")).toHaveCount(9);
+    await expect(gameFrame(p.page).locator("[data-cell]")).toHaveCount(9, {
+      timeout: 90_000, // a wedged game host boot is recovered by its supervisor in about a minute
+    });
   }
 }
 

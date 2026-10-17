@@ -110,6 +110,7 @@ function setConnection(extra: Partial<RoomConnectionState> = {}) {
     ended: null,
     connection: conn,
     gameStalled: false,
+    startStatus: null,
     ...extra,
   } satisfies RoomConnectionState;
   return conn;
@@ -253,6 +254,14 @@ describe("Lobby as a non-host player (VW-RLOBBY-001…004)", () => {
     expect(screen.queryByRole("button", { name: "Start game" })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Kick/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Transfer host/ })).toBeNull();
+  });
+
+  it("shows every participant what the host's Start is doing, and why it failed", async () => {
+    await open({ startStatus: { phase: "WAITING_FOR_HOST" } });
+    expect(screen.getByText(/Waiting for a game server to come online/)).toBeInTheDocument();
+    cleanup();
+    await open({ startStatus: { phase: "FAILED", reason: "NO_HOST_AVAILABLE" } });
+    expect(screen.getByText(/No game server is available right now/)).toBeInTheDocument();
   });
 
   it("leaves the room and returns to the list", async () => {

@@ -13,6 +13,7 @@ export function LobbyControls({
   roomId,
   inviteCode,
   unmet,
+  starting = false,
   onShareInvite,
   onStart,
 }: {
@@ -21,13 +22,17 @@ export function LobbyControls({
   inviteCode?: string;
   /** Why the game cannot start; `null` when the viewer is not the host. */
   unmet: string[] | null;
+  /** A `START_GAME` is in progress — a second one would only queue behind it. */
+  starting?: boolean;
   onShareInvite: () => void;
   onStart: () => void;
 }) {
   if (unmet === null)
     return (
       <Card padding={5} elevation="med">
-        <Text color="secondary">Waiting for the host to start the game.</Text>
+        <Text color="secondary">
+          {starting ? "The host has started the game." : "Waiting for the host to start the game."}
+        </Text>
       </Card>
     );
   return (
@@ -56,7 +61,7 @@ export function LobbyControls({
               label="Start game"
               variant="primary"
               icon={<IPlay />}
-              isDisabled={unmet.length > 0}
+              isDisabled={unmet.length > 0 || starting}
               onClick={onStart}
             />
           </div>

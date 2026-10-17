@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../auth/auth-context";
 import { applyRoomEvent } from "./roomReducer";
 import { openRoomConnection, type RoomConnection, type RoomMembership } from "./roomSocket";
-import type { ChatMessageEnvelope, RoomErrorEnvelope, RoomStateSnapshot } from "./rooms-types";
+import type {
+  ChatMessageEnvelope,
+  GameStartStatus,
+  RoomErrorEnvelope,
+  RoomStateSnapshot,
+} from "./rooms-types";
 
 export interface RoomConnectionState {
   snapshot: RoomStateSnapshot | null;
@@ -14,6 +19,8 @@ export interface RoomConnectionState {
   connection: RoomConnection | null;
   /** The game attach was dropped by the rate limiter and the automatic retries ran out. */
   gameStalled: boolean;
+  /** What the last `START_GAME` is doing; `null` before one begins and once the game has. */
+  startStatus: GameStartStatus | null;
 }
 
 export type RoomEnd = { kind: "CLOSED"; reason: string } | { kind: "KICKED" };
@@ -46,6 +53,7 @@ export function useRoomConnection(
   const [ended, setEnded] = useState<RoomEnd | null>(null);
   const [connection, setConnection] = useState<RoomConnection | null>(null);
   const [gameStalled, setGameStalled] = useState(false);
+  const [startStatus, setStartStatus] = useState<GameStartStatus | null>(null);
   const seenMessageIds = useRef(new Set<string>());
 
   // Adjusting state during render (not in the effect below) on a room change — the React-
@@ -58,6 +66,7 @@ export function useRoomConnection(
     setChatMessages([]);
     setLastError(null);
     setEnded(null);
+    setStartStatus(null);
   }
 
   useEffect(() => {
@@ -72,6 +81,7 @@ export function useRoomConnection(
           conn.setMembership(membershipOf(snap, userId));
         },
         onEvent: (event) => {
+          if (event.type === "GAME_STARTED") setStartStatus(null);
           if (event.type === "ROOM_CLOSED")
             setEnded({ kind: "CLOSED", reason: event.payload.reason });
           if (event.type === "PLAYER_KICKED" && event.payload.playerId === userId) {
@@ -95,6 +105,7 @@ export function useRoomConnection(
           if (error.code === "KICKED") setEnded({ kind: "KICKED" });
           else setLastError(error);
         },
+        onStartStatus: setStartStatus,
         onConnectionChange: setConnected,
         onGameStalled: setGameStalled,
       },
@@ -108,5 +119,14 @@ export function useRoomConnection(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, instanceHint]);
 
-  return { snapshot, connected, chatMessages, lastError, ended, connection, gameStalled };
+  return {
+    snapshot,
+    connected,
+    chatMessages,
+    lastError,
+    ended,
+    connection,
+    gameStalled,
+    startStatus,
+  };
 }

@@ -63,6 +63,7 @@ export function RoomSessionView({ session }: { session: RoomSession }) {
           maxPlayers={session.maxPlayers}
           chatMessages={session.chatMessages}
           lastError={session.lastError}
+          startStatus={session.startStatus}
           onLeave={session.leave}
           onShareInvite={session.shareInvite}
         />

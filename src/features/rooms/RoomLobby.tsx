@@ -4,6 +4,7 @@ import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
 import { Chip, IEye, IRefresh, IUsers, Person } from "../../ui";
 import { ChatPanel } from "./ChatPanel";
+import { GameStartProgress } from "./GameStartProgress";
 import { HostControls } from "./HostControls";
 import { LobbyControls } from "./LobbyControls";
 import { ParticipantRow } from "./ParticipantRow";
@@ -13,10 +14,12 @@ import { RoomSettings } from "./RoomSettings";
 import { SeatBadges } from "./SeatBadges";
 import { unmetStartConditions } from "./roomRules";
 import type { RoomConnection } from "./roomSocket";
+import { isStartInProgress } from "./startStatus";
 import listStyles from "./ParticipantList.module.css";
 import styles from "./RoomLobby.module.css";
 import type {
   ChatMessageEnvelope,
+  GameStartStatus,
   RoomErrorEnvelope,
   RoomResource,
   RoomStateSnapshot,
@@ -34,6 +37,8 @@ export interface RoomLobbyProps {
   maxPlayers: number;
   chatMessages: ChatMessageEnvelope["payload"][];
   lastError: RoomErrorEnvelope["payload"] | null;
+  /** What the last `START_GAME` is doing — shown to every participant. */
+  startStatus?: GameStartStatus | null;
   onLeave: () => void;
   onShareInvite: () => void;
 }
@@ -46,7 +51,8 @@ function describeError(error: RoomErrorEnvelope["payload"]): string {
     return "The game cannot start yet — not every start condition is met.";
   }
   if (error.code === "GAME_START_FAILED") {
-    return "The game could not be started. Please try again.";
+    // The server words this per reason, and says what to do about it.
+    return error.message;
   }
   return error.message;
 }
@@ -76,6 +82,7 @@ export function RoomLobby({
   maxPlayers,
   chatMessages,
   lastError,
+  startStatus = null,
   onLeave,
   onShareInvite,
 }: RoomLobbyProps) {
@@ -87,6 +94,7 @@ export function RoomLobby({
   const playerSlotFree = seated < maxPlayers;
   const spectatorSlotFree = snapshot.spectators.length < snapshot.spectatorCapacity;
   const openSeats = Math.min(Math.max(maxPlayers - seated, 0), MAX_OPEN_SEATS);
+  const starting = isStartInProgress(startStatus);
   const kick = (playerId: string) => {
     connection?.sendHostCommand("KICK_PLAYER", { playerId });
   };
@@ -96,7 +104,9 @@ export function RoomLobby({
       main={
         <>
           {lastError && <Banner status="error" title={describeError(lastError)} />}
+          <GameStartProgress status={startStatus} showFailure={!isHost} />
           <LobbyControls
+            starting={starting}
             roomId={snapshot.roomId}
             inviteCode={inviteCode}
             unmet={unmet}

@@ -66,6 +66,7 @@ function harness() {
     onError: vi.fn(),
     onConnectionChange: vi.fn(),
     onGameStalled: vi.fn(),
+    onStartStatus: vi.fn(),
   };
   const latest = () => FakeStompClient.instances[FakeStompClient.instances.length - 1];
   const connection = openRoomConnection(
@@ -267,6 +268,27 @@ describe("openRoomConnection", () => {
       code: "ROOM_UNAVAILABLE_RETRY",
       message: "busy",
     });
+  });
+
+  it("routes GAME_START_STATUS on the room's start topic to onStartStatus, for a spectator too", () => {
+    const { handlers, latest } = harness();
+    latest().open();
+    expect(latest().isSubscribed(`/topic/room.${ROOM_ID}.start`)).toBe(true);
+    latest().emit(`/topic/room.${ROOM_ID}.start`, {
+      type: "GAME_START_STATUS",
+      payload: { phase: "FAILED", reason: "NO_HOST_AVAILABLE" },
+    });
+    expect(handlers.onStartStatus).toHaveBeenCalledWith({
+      phase: "FAILED",
+      reason: "NO_HOST_AVAILABLE",
+    });
+  });
+
+  it("ignores a start-topic frame that is not a GAME_START_STATUS", () => {
+    const { handlers, latest } = harness();
+    latest().open();
+    latest().emit(`/topic/room.${ROOM_ID}.start`, { type: "SOMETHING_ELSE", payload: {} });
+    expect(handlers.onStartStatus).not.toHaveBeenCalled();
   });
 
   it("reconnects with jittered backoff, and does not assume old subscriptions survived", () => {

@@ -7,7 +7,7 @@ import { LobbyControls } from "./LobbyControls";
 
 const wrapper = authWrapper(fakeAuth(REGISTERED));
 
-function setup(unmet: string[] | null, inviteCode?: string) {
+function setup(unmet: string[] | null, inviteCode?: string, starting = false) {
   const onStart = vi.fn();
   const onShareInvite = vi.fn();
   render(
@@ -15,6 +15,7 @@ function setup(unmet: string[] | null, inviteCode?: string) {
       roomId="r-1"
       inviteCode={inviteCode}
       unmet={unmet}
+      starting={starting}
       onShareInvite={onShareInvite}
       onStart={onStart}
     />,
@@ -24,6 +25,16 @@ function setup(unmet: string[] | null, inviteCode?: string) {
 }
 
 describe("LobbyControls", () => {
+  it("disables Start while a start is in progress, and tells a guest the host has started", () => {
+    setup([], "K7", true);
+    expect(screen.getByRole("button", { name: "Start game" })).toBeDisabled();
+  });
+
+  it("tells a non-host that the host has started the game", () => {
+    setup(null, undefined, true);
+    expect(screen.getByText("The host has started the game.")).toBeInTheDocument();
+  });
+
   it("shows the host the code, the share control and an enabled Start", async () => {
     const { onStart, onShareInvite } = setup([], "K7");
     expect(screen.getByText("K7")).toBeInTheDocument();
