@@ -127,9 +127,11 @@ A run spends two — the wrong password in `auth.spec.ts`, the wrong current pas
 `settings.spec.ts` — so **two runs fit in 24 h and the third fails** on login (seen 2026-10-04); for
 a third, flush the dev stack's Redis (`docker compose exec redis redis-cli flushall`). Stub a failure you only
 need to *render* (as the taken-username `409` is).
-A cold game host can wedge on its first Espresso context after a clean `make up` (every spec that
-starts a game then sees an empty frame): restart `gamehost` and warm it with `game.spec.ts` before
-a run. The flood spec locks `dave` out of `CONNECT` for 30 s, doubling per repeat offence within the hour,
+A game host can wedge on boot (a GraalVM NFI/glibc deadlock, about a third of fresh stacks; ADR-0018): its
+supervisor restarts it and the platform retries, so a start then takes about a minute instead of 3 s —
+`readyAndStart` allows 90 s, and `start-status.spec.ts` asserts the progress lines both players see. No manual
+restart or warm-up is needed.
+The flood spec locks `dave` out of `CONNECT` for 30 s, doubling per repeat offence within the hour,
 and waits for it to lapse.
 `awaitRefilledBudgets` waits 15 s before each game spec: the seeded users' Tier 6
 `subscribe`/`snapshot` buckets must refill between games, and a game started on an empty bucket
