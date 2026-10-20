@@ -78,7 +78,10 @@ export interface StompClientLike {
   subscribe: (
     destination: string,
     callback: (message: { body: string }) => void,
+    headers?: { receipt?: string },
   ) => StompSubscriptionLike;
+  /** Calls back once the server's `RECEIPT` for a frame sent with that `receipt` header arrives. */
+  watchForReceipt: (receiptId: string, callback: () => void) => void;
   readonly connected: boolean;
   onConnect: ((frame: IFrame) => void) | (() => void);
   onWebSocketClose: (evt: unknown) => void;
@@ -180,6 +183,8 @@ export function openRoomConnection(
   let rateLimitRetries = 0;
   let recoveryTimer: unknown = null;
   let watchdogTimer: unknown = null;
+  let receiptCounter = 0;
+  let subscribeRound = 0;
 
   function parseOrDrop(body: string): unknown {
     try {
@@ -308,10 +313,7 @@ export function openRoomConnection(
     if (stopped || !client?.connected) return; // a reconnect re-runs the attach anyway
     // Only what is still missing: every frame re-sent against a bucket that is still refilling
     // is one more drop (`snapshot` refills 1 per 3 s, `subscribe` 1 per s).
-    if (localVersion === null) {
-      subscribeRoom(client);
-      requestRoomState();
-    }
+    if (localVersion === null) subscribeRoom(client);
     if (game !== null && !gameDelivered) syncGameSubscriptions(client);
     armWatchdog();
   }
@@ -347,25 +349,54 @@ export function openRoomConnection(
     armWatchdog();
   }
 
+  /**
+   * `room-websocket.md` § Snapshot Delivery step 3: the snapshot is requested only once the server
+   * has confirmed (`RECEIPT`) every base subscription. The broker registers a `SUBSCRIBE` on an
+   * executor, so a `REQUEST_ROOM_STATE` sent straight after it can be answered before
+   * `/user/queue/room-state` exists, and a delta broadcast in between never reaches
+   * `/topic/room.{roomId}` (a gap the next delta would only repair by a resync). A subscription
+   * the server drops is never confirmed; the attach watchdog re-runs the whole attach.
+   */
   function subscribeRoom(current: StompClientLike) {
     baseSubscriptions.forEach((subscription) => {
       subscription.unsubscribe();
     });
-    baseSubscriptions = [
-      current.subscribe(`/topic/room.${roomId}`, (message) => {
+    const round = ++subscribeRound;
+    const pending = new Set<string>();
+    const subscribeConfirmed = (
+      destination: string,
+      callback: (message: { body: string }) => void,
+    ) => {
+      const receipt = `${roomId}-${String(receiptCounter++)}`;
+      pending.add(receipt);
+      return { subscription: current.subscribe(destination, callback, { receipt }), receipt };
+    };
+    const subscribed = [
+      subscribeConfirmed(`/topic/room.${roomId}`, (message) => {
         handleRoomTopicMessage(message.body);
       }),
-      current.subscribe("/user/queue/room-state", (message) => {
+      subscribeConfirmed("/user/queue/room-state", (message) => {
         handleSnapshot(message.body);
       }),
-      current.subscribe("/user/queue/errors", (message) => {
+      subscribeConfirmed("/user/queue/errors", (message) => {
         handleError(message.body);
       }),
-      current.subscribe(`/topic/room.${roomId}.start`, (message) => {
+      subscribeConfirmed(`/topic/room.${roomId}.start`, (message) => {
         const envelope = parseOrDrop(message.body) as GameStartStatusEnvelope | undefined;
         if (envelope?.type === "GAME_START_STATUS") handlers.onStartStatus?.(envelope.payload);
       }),
     ];
+    baseSubscriptions = subscribed.map((entry) => entry.subscription);
+    subscribed.forEach(({ receipt }) => {
+      current.watchForReceipt(receipt, () => {
+        pending.delete(receipt);
+        // A receipt of a connection that has since been replaced, or of a round this attach has
+        // superseded, must not request a snapshot on the new one.
+        if (pending.size === 0 && !stopped && client === current && round === subscribeRound) {
+          requestRoomState();
+        }
+      });
+    });
     syncChatSubscriptions(current);
   }
 
@@ -385,7 +416,6 @@ export function openRoomConnection(
       rateLimitRetries = 0;
       handlers.onGameStalled?.(false);
       subscribeAll(current);
-      requestRoomState();
     };
 
     current.onWebSocketClose = () => {

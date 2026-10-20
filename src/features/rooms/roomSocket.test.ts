@@ -119,6 +119,38 @@ describe("brokerUrl", () => {
 });
 
 describe("openRoomConnection", () => {
+  it("requests the room snapshot only once every base subscription is confirmed", () => {
+    const { latest } = harness();
+    latest().autoReceipts = false;
+    latest().open();
+    const client = latest();
+    const requests = () =>
+      client.published.filter((p) => p.destination === "/app/room.room-1.member");
+
+    expect(client.subscribeReceipts).toHaveLength(4);
+    expect(requests()).toHaveLength(0);
+    client.confirmReceipts(client.subscribeReceipts.slice(0, 3));
+    expect(requests()).toHaveLength(0);
+    client.confirmReceipts(client.subscribeReceipts.slice(3));
+    expect(requests()).toHaveLength(1);
+    expect(JSON.parse(requests()[0].body)).toMatchObject({ type: "REQUEST_ROOM_STATE" });
+  });
+
+  it("does not request a snapshot for receipts of a connection that has been replaced", () => {
+    const { latest, timers } = harness();
+    latest().autoReceipts = false;
+    latest().open();
+    const stale = latest();
+    stale.close();
+    timers[timers.length - 1].callback(); // the reconnect
+    const fresh = latest();
+    expect(fresh).not.toBe(stale);
+
+    stale.confirmReceipts();
+    expect(stale.published).toHaveLength(0);
+    expect(fresh.published).toHaveLength(0);
+  });
+
   it("assigns localVersion from the snapshot unconditionally, never max()", () => {
     const { handlers, latest } = harness();
     latest().open();

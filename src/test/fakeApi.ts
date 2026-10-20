@@ -104,6 +104,11 @@ export class FakeStompClient {
   /** Every SUBSCRIBE ever sent, including ones later unsubscribed — the server rate-limits these. */
   subscribeCount = 0;
   private subscriptions = new Map<string, ((message: { body: string }) => void)[]>();
+  /** Every `receipt` header sent on a SUBSCRIBE, in order. */
+  subscribeReceipts: string[] = [];
+  /** `false`: the server's `RECEIPT` frames wait for {@link confirmReceipts}. */
+  autoReceipts = true;
+  private receiptWatchers = new Map<string, () => void>();
 
   constructor(readonly brokerURL: string) {
     FakeStompClient.instances.push(this);
@@ -122,8 +127,13 @@ export class FakeStompClient {
     this.published.push(params);
   }
 
-  subscribe(destination: string, callback: (message: { body: string }) => void) {
+  subscribe(
+    destination: string,
+    callback: (message: { body: string }) => void,
+    headers?: { receipt?: string },
+  ) {
     this.subscribeCount += 1;
+    if (headers?.receipt) this.subscribeReceipts.push(headers.receipt);
     this.subscriptions.set(destination, [...(this.subscriptions.get(destination) ?? []), callback]);
     return {
       unsubscribe: () => {
@@ -133,6 +143,23 @@ export class FakeStompClient {
         );
       },
     };
+  }
+
+  watchForReceipt(receiptId: string, callback: () => void) {
+    if (this.autoReceipts) {
+      callback();
+      return;
+    }
+    this.receiptWatchers.set(receiptId, callback);
+  }
+
+  /** Test hook: the server's `RECEIPT` for each of `receiptIds` (all pending ones by default). */
+  confirmReceipts(receiptIds: string[] = [...this.receiptWatchers.keys()]) {
+    receiptIds.forEach((id) => {
+      const watcher = this.receiptWatchers.get(id);
+      this.receiptWatchers.delete(id);
+      watcher?.();
+    });
   }
 
   /** Test hook: pretend the server delivered `body` on `destination`. */
