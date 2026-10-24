@@ -21,6 +21,9 @@ function render(env: Record<string, string>): { config: string; vars: Record<str
     "TURNBASE_GAME_HOST_REGEX",
     "TURNBASE_PLATFORM_HOST",
     "TURNBASE_FRONTEND_UPSTREAM",
+    "TURNBASE_PLATFORM_PORT",
+    "TURNBASE_PLATFORM_PODS_DOMAIN",
+    "TURNBASE_DNS_RESOLVER",
   ];
   const script = `. "${file("15-derive-origins.envsh")}"; ${names
     .map((name) => `printf '%s=%s\\n' ${name} "$${name}"`)
@@ -36,7 +39,7 @@ function render(env: Record<string, string>): { config: string; vars: Record<str
   const config = execFileSync(
     "envsubst",
     [
-      "$TURNBASE_FRAME_SRC $TURNBASE_GAME_HOST_REGEX $TURNBASE_PLATFORM_HOST $TURNBASE_FRONTEND_UPSTREAM",
+      "$TURNBASE_FRAME_SRC $TURNBASE_GAME_HOST_REGEX $TURNBASE_PLATFORM_HOST $TURNBASE_FRONTEND_UPSTREAM $TURNBASE_PLATFORM_PORT $TURNBASE_PLATFORM_PODS_DOMAIN $TURNBASE_DNS_RESOLVER",
     ],
     {
       env: { ...cleanEnv, ...vars },
@@ -157,10 +160,44 @@ describe("routing (local-environment.md §1)", () => {
 
   it("sends the upgrade headers on /ws", () => {
     const { config } = render({});
-    const block = /location \/ws \{[^}]*\}/.exec(config)?.[0] ?? "";
-    expect(block).toContain("proxy_set_header Upgrade $http_upgrade;");
-    expect(block).toContain("proxy_set_header Connection $connection_upgrade;");
-    expect(block).toContain("proxy_set_header Host $http_host;");
+    for (const header of ["location /ws {", "location @ws_service {"]) {
+      const block = config.slice(config.indexOf(header)).split("\n  }\n")[0];
+      expect(block).toContain("proxy_set_header Upgrade $http_upgrade;");
+      expect(block).toContain("proxy_set_header Connection $connection_upgrade;");
+      expect(block).toContain("proxy_set_header Host $http_host;");
+    }
+  });
+
+  // IMP-M18-09 (load-testing-phase-b.md §4.3)
+  it("routes /ws by the instance hint to the pod's headless-Service name, falling back to the Service", () => {
+    const { config, vars } = render({
+      TURNBASE_FRONTEND_UPSTREAM: "tb-platform:8080",
+      TURNBASE_PLATFORM_PODS_DOMAIN: "tb-pods.ns.svc.cluster.local",
+      TURNBASE_DNS_RESOLVER: "10.96.0.10",
+    });
+    expect(vars.TURNBASE_PLATFORM_PORT).toBe("8080");
+    expect(config).toContain("resolver 10.96.0.10 valid=5s ipv6=off;");
+    expect(config).toContain("proxy_pass http://$ws_pod.tb-pods.ns.svc.cluster.local:8080;");
+    expect(config).toContain("error_page 418 502 504 = @ws_service;");
+    expect(config).toMatch(/location @ws_service \{\s+proxy_pass http:\/\/tb-platform:8080;/);
+  });
+
+  it("matches the hint both raw and as the browser encodes it", () => {
+    const { config } = render({});
+    const pattern = /"~(\^\[\^@:%\]\*[^"]+)" \$hinted_pod;/.exec(config)?.[1] ?? "";
+    // nginx's (?<name>...) is PCRE; JavaScript spells it (?<name>...) too.
+    const re = new RegExp(pattern);
+    const hint = "tb-platform-7c57-abcde@10-1-6-38:2f6b";
+    expect(re.exec(hint)?.groups?.hinted_pod).toBe("10-1-6-38");
+    expect(re.exec(encodeURIComponent(hint))?.groups?.hinted_pod).toBe("10-1-6-38");
+    expect(re.test("../../etc")).toBe(false);
+    expect(re.test("x@10-1-6-38.evil.example:1")).toBe(false);
+  });
+
+  it("derives the pods domain and resolver when the deployment sets neither", () => {
+    const { vars } = render({ TURNBASE_FRONTEND_UPSTREAM: "platform:8080" });
+    expect(vars.TURNBASE_PLATFORM_PODS_DOMAIN).toBe("platform");
+    expect(vars.TURNBASE_DNS_RESOLVER).not.toBe("");
   });
 });
 
@@ -168,8 +205,8 @@ describe("forwarded client address (rate-limiting.md § Client identity, IMP-M10
   const { config } = render({});
   const lines = config.split("\n").filter((line) => line.includes("X-Forwarded-For"));
 
-  it("sets X-Forwarded-For wherever it proxies (fall-through, server, /ws)", () => {
-    expect(lines).toHaveLength(3);
+  it("sets X-Forwarded-For wherever it proxies (fall-through, server, /ws, its fallback)", () => {
+    expect(lines).toHaveLength(4);
   });
 
   it("overwrites the header with the observed peer, never appending a client value", () => {

@@ -29,5 +29,17 @@ TURNBASE_PLATFORM_HOST=$(printf '%s' "$TURNBASE_PLATFORM_ORIGIN" |
 TURNBASE_GAME_HOST_REGEX=$(printf '%s' "$TURNBASE_GAME_FRONTEND_ORIGIN_TEMPLATE" |
   sed -E 's#^[A-Za-z][A-Za-z0-9+.-]*://##; s#[/?#].*$##; s#:[0-9]+$##; s#\.#\\.#g; s#\{gameId\}#[a-z0-9-]+#g')
 
+# IMP-M18-09: `/ws` affinity (load-testing-phase-b.md §4.3). The pods' DNS domain is the headless
+# Service's, set by the chart; where it is not set (compose: one instance) it defaults to the
+# upstream's host, a name no pod answers to, so the hint falls back to the Service.
+TURNBASE_PLATFORM_PORT="${TURNBASE_FRONTEND_UPSTREAM##*:}"
+: "${TURNBASE_PLATFORM_PODS_DOMAIN:=${TURNBASE_FRONTEND_UPSTREAM%:*}}"
+if [ -z "${TURNBASE_DNS_RESOLVER:-}" ]; then
+  TURNBASE_DNS_RESOLVER=$(awk '/^nameserver/ { print $2; exit }' /etc/resolv.conf 2>/dev/null)
+  : "${TURNBASE_DNS_RESOLVER:=127.0.0.11}"
+  case "$TURNBASE_DNS_RESOLVER" in *:*) TURNBASE_DNS_RESOLVER="[$TURNBASE_DNS_RESOLVER]" ;; esac
+fi
+
 export TURNBASE_PLATFORM_ORIGIN TURNBASE_GAME_FRONTEND_ORIGIN_TEMPLATE TURNBASE_FRONTEND_UPSTREAM
 export TURNBASE_FRAME_SRC TURNBASE_PLATFORM_HOST TURNBASE_GAME_HOST_REGEX
+export TURNBASE_PLATFORM_PORT TURNBASE_PLATFORM_PODS_DOMAIN TURNBASE_DNS_RESOLVER

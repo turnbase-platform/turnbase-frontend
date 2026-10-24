@@ -12,6 +12,23 @@ map $http_upgrade $connection_upgrade {
   ''      close;
 }
 
+# IMP-M18-09 (load-testing-phase-b.md §4.3): `/ws?instance={podId}` names the pod that owns the room.
+# The hint is `<name>@<a-b-c-d>:<uuid>` (room-lifecycle.md §1.1; a-b-c-d is the pod's address with
+# dashes). A ready pod of the platform's headless Service resolves as `a-b-c-d.<headless domain>`; a
+# pod that is not ready, or gone, does not. Empty when there is no hint or it is not shaped like one,
+# and then the upgrade goes to the regular Service. Only the dashed address is taken from the
+# parameter, so it can name nothing but an endpoint of that Service.
+map $arg_instance $ws_pod {
+  default '';
+  # `$arg_*` is not URL-decoded and the browser's encodeURIComponent turns `@` and `:` into %40 and %3A,
+  # so both spellings match. Quoted: nginx reads an unquoted `{` as the start of a block.
+  "~^[^@:%]*(?:@|%40)(?<hinted_pod>[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3})(?::|%3[Aa])" $hinted_pod;
+}
+
+# The resolver is the container's own (15-derive-origins.envsh). Short TTL: a replaced pod must stop
+# resolving within seconds, and a failed lookup falls back to the Service anyway.
+resolver ${TURNBASE_DNS_RESOLVER} valid=5s ipv6=off;
+
 # IMP-M10-18: the Hosts the fall-through may serve — the games origin, as derived by
 # 15-derive-origins.envsh. The platform host has its own server below.
 map $host $known_game_host {
@@ -87,7 +104,28 @@ server {
 
   # `proxy_set_header` is inherited only by a location that sets none of its own, so this one
   # repeats the server-level four alongside the two upgrade headers.
+  #
+  # IMP-M18-09: with an instance hint the upgrade goes to that pod through the headless Service. No
+  # hint (418, internal), a name that does not resolve or a refused connection (502/504) falls back
+  # to the regular Service in @ws_service: the hint is advisory (FR-DEPLOY-002). The pod is the
+  # target, not a hash of the room (ADR-0008).
   location /ws {
+    error_page 418 502 504 = @ws_service;
+    if ($ws_pod = '') {
+      return 418;
+    }
+    proxy_pass http://$ws_pod.${TURNBASE_PLATFORM_PODS_DOMAIN}:${TURNBASE_PLATFORM_PORT};
+    proxy_connect_timeout 2s;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $http_host;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_read_timeout 1h;
+  }
+
+  location @ws_service {
     proxy_pass http://${TURNBASE_FRONTEND_UPSTREAM};
     proxy_set_header Host $http_host;
     proxy_set_header X-Forwarded-For $remote_addr;
