@@ -6,7 +6,7 @@ The platform frontend. React 19 + TypeScript, built with Vite, served as a stati
 
 | | |
 |---|---|
-| Registry | `../docs/implementation/registry.md` — `IMP-M0-05`, `IMP-M6-01…06`, and M12 (`IMP-M12-01…11`, closed): the TurnBase identity |
+| Registry | `../docs/implementation/registry.md` — `IMP-M0-05`, `IMP-M6-01…06`, M12 (`IMP-M12-01…11`, closed): the TurnBase identity, and M13 (`IMP-M13-01…08`, closed): prototype fidelity |
 | Conventions | `../docs/implementation/conventions.md` — **normative**, §1 *Frontend* and §6 |
 | Design system | `../docs/decisions/0013-astryx-design-system.md` and `0017-turnbase-visual-identity.md` (the look, amending 0013 §4) — **read both before writing any view** |
 | Design | `../docs/specs/platform-frontend/shell-architecture.md`, `design-system.md` |
