@@ -1,0 +1,137 @@
+/* The button is the panel before it opens: one box whose size, radius and opacity change, so the
+   expansion is a growth and not a swap. No backdrop-filter — a tint of the card colour. */
+.dock {
+  position: fixed;
+  left: max(var(--spacing-4), env(safe-area-inset-left, 0px));
+  bottom: max(var(--spacing-4), env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  width: var(--spacing-12);
+  height: var(--spacing-12);
+  overflow: hidden;
+  border: 1px solid var(--tb-line);
+  border-radius: calc(var(--spacing-12) / 2);
+  background: color-mix(in srgb, var(--color-background-popover) 55%, transparent);
+  box-shadow: var(--shadow-low);
+  transition:
+    width 0.3s var(--tb-ease),
+    height 0.3s var(--tb-ease),
+    border-radius 0.3s var(--tb-ease),
+    background-color 0.2s,
+    transform 0.2s var(--tb-ease),
+    box-shadow 0.2s;
+}
+
+/* Opaque and alive under the pointer or the keyboard. */
+.dock:hover,
+.dock:focus-within {
+  background: var(--color-background-popover);
+}
+
+.dock:not([data-open]):hover,
+.dock:not([data-open]):focus-within {
+  transform: translateY(calc(-1 * var(--spacing-1)));
+  box-shadow:
+    0 0 0 var(--spacing-1) var(--tb-glow-a),
+    var(--shadow-med);
+}
+
+.dock[data-open] {
+  width: min(22rem, calc(100vw - var(--spacing-8)));
+  height: min(36rem, calc(100dvh - var(--spacing-8)));
+  border-radius: var(--radius-container);
+  background: var(--color-background-popover);
+}
+
+.mark {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: var(--spacing-12);
+  height: var(--spacing-12);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mark:focus-visible {
+  outline: 2px solid var(--tb-cyan);
+  outline-offset: -2px;
+}
+
+.mark :global(svg) {
+  transition: transform 0.3s var(--tb-ease);
+}
+
+.dock:not([data-open]):hover .mark :global(svg) {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+.warning {
+  position: absolute;
+  top: var(--spacing-2);
+  right: var(--spacing-2);
+  width: var(--spacing-2);
+  height: var(--spacing-2);
+  border-radius: 50%;
+  background: var(--color-warning);
+}
+
+/* Above the mark; the content arrives once the box is big enough to hold it. */
+.panel {
+  position: absolute;
+  inset: 0 0 var(--spacing-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: arrive 0.22s 0.12s var(--tb-ease) both;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock,
+  .mark :global(svg) {
+    transition: background-color 0.2s;
+  }
+
+  .dock:not([data-open]):hover,
+  .dock:not([data-open]):focus-within {
+    transform: none;
+  }
+
+  .dock:not([data-open]):hover .mark :global(svg) {
+    transform: none;
+  }
+
+  .panel {
+    animation: none;
+  }
+}
+
+:root[data-reduce-motion="true"] .dock,
+:root[data-reduce-motion="true"] .mark :global(svg) {
+  transition: background-color 0.2s;
+}
+
+:root[data-reduce-motion="true"] .dock:not([data-open]):hover,
+:root[data-reduce-motion="true"] .dock:not([data-open]):focus-within,
+:root[data-reduce-motion="true"] .dock:not([data-open]):hover .mark :global(svg) {
+  transform: none;
+}
+
+:root[data-reduce-motion="true"] .panel {
+  animation: none;
+}

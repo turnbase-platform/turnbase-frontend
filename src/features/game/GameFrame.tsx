@@ -19,6 +19,8 @@ export interface GameFrameProps {
   teamId: string | null;
   connection: RoomConnection;
   onLog?: (entries: GameLogEntry[]) => void;
+  /** Fill the window instead of a fixed-height strip (`immersive-room.md` §2.1). */
+  fill?: boolean;
 }
 
 /**
@@ -32,6 +34,7 @@ export function GameFrame({
   teamId,
   connection,
   onLog,
+  fill = false,
 }: GameFrameProps) {
   const gameOrigin = useMemo(() => trustedGameOrigin(gameFrontendUrl), [gameFrontendUrl]);
   const frameRef = useRef<HTMLIFrameElement>(null);
@@ -91,9 +94,11 @@ export function GameFrame({
   }
 
   return (
-    <div className={styles.frame}>
-      {failure !== null && <Banner status="error" title={failure} />}
-      {timedOut && <Banner status="warning" title="The game is taking too long to start." />}
+    <div className={styles.frame} data-fill={fill || undefined}>
+      <div className={styles.notices}>
+        {failure !== null && <Banner status="error" title={failure} />}
+        {timedOut && <Banner status="warning" title="The game is taking too long to start." />}
+      </div>
       <iframe
         ref={frameRef}
         title="Game"

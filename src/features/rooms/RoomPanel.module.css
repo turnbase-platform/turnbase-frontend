@@ -1,0 +1,26 @@
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.leave {
+  margin-top: auto;
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.confirm > :first-child {
+  flex: 1 1 100%;
+}

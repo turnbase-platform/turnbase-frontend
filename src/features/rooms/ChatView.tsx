@@ -7,11 +7,31 @@ import { Text } from "@astryxdesign/core/Text";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { ISend } from "../../ui";
+import type { ReactNode } from "react";
 import type { Channel, Chat } from "./useChat";
 import styles from "./ChatView.module.css";
 
-/** VW-RGAME-006…008: the log, tagged `[Room]` or `[Team]` (FR-MSG-003), and the composer. */
-export function ChatView({ chat, tall = false }: { chat: Chat; tall?: boolean }) {
+/**
+ * Where the chat sits: the lobby's `card`, the room panel's `bare` body (no card around it), or the
+ * `floating` window, which supplies its own title bar and so has no heading here.
+ */
+export type ChatChrome = "card" | "bare" | "floating";
+
+/**
+ * VW-RGAME-006…008: the log, tagged `[Room]` or `[Team]` (FR-MSG-003), and the composer. `action`
+ * sits in the heading (the Undock control); a floating chat has no heading and fills its window.
+ */
+export function ChatView({
+  chat,
+  tall = false,
+  chrome = "card",
+  action,
+}: {
+  chat: Chat;
+  tall?: boolean;
+  chrome?: ChatChrome;
+  action?: ReactNode;
+}) {
   const log = useRef<HTMLDivElement>(null);
   const count = chat.log.length;
   // A new message scrolls the log, not the page.
@@ -23,75 +43,83 @@ export function ChatView({ chat, tall = false }: { chat: Chat; tall?: boolean })
   if (!chat.available) return null;
   const label = chat.channel === "TEAM" ? "Message your team" : "Message the room";
 
-  return (
-    <Card padding={0} elevation="low">
-      <div className={styles.chat}>
+  const body = (
+    <div className={styles.chat} data-chrome={chrome}>
+      {chrome !== "floating" && (
         <div className={styles.head}>
           <Heading level={2}>Room chat</Heading>
+          {action}
         </div>
-        <div ref={log} className={styles.log} data-tall={tall || undefined}>
-          {count === 0 && (
-            <Text type="supporting" color="secondary">
-              No messages yet.
-            </Text>
-          )}
-          <ul aria-label="Chat messages" className={styles.list}>
-            {chat.log.map((message) => (
-              <li key={message.messageId}>
-                <ChatMessage sender={message.mine ? "user" : "assistant"} density="compact">
-                  <ChatMessageBubble
-                    variant={message.mine ? undefined : "ghost"}
-                    name={
-                      <>
-                        <span className={styles.tag} data-channel={message.channel}>
-                          [{message.channel === "TEAM" ? "Team" : "Room"}]
-                        </span>{" "}
-                        <span className={styles.author}>{message.authorUsername}</span>
-                      </>
-                    }
-                  >
-                    {message.text}
-                  </ChatMessageBubble>
-                </ChatMessage>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <form onSubmit={chat.submit} className={styles.form}>
-          {chat.teamAvailable && (
-            <SegmentedControl
-              label="Write channel"
-              size="sm"
-              value={chat.channel}
-              onChange={(value) => {
-                chat.setChannel(value as Channel);
-              }}
-            >
-              <SegmentedControlItem value="ROOM" label="Room" />
-              <SegmentedControlItem value="TEAM" label="Team" />
-            </SegmentedControl>
-          )}
-          <div className={styles.compose}>
-            <div className={styles.input}>
-              <TextInput
-                label={label}
-                isLabelHidden
-                placeholder={label}
-                value={chat.text}
-                onChange={chat.setText}
-                htmlName="chat"
-              />
-            </div>
-            <Button
-              label="Send"
-              isIconOnly
-              icon={<ISend size={16} />}
-              type="submit"
-              variant="secondary"
+      )}
+      <div ref={log} className={styles.log} data-tall={tall || undefined}>
+        {count === 0 && (
+          <Text type="supporting" color="secondary">
+            No messages yet.
+          </Text>
+        )}
+        <ul aria-label="Chat messages" className={styles.list}>
+          {chat.log.map((message) => (
+            <li key={message.messageId}>
+              <ChatMessage sender={message.mine ? "user" : "assistant"} density="compact">
+                <ChatMessageBubble
+                  variant={message.mine ? undefined : "ghost"}
+                  name={
+                    <>
+                      <span className={styles.tag} data-channel={message.channel}>
+                        [{message.channel === "TEAM" ? "Team" : "Room"}]
+                      </span>{" "}
+                      <span className={styles.author}>{message.authorUsername}</span>
+                    </>
+                  }
+                >
+                  {message.text}
+                </ChatMessageBubble>
+              </ChatMessage>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <form onSubmit={chat.submit} className={styles.form}>
+        {chat.teamAvailable && (
+          <SegmentedControl
+            label="Write channel"
+            size="sm"
+            value={chat.channel}
+            onChange={(value) => {
+              chat.setChannel(value as Channel);
+            }}
+          >
+            <SegmentedControlItem value="ROOM" label="Room" />
+            <SegmentedControlItem value="TEAM" label="Team" />
+          </SegmentedControl>
+        )}
+        <div className={styles.compose}>
+          <div className={styles.input}>
+            <TextInput
+              label={label}
+              isLabelHidden
+              placeholder={label}
+              value={chat.text}
+              onChange={chat.setText}
+              htmlName="chat"
             />
           </div>
-        </form>
-      </div>
+          <Button
+            label="Send"
+            isIconOnly
+            icon={<ISend size={16} />}
+            type="submit"
+            variant="secondary"
+          />
+        </div>
+      </form>
+    </div>
+  );
+  return chrome === "card" ? (
+    <Card padding={0} elevation="low">
+      {body}
     </Card>
+  ) : (
+    body
   );
 }

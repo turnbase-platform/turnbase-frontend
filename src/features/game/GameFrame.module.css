@@ -12,3 +12,32 @@
   display: block;
   border: 0;
 }
+
+/* Over the game, at the top edge, so a notice never pushes the game down. */
+.frame[data-fill] .notices {
+  position: absolute;
+  inset: var(--spacing-3) var(--spacing-3) auto;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-2);
+  pointer-events: none;
+}
+
+.frame[data-fill] .notices > * {
+  pointer-events: auto;
+}
+
+.frame[data-fill] {
+  position: fixed;
+  inset: 0;
+}
+
+.frame[data-fill] .iframe {
+  height: 100dvh;
+}
+
+.notices {
+  display: contents;
+}

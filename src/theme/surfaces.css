@@ -81,6 +81,12 @@ html.snap {
   }
 }
 
+/* A room showing its game owns the window: the page behind it does not scroll (the shell sets
+   html.immersive, immersive-room.md §2.1). */
+html.immersive {
+  overflow: hidden;
+}
+
 /* No scrollbars anywhere: every scroller still scrolls (wheel, touch, keys), none draws a track. */
 * {
   scrollbar-width: none;

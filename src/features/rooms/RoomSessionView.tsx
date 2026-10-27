@@ -25,6 +25,24 @@ export function RoomSessionView({ session }: { session: RoomSession }) {
     );
   }
 
+  // A game on screen owns the window: no page, header or banner around it (`immersive-room.md`).
+  if (snapshot && connection && game) {
+    return (
+      <RoomGame
+        snapshot={snapshot}
+        game={game}
+        userId={userId}
+        connection={connection}
+        visibility={session.visibility}
+        connected={connected}
+        gameStalled={session.gameStalled}
+        chatMessages={session.chatMessages}
+        onLeave={session.leave}
+        onReturnToLobby={session.returnToLobby}
+      />
+    );
+  }
+
   return (
     <div className={styles.page}>
       {!connected && (
@@ -41,18 +59,7 @@ export function RoomSessionView({ session }: { session: RoomSession }) {
           watching={snapshot.spectators.length}
         />
       )}
-      {snapshot && connection && game ? (
-        <RoomGame
-          snapshot={snapshot}
-          game={game}
-          userId={userId}
-          connection={connection}
-          gameStalled={session.gameStalled}
-          chatMessages={session.chatMessages}
-          onLeave={session.leave}
-          onReturnToLobby={session.returnToLobby}
-        />
-      ) : snapshot ? (
+      {snapshot ? (
         <RoomLobby
           snapshot={snapshot}
           userId={userId}

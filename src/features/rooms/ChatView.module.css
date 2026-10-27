@@ -65,3 +65,19 @@
   flex: 1 1 0;
   min-width: 0;
 }
+
+/* In the room panel the log takes what the panel leaves; in the floating window, the window. */
+.chat[data-chrome="bare"] .log {
+  height: 8rem;
+}
+
+.chat[data-chrome="floating"] {
+  height: 100%;
+  min-height: 0;
+}
+
+.chat[data-chrome="floating"] .log {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 0;
+}

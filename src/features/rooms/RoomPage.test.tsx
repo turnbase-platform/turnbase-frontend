@@ -448,7 +448,18 @@ describe("Invite friends (VW-RLOBBY-005)", () => {
   });
 });
 
-describe("In-game and results views (VW-RGAME-001…005, VW-RRESULT-001…005)", () => {
+/** The room panel is behind the dock while a game is shown (`immersive-room.md` §2.2). */
+async function openPanel() {
+  await userEvent.click(screen.getByRole("button", { name: "Room menu" }));
+}
+
+/** Leave room asks first (VW-RGAME-012): the button, then the confirmation. */
+async function leaveRoom() {
+  await userEvent.click(screen.getByRole("button", { name: "Leave room" }));
+  await userEvent.click(screen.getByRole("button", { name: "Leave" }));
+}
+
+describe("In-game and results views (VW-RGAME-001…016, VW-RRESULT-001…005)", () => {
   const playing = (extra: Partial<RoomStateSnapshot> = {}) =>
     snapshot({
       state: "IN_PROGRESS",
@@ -494,6 +505,7 @@ describe("In-game and results views (VW-RGAME-001…005, VW-RRESULT-001…005)",
         ),
       }),
     );
+    await openPanel();
     const panel = screen.getByRole("list", { name: "Participants" });
     expect(within(panel).getByText("Disconnected")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Kick bob" })).toBeInTheDocument();
@@ -503,9 +515,10 @@ describe("In-game and results views (VW-RGAME-001…005, VW-RRESULT-001…005)",
 
   it("offers no host controls to a non-host, but still Leave", async () => {
     await open(playing());
+    await openPanel();
     expect(screen.queryByRole("button", { name: /^Kick/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Transfer host/ })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "Leave room" }));
+    await leaveRoom();
     await waitFor(() => {
       expect(where()).toBe("/rooms");
     });
@@ -514,6 +527,7 @@ describe("In-game and results views (VW-RGAME-001…005, VW-RRESULT-001…005)",
   it("keeps the same iframe through GAME_ENDED, then Return to Lobby reveals the lobby", async () => {
     const conn = await open(playing({ hostId: "u-1" }));
     const frame = screen.getByTitle("Game");
+    await openPanel();
 
     act(() => {
       mocked.state = {
@@ -590,7 +604,8 @@ describe("Spectator views (VW-RLOBBY-012, 013, 015; VW-RGAME-006)", () => {
       },
     });
     renderAt("/rooms/r-1");
-    await screen.findByRole("heading", { name: heading });
+    if (typeof heading === "string") await screen.findByRole("heading", { name: heading });
+    else await screen.findByTitle("Game");
   }
 
   it("sees the lobby with Switch to player where a seat is free, and no chat or readiness", async () => {
@@ -620,6 +635,7 @@ describe("Spectator views (VW-RLOBBY-012, 013, 015; VW-RGAME-006)", () => {
       /Tic-Tac-Toe/,
     );
     expect(screen.getByTitle("Game")).toBeInTheDocument();
+    await openPanel();
     expect(screen.getByRole("list", { name: "Participants" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Chat" })).toBeNull();
   });
@@ -664,7 +680,11 @@ describe("Reload warning (FR-DC-008)", () => {
       },
     });
     renderAt("/rooms/r-1");
-    await screen.findByRole("heading", { name: "Tic-Tac-Toe" });
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "Tic-Tac-Toe" }) ?? screen.queryByTitle("Game"),
+      ).not.toBeNull();
+    });
   }
 
   it("is registered for a participant in Lobby", async () => {
@@ -675,6 +695,7 @@ describe("Reload warning (FR-DC-008)", () => {
   it("is registered on the results overlay", async () => {
     await open(playing());
     expect(warns()).toBe(false);
+    await openPanel();
     act(() => {
       mocked.state = {
         ...(mocked.state ?? ({} as RoomConnectionState)),

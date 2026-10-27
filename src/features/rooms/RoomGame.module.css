@@ -1,32 +1,11 @@
-.stalled,
-.actions {
+/* The retry notice sits over the game at the top edge, so it never pushes the game down. */
+.stalled {
+  position: fixed;
+  inset: var(--spacing-3) var(--spacing-3) auto;
+  z-index: 30;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-2);
-}
-
-.frame {
-  overflow: hidden;
-}
-
-.bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-3);
-  padding: var(--spacing-3) var(--spacing-4);
-  border-bottom: 1px solid var(--tb-line);
-}
-
-.over {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-3);
-}
-
-.stage {
-  min-width: 0;
 }

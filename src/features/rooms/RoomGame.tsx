@@ -1,14 +1,16 @@
+import { useState } from "react";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
-import { Text } from "@astryxdesign/core/Text";
-import { Chip, IPlay, IRefresh } from "../../ui";
+import { useImmersive } from "../../shared/useImmersive";
+import { IRefresh } from "../../ui";
 import { GameFrame } from "../game/GameFrame";
-import { ChatPanel } from "./ChatPanel";
-import { ParticipantPanel } from "./ParticipantPanel";
-import { RoomLayout } from "./RoomLayout";
+import { FloatingChat } from "./FloatingChat";
+import { RoomDock } from "./RoomDock";
+import { RoomPanel } from "./RoomPanel";
 import styles from "./RoomGame.module.css";
 import type { RoomConnection } from "./roomSocket";
-import type { ChatMessageEnvelope, RoomStateSnapshot } from "./rooms-types";
+import type { ChatMessageEnvelope, RoomResource, RoomStateSnapshot } from "./rooms-types";
+import { useChat } from "./useChat";
 
 export interface RoomGameProps {
   snapshot: RoomStateSnapshot;
@@ -16,6 +18,9 @@ export interface RoomGameProps {
   game: { sessionId: string; gameFrontendUrl: string };
   userId: string | null;
   connection: RoomConnection;
+  visibility?: RoomResource["visibility"];
+  /** The room socket is up; while it is not, the dock says so. */
+  connected?: boolean;
   /** The game stream never arrived because the rate limiter kept dropping the attach. */
   gameStalled?: boolean;
   chatMessages: ChatMessageEnvelope["payload"][];
@@ -24,87 +29,76 @@ export interface RoomGameProps {
 }
 
 /**
- * VW-RGAME-001…005 while the room is `IN_PROGRESS`; VW-RRESULT-001…005 once it is back in `LOBBY`
- * with the game still shown. It is one tree in both states, so the iframe — and the game's own
- * results screen — is never remounted by `GAME_ENDED`; Return to Lobby is what dismisses it.
+ * VW-RGAME-001, 009…016 while the room is `IN_PROGRESS`; VW-RRESULT-001…005 once it is back in
+ * `LOBBY` with the game still shown (`immersive-room.md`). The game fills the window and the
+ * shell's chrome is removed; the room dock and, if the player has undocked it, the floating chat
+ * are all that sit over it. It is one tree in both states, so the iframe — and the game's own
+ * results screen — is never remounted by `GAME_ENDED`; Return to lobby is what dismisses it.
  */
 export function RoomGame({
   snapshot,
   game,
   userId,
   connection,
+  visibility,
+  connected = true,
   gameStalled = false,
   chatMessages,
   onLeave,
   onReturnToLobby,
 }: RoomGameProps) {
-  const over = snapshot.state === "LOBBY";
+  useImmersive();
+  // Held here, above the panel and the window, so a draft and the channel survive a dock or undock.
+  const chat = useChat(snapshot, userId, chatMessages, connection);
+  const [floating, setFloating] = useState(false);
   const me = snapshot.players.find((player) => player.playerId === userId);
-  const seated = snapshot.players.length + snapshot.aiPlayers.length;
 
   return (
-    <RoomLayout
-      main={
-        <>
-          {gameStalled && (
-            <div className={styles.stalled}>
-              <Banner status="error" title="The game could not be loaded — too many requests." />
-              <Button
-                label="Retry"
-                variant="primary"
-                icon={<IRefresh />}
-                onClick={() => {
-                  connection.retryAttach();
-                }}
-              />
-            </div>
-          )}
-          <div className={`${styles.frame} tb-glass`}>
-            <div className={styles.bar}>
-              <Chip tone={over ? "neutral" : "live"}>{over ? "Match over" : "In progress"}</Chip>
-              {over ? (
-                <div className={styles.over}>
-                  <Text type="supporting" color="secondary">
-                    The game is over.
-                  </Text>
-                  <Button
-                    label="Return to lobby"
-                    variant="primary"
-                    size="sm"
-                    icon={<IPlay size={14} />}
-                    onClick={onReturnToLobby}
-                  />
-                </div>
-              ) : (
-                <Text type="supporting" color="secondary">
-                  {`${String(seated)} playing`}
-                </Text>
-              )}
-            </div>
-            <div className={styles.stage}>
-              <GameFrame
-                gameFrontendUrl={game.gameFrontendUrl}
-                sessionId={game.sessionId}
-                teamId={me?.teamId ?? null}
-                connection={connection}
-              />
-            </div>
-          </div>
-          <ParticipantPanel snapshot={snapshot} userId={userId} connection={connection} />
-          <div className={styles.actions}>
-            <Button label="Leave room" variant="secondary" onClick={onLeave} />
-          </div>
-        </>
-      }
-      aside={
-        <ChatPanel
+    <>
+      <GameFrame
+        fill
+        gameFrontendUrl={game.gameFrontendUrl}
+        sessionId={game.sessionId}
+        teamId={me?.teamId ?? null}
+        connection={connection}
+      />
+      {gameStalled && (
+        <div className={styles.stalled}>
+          <Banner status="error" title="The game could not be loaded — too many requests." />
+          <Button
+            label="Retry"
+            variant="primary"
+            icon={<IRefresh />}
+            onClick={() => {
+              connection.retryAttach();
+            }}
+          />
+        </div>
+      )}
+      {floating && chat.available && (
+        <FloatingChat
+          chat={chat}
+          onDock={() => {
+            setFloating(false);
+          }}
+        />
+      )}
+      <RoomDock warning={!connected}>
+        <RoomPanel
           snapshot={snapshot}
           userId={userId}
-          messages={chatMessages}
           connection={connection}
-          compact
+          visibility={visibility}
+          connected={connected}
+          chat={chat}
+          chatFloating={floating}
+          onUndockChat={() => {
+            setFloating(true);
+          }}
+          onLeave={onLeave}
+          onReturnToLobby={onReturnToLobby}
         />
-      }
-    />
+      </RoomDock>
+    </>
   );
 }
