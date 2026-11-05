@@ -10,6 +10,9 @@ COPY . .
 RUN npm run build
 
 FROM nginx:1.31-alpine
+# The base image lags Alpine's fixes (brotli-libs CVE-2026-111497, curl, libexpat); take the patched
+# packages at build time. Drop this once the base catches up.
+RUN apk upgrade --no-cache
 COPY --from=build /app/dist /usr/share/nginx/html
 # Rendered at start, not build: origins are deployment configuration (local-environment.md §7.7).
 # The image's own step substitutes only TURNBASE_* variables, so nginx's `$host` and friends in the
