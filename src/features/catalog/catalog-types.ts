@@ -17,11 +17,21 @@ export interface CatalogGame {
 }
 
 /** `catalog-rest-api.md` §4: `GET /api/games/{gameId}`. */
+/** `catalog-rest-api.md` §4 — the manifest's `credits`. */
+export interface GameCredits {
+  designers: string[];
+  artists?: string[];
+  publisher?: string;
+  year?: number;
+}
+
 export interface GameDetail extends Omit<CatalogGame, "shortDescription"> {
   shortDescription: string;
   /** Raw Markdown source, or `null` when the developer supplied none (FR-GDET-003). */
   infoDocMarkdown: string | null;
   tags: string[];
+  /** The original work this game implements, or `null` for an original game (VW-GDET-004). */
+  credits: GameCredits | null;
   activePlayerCount: number;
   completedSessionCount: number;
 }

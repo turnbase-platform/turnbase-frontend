@@ -116,6 +116,31 @@ export function GameDetailView({ state }: { state: GameDetailState }) {
               </ul>
             </div>
           </Card>
+          {/* VW-GDET-004: only a game that implements an existing game declares credits. */}
+          {game.credits !== null && (
+            <Card padding={5}>
+              <div className={styles.section} role="region" aria-label="Credits">
+                <Heading level={2} type="display-3">
+                  Credits
+                </Heading>
+                <ul className={styles.list}>
+                  <li>Designed by {game.credits.designers.join(", ")}</li>
+                  {game.credits.artists && game.credits.artists.length > 0 && (
+                    <li>Art by {game.credits.artists.join(", ")}</li>
+                  )}
+                  {game.credits.publisher && (
+                    <li>
+                      Published by {game.credits.publisher}
+                      {game.credits.year !== undefined && ", " + String(game.credits.year)}
+                    </li>
+                  )}
+                  {!game.credits.publisher && game.credits.year !== undefined && (
+                    <li>First published {game.credits.year}</li>
+                  )}
+                </ul>
+              </div>
+            </Card>
+          )}
           {/* VW-GDET-002 / FR-GDET-005: loaded once with the page, never pushed. */}
           <Card padding={5}>
             <div className={styles.section}>

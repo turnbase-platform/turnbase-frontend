@@ -15,6 +15,7 @@ const GAME: GameDetail = {
   supportsAi: true,
   supportsSpectators: false,
   tags: ["strategy"],
+  credits: null,
   version: "1.0.0",
   badge: "VERIFIED",
   activePlayerCount: 4,
@@ -66,6 +67,30 @@ describe("GameDetailView", () => {
       wrapper: wrapper("registered"),
     });
     expect(screen.getByRole("button", { name: "Create room" })).toBeInTheDocument();
+  });
+
+  it("VW-GDET-004: credits show only when the game declares them", () => {
+    const { unmount } = render(<GameDetailView state={{ status: "loaded", game: GAME }} />, {
+      wrapper: wrapper(),
+    });
+    expect(screen.queryByRole("region", { name: "Credits" })).not.toBeInTheDocument();
+    unmount();
+    const game: GameDetail = {
+      ...GAME,
+      credits: {
+        designers: ["Antoine Bauza", "Bruno Cathala"],
+        artists: ["Miguel Coimbra"],
+        publisher: "Repos Production",
+        year: 2015,
+      },
+    };
+    render(<GameDetailView state={{ status: "loaded", game }} />, { wrapper: wrapper() });
+    const region = screen.getByRole("region", { name: "Credits" });
+    expect(
+      within(region).getByText("Designed by Antoine Bauza, Bruno Cathala"),
+    ).toBeInTheDocument();
+    expect(within(region).getByText("Art by Miguel Coimbra")).toBeInTheDocument();
+    expect(within(region).getByText("Published by Repos Production, 2015")).toBeInTheDocument();
   });
 
   it("shows a player range", () => {

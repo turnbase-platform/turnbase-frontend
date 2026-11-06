@@ -14,6 +14,7 @@ const detail = (extra: object = {}) => ({
   supportsAi: true,
   supportsSpectators: true,
   tags: ["strategy"],
+  credits: null,
   version: "1.0.0",
   badge: "OFFICIAL",
   activePlayerCount: 4,
