@@ -13,3 +13,4 @@ playwright-report/
 
 # Playwright guest cookie cache (e2e/support.ts)
 .e2e-cache/
+licenses.csv

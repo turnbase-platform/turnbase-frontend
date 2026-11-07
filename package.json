@@ -19,7 +19,8 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run --coverage",
     "e2e": "playwright test",
-    "astryx": "node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs"
+    "astryx": "node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs",
+    "licenses": "npx --yes license-checker-rseidelsohn@5.0.1 --production --excludePrivatePackages --onlyAllow 'MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;OFL-1.1' --excludePackages 'css-mediaquery@0.1.2' --csv --out licenses.csv"
   },
   "dependencies": {
     "@astryxdesign/core": "0.5.2",

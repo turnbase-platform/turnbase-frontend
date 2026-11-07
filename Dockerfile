@@ -8,6 +8,10 @@ RUN npm ci
 
 COPY . .
 RUN npm run build
+# The fonts are SIL OFL 1.1; the licence travels with them (IMP-M21-02). Served at /licenses/.
+RUN mkdir -p dist/licenses \
+ && cp node_modules/@fontsource/figtree/LICENSE dist/licenses/OFL-Figtree.txt \
+ && cp node_modules/@fontsource/pixelify-sans/LICENSE dist/licenses/OFL-Pixelify-Sans.txt
 
 FROM nginx:1.31-alpine
 # The base image lags Alpine's fixes (brotli-libs CVE-2026-111497, curl, libexpat); take the patched
